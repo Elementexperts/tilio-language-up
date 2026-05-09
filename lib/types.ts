@@ -130,7 +130,7 @@ export interface StoreItem {
   id: string
   name: string
   description: string
-  type: 'theme' | 'frame' | 'outfit' | 'color' | 'lesson_pack'
+  type: 'theme' | 'wallpaper' | 'frame' | 'outfit' | 'color' | 'lesson_pack'
   price: number
   icon: string
   preview?: string

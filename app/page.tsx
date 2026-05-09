@@ -16,7 +16,7 @@ import { ProfileScreen } from '@/components/screens/profile-screen'
 import { ReferralScreen } from '@/components/screens/referral-screen'
 import { StoreScreen } from '@/components/screens/store-screen'
 import { DailyChestScreen } from '@/components/screens/daily-chest-screen'
-import { Sparkles, Zap, X } from 'lucide-react'
+import { Feather, PartyPopper, Sparkles, Zap, X } from 'lucide-react'
 import { playRewardSound } from '@/lib/sound'
 
 export default function TilioApp() {
@@ -24,6 +24,7 @@ export default function TilioApp() {
   const updateStreak = useAppStore((state) => state.updateStreak)
   const hasUser = useAppStore((state) => Boolean(state.user))
   const userLastActiveDate = useAppStore((state) => state.user?.lastActiveDate ?? '')
+  const equippedTheme = useAppStore((state) => state.user?.equippedTheme ?? 'classic-green')
   const { isReady } = useTelegram()
   const xpPopups = useAppStore((state) => state.xpPopups)
   const removeXpPopup = useAppStore((state) => state.removeXpPopup)
@@ -51,6 +52,10 @@ export default function TilioApp() {
     }
     previousPopupCountRef.current = xpPopups.length
   }, [xpPopups.length, isSoundEnabled])
+
+  useEffect(() => {
+    document.documentElement.dataset.wallpaper = equippedTheme
+  }, [equippedTheme])
 
   // Render current screen
   const renderScreen = () => {
@@ -89,27 +94,35 @@ export default function TilioApp() {
         {xpPopups.map((popup) => (
           <div
             key={popup.id}
-            className="animate-bounce-in bg-card border border-border shadow-lg rounded-xl px-3 py-2 text-sm font-semibold"
+            className="animate-float-up bg-white/95 border border-primary/15 shadow-xl rounded-2xl px-4 py-2.5 text-sm font-extrabold"
             onAnimationEnd={() => removeXpPopup(popup.id)}
           >
             <span className="inline-flex items-center gap-1">
-              {popup.type === 'xp' ? <Zap className="w-4 h-4 text-primary" /> : <Sparkles className="w-4 h-4 text-emerald-600" />}
+              {popup.type === 'xp' ? <Zap className="w-4 h-4 text-primary" /> : <Feather className="w-4 h-4 text-emerald-600" />}
               +{popup.amount} {popup.type === 'xp' ? 'XP' : 'Feathers'}
             </span>
           </div>
         ))}
       </div>
       {showLevelUpModal && (
-        <div className="fixed inset-0 z-50 bg-background/70 backdrop-blur-[2px] flex items-center justify-center px-4">
-          <div className="w-full max-w-sm rounded-2xl border border-primary/20 bg-card p-6 text-center">
-            <button className="ml-auto block text-muted-foreground" onClick={closeLevelUpModal}>
+        <div className="fixed inset-0 z-50 bg-emerald-950/20 backdrop-blur-sm flex items-center justify-center px-4">
+          <div className="w-full max-w-sm rounded-[2rem] border border-primary/20 bg-gradient-to-br from-white to-emerald-50 p-6 text-center shadow-2xl animate-soft-pop">
+            <button className="ml-auto flex size-9 items-center justify-center rounded-full bg-white/80 text-muted-foreground shadow-sm" onClick={closeLevelUpModal}>
               <X className="w-4 h-4" />
             </button>
-            <p className="text-xs text-primary font-semibold">LEVEL UP</p>
-            <h3 className="text-2xl font-bold mt-1">Level {newLevel}</h3>
+            <div className="mx-auto -mt-2 mb-3 flex size-20 items-center justify-center rounded-[1.75rem] bg-primary text-primary-foreground shadow-lg shadow-primary/25">
+              <PartyPopper className="size-9" />
+            </div>
+            <p className="text-xs text-primary font-extrabold tracking-[0.18em]">LEVEL UP</p>
+            <h3 className="text-3xl font-black mt-1">Level {newLevel}</h3>
             <p className="text-sm text-muted-foreground mt-2">
               Your consistency is paying off. Keep learning daily to unlock more rewards.
             </p>
+            <div className="mt-5 flex justify-center gap-2 text-accent">
+              <Sparkles className="size-5 animate-bounce" />
+              <Sparkles className="size-4 animate-bounce" style={{ animationDelay: '120ms' }} />
+              <Sparkles className="size-5 animate-bounce" style={{ animationDelay: '220ms' }} />
+            </div>
           </div>
         </div>
       )}

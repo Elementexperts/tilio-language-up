@@ -30,7 +30,7 @@ export function SplashScreen() {
     <div className="flex flex-col items-center justify-center min-h-screen bg-primary px-6">
       {/* Logo and Mascot */}
       <div className="flex flex-col items-center gap-6 animate-bounce-in">
-        <SparrowMascot size="xl" mood="happy" />
+        <SparrowMascot size="xl" mood="happy" branded />
         
         <div className="text-center">
           <h1 className="text-5xl font-bold text-primary-foreground tracking-tight">

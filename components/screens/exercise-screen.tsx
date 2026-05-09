@@ -10,8 +10,17 @@ import { useTelegram } from '@/hooks/use-telegram'
 import { cn } from '@/lib/utils'
 import { playAnswerSound } from '@/lib/sound'
 import { buildLessonExercises, seededSort } from '@/lib/exercise-flow'
-import { X, Check, ArrowRight, Sparkles, Zap } from 'lucide-react'
+import { X, Check, ArrowRight, Sparkles, Zap, Volume2 } from 'lucide-react'
 import type { Word } from '@/lib/types'
+
+function getPreferredVoice(lang: string) {
+  if (typeof window === 'undefined' || !('speechSynthesis' in window)) return null
+  const voices = window.speechSynthesis.getVoices()
+  const exact = voices.find((voice) => voice.lang.toLowerCase() === lang.toLowerCase())
+  if (exact) return exact
+  const languagePrefix = lang.split('-')[0].toLowerCase()
+  return voices.find((voice) => voice.lang.toLowerCase().startsWith(languagePrefix)) ?? null
+}
 
 export function ExerciseScreen() {
   const currentLesson = useAppStore((state) => state.currentLesson)
@@ -29,6 +38,7 @@ export function ExerciseScreen() {
   const [isCorrect, setIsCorrect] = useState(false)
   const [showVocabulary, setShowVocabulary] = useState(true)
   const [showCelebration, setShowCelebration] = useState(false)
+  const [isSpeaking, setIsSpeaking] = useState(false)
 
   // Generate exercises from lesson words
   const exercises = useMemo(() => {
@@ -39,6 +49,27 @@ export function ExerciseScreen() {
   const currentExercise = exercises[currentExerciseIndex]
   const totalExercises = exercises.length
   const progressPercent = ((currentExerciseIndex) / totalExercises) * 100
+  const isUzToEn = user?.learningPath === 'uz-en'
+
+  const speakText = useCallback((text: string, lang = 'uz-UZ') => {
+    if (typeof window === 'undefined' || !('speechSynthesis' in window) || !text.trim()) return
+
+    window.speechSynthesis.cancel()
+    const utterance = new SpeechSynthesisUtterance(text)
+    utterance.lang = lang
+    utterance.rate = lang.startsWith('uz') ? 0.86 : 0.92
+    utterance.pitch = 1.05
+    const voice = getPreferredVoice(lang)
+    if (voice) utterance.voice = voice
+    utterance.onstart = () => setIsSpeaking(true)
+    utterance.onend = () => setIsSpeaking(false)
+    utterance.onerror = () => setIsSpeaking(false)
+    window.speechSynthesis.speak(utterance)
+  }, [])
+
+  const speakUzbekWord = useCallback((word: Word) => {
+    speakText(word.uzbek, 'uz-UZ')
+  }, [speakText])
 
   // Setup back button
   useEffect(() => {
@@ -48,6 +79,23 @@ export function ExerciseScreen() {
     })
     return () => hideBackButton()
   }, [showBackButton, hideBackButton, setScreen])
+
+  useEffect(() => {
+    if (!currentExercise) return
+    if (currentExercise.type !== 'vocabulary' || !showVocabulary) return
+    const timer = window.setTimeout(() => speakUzbekWord(currentExercise.word), 350)
+    return () => {
+      window.clearTimeout(timer)
+      if ('speechSynthesis' in window) window.speechSynthesis.cancel()
+      setIsSpeaking(false)
+    }
+  }, [currentExercise, showVocabulary, speakUzbekWord])
+
+  useEffect(() => {
+    if (!currentExercise || currentExercise.type !== 'listening' || isAnswered) return
+    const timer = window.setTimeout(() => speakText(currentExercise.speakText ?? currentExercise.word.uzbek, isUzToEn ? 'uz-UZ' : 'en-US'), 300)
+    return () => window.clearTimeout(timer)
+  }, [currentExercise, isAnswered, isUzToEn, speakText])
 
   const handleAnswer = useCallback((answer: string) => {
     if (isAnswered) return
@@ -80,6 +128,7 @@ export function ExerciseScreen() {
     setIsCorrect(false)
     setShowVocabulary(true)
     setShowCelebration(false)
+    setIsSpeaking(false)
     
     // Check if lesson is complete
     if (currentExerciseIndex + 1 >= totalExercises) {
@@ -100,8 +149,6 @@ export function ExerciseScreen() {
   if (!currentLesson || !currentExercise) {
     return null
   }
-
-  const isUzToEn = user?.learningPath === 'uz-en'
 
   return (
     <div className="tilio-shell flex flex-col">
@@ -150,13 +197,18 @@ export function ExerciseScreen() {
             word={currentExercise.word}
             isUzToEn={isUzToEn}
             onContinue={handleVocabContinue}
+            isSpeaking={isSpeaking}
+            onSpeak={() => speakUzbekWord(currentExercise.word)}
           />
         )}
 
         {/* Translation Exercise */}
         {(currentExercise.type === 'translation' || 
+          currentExercise.type === 'listening' ||
+          currentExercise.type === 'sentence' ||
           (currentExercise.type === 'vocabulary' && !showVocabulary)) && (
           <TranslationExercise
+            type={currentExercise.type === 'vocabulary' ? 'translation' : currentExercise.type}
             word={currentExercise.word}
             options={currentExercise.options || []}
             correctAnswer={currentExercise.correctAnswer}
@@ -164,6 +216,10 @@ export function ExerciseScreen() {
             isAnswered={isAnswered}
             isCorrect={isCorrect}
             isUzToEn={isUzToEn}
+            prompt={currentExercise.prompt}
+            questionText={currentExercise.questionText}
+            isSpeaking={isSpeaking}
+            onReplay={() => speakText(currentExercise.speakText ?? currentExercise.word.uzbek, isUzToEn ? 'uz-UZ' : 'en-US')}
             onAnswer={handleAnswer}
           />
         )}
@@ -243,9 +299,11 @@ interface VocabularyCardProps {
   word: Word
   isUzToEn: boolean
   onContinue: () => void
+  isSpeaking: boolean
+  onSpeak: () => void
 }
 
-function VocabularyCard({ word, isUzToEn, onContinue }: VocabularyCardProps) {
+function VocabularyCard({ word, isUzToEn, onContinue, isSpeaking, onSpeak }: VocabularyCardProps) {
   return (
     <div className="flex flex-1 flex-col items-center justify-center animate-soft-pop">
       <div className="mb-4 flex items-center gap-2 rounded-full bg-white/80 px-3 py-1 text-xs font-extrabold uppercase tracking-[0.16em] text-primary shadow-sm">
@@ -255,8 +313,21 @@ function VocabularyCard({ word, isUzToEn, onContinue }: VocabularyCardProps) {
       
       <Card className="tilio-card w-full max-w-sm rounded-[2rem] p-7 text-center">
         <SparrowMascot size="sm" mood="thinking" branded className="mx-auto mb-4" />
-        <div className="mb-4 text-5xl font-black leading-none text-emerald-950">
-          {isUzToEn ? word.uzbek : word.english}
+        <div className="mb-4 flex items-center justify-center gap-3">
+          <div className="text-5xl font-black leading-none text-emerald-950">
+            {isUzToEn ? word.uzbek : word.english}
+          </div>
+          <button
+            type="button"
+            onClick={onSpeak}
+            className={cn(
+              'tilio-pressed flex size-12 items-center justify-center rounded-2xl bg-primary text-primary-foreground shadow-lg shadow-primary/20',
+              isSpeaking && 'animate-pulse-glow'
+            )}
+            aria-label="Play pronunciation"
+          >
+            <Volume2 className="size-5" />
+          </button>
         </div>
         
         <div className="mb-4 flex items-center justify-center gap-2 text-xl font-black text-muted-foreground">
@@ -291,6 +362,7 @@ function VocabularyCard({ word, isUzToEn, onContinue }: VocabularyCardProps) {
 
 // Translation Exercise Component
 interface TranslationExerciseProps {
+  type: 'translation' | 'listening' | 'sentence'
   word: Word
   options: string[]
   correctAnswer: string
@@ -298,32 +370,65 @@ interface TranslationExerciseProps {
   isAnswered: boolean
   isCorrect: boolean
   isUzToEn: boolean
+  prompt?: string
+  questionText?: string
+  isSpeaking: boolean
+  onReplay: () => void
   onAnswer: (answer: string) => void
 }
 
 function TranslationExercise({
+  type,
   word,
   options,
   correctAnswer,
   selectedAnswer,
   isAnswered,
   isUzToEn,
+  prompt,
+  questionText,
+  isSpeaking,
+  onReplay,
   onAnswer,
 }: TranslationExerciseProps) {
+  const title =
+    type === 'listening'
+      ? 'What did you hear?'
+      : type === 'sentence'
+        ? 'Complete the phrase'
+        : 'Choose the meaning'
+  const eyebrow = type === 'listening' ? 'Listening' : type === 'sentence' ? 'Sentence' : 'Translate'
+  const displayText = questionText ?? (isUzToEn ? word.uzbek : word.english)
+
   return (
-    <div className="flex flex-1 flex-col animate-soft-pop">
+    <div key={`${type}-${word.id}`} className="flex flex-1 flex-col animate-soft-pop">
       <div className="mb-4 flex items-center justify-between">
         <div>
-          <p className="text-xs font-extrabold uppercase tracking-[0.16em] text-primary">Translate</p>
-          <h1 className="text-2xl font-black">Choose the meaning</h1>
+          <p className="text-xs font-extrabold uppercase tracking-[0.16em] text-primary">{eyebrow}</p>
+          <h1 className="text-2xl font-black">{title}</h1>
         </div>
         <SparrowMascot size="sm" mood={isAnswered ? 'celebrating' : 'happy'} branded />
       </div>
       
       <Card className="tilio-card mb-8 rounded-[2rem] p-7">
-        <div className="text-center text-4xl font-black leading-tight text-emerald-950">
-          {isUzToEn ? word.uzbek : word.english}
-        </div>
+        {type === 'listening' ? (
+          <button
+            type="button"
+            onClick={onReplay}
+            className={cn(
+              'tilio-pressed mx-auto flex size-24 items-center justify-center rounded-[2rem] bg-primary text-primary-foreground shadow-xl shadow-primary/25',
+              isSpeaking && 'animate-pulse-glow'
+            )}
+            aria-label="Replay audio"
+          >
+            <Volume2 className="size-10" />
+          </button>
+        ) : (
+          <div className="text-center text-4xl font-black leading-tight text-emerald-950">
+            {displayText}
+          </div>
+        )}
+        {prompt && <p className="mt-4 text-center text-sm font-semibold text-muted-foreground">{prompt}</p>}
       </Card>
 
       <div className="space-y-3">

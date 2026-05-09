@@ -111,6 +111,7 @@ export function ResultScreen() {
         <SparrowMascot 
           size="lg" 
           mood={isPerfect ? 'celebrating' : isGood ? 'happy' : 'thinking'} 
+          branded
           className="mb-6"
         />
 

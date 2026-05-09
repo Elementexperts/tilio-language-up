@@ -15,7 +15,7 @@ export function SparrowMascot({
   mood = 'happy',
   className,
   animate = true,
-  branded = false,
+  branded = true,
 }: SparrowMascotProps) {
   const sizeClasses = {
     sm: 'w-16 h-16',

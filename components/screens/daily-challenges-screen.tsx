@@ -74,27 +74,29 @@ export function DailyChallengesScreen() {
   if (!user) return null
 
   return (
-    <div className="flex flex-col min-h-screen bg-background">
+    <div className="tilio-shell flex flex-col">
       {/* Header */}
-      <header className="sticky top-0 z-10 bg-background/95 backdrop-blur-sm border-b border-border safe-area-top">
-        <div className="flex items-center gap-4 px-4 py-3">
+      <header className="sticky top-0 z-10 safe-area-top">
+        <div className="tilio-container px-4 py-3">
+        <div className="flex items-center gap-4 rounded-[1.6rem] border border-white/70 bg-white/80 px-3 py-2 shadow-lg shadow-emerald-950/5 backdrop-blur-xl">
           <button
             onClick={handleBack}
-            className="p-2 -ml-2 text-muted-foreground hover:text-foreground transition-colors"
+            className="tilio-pressed flex size-10 items-center justify-center rounded-full bg-emerald-50 text-muted-foreground transition-colors hover:text-foreground"
             aria-label="Go back"
           >
             <ArrowLeft className="w-6 h-6" />
           </button>
           <div className="flex-1">
-            <h1 className="text-xl font-bold text-foreground">Daily Goals</h1>
+            <h1 className="text-xl font-black text-foreground">Streak Rewards</h1>
           </div>
+        </div>
         </div>
       </header>
 
       {/* Content */}
-      <main className="flex-1 overflow-y-auto px-4 py-6 pb-24">
+      <main className="tilio-container flex-1 overflow-y-auto px-4 py-4 pb-24">
         {/* Streak Card */}
-        <Card className="p-6 bg-gradient-to-br from-orange-500/10 to-red-500/10 border-orange-500/20 mb-6">
+        <Card className="gap-0 rounded-[2rem] p-6 bg-gradient-to-br from-orange-500/10 to-red-500/10 border-orange-500/20 mb-6 shadow-xl shadow-orange-900/8">
           <div className="flex items-center gap-4 mb-6">
             <div className="w-16 h-16 rounded-2xl bg-orange-500/20 flex items-center justify-center">
               <Flame className={cn(
@@ -104,7 +106,7 @@ export function DailyChallengesScreen() {
             </div>
             <div>
               <p className="text-sm text-muted-foreground">Current Streak</p>
-              <p className="text-4xl font-bold text-foreground">{user.streak} days</p>
+              <p className="text-4xl font-black text-foreground">{user.streak} days</p>
             </div>
           </div>
 
@@ -142,8 +144,8 @@ export function DailyChallengesScreen() {
         </Card>
 
         {/* Streak milestones + freeze */}
-        <Card className="p-4 mb-6 border-orange-500/20">
-          <h3 className="font-semibold text-foreground mb-3">Streak Milestones</h3>
+        <Card className="tilio-card rounded-[1.75rem] p-4 mb-6 border-orange-500/20">
+          <h3 className="font-black text-foreground mb-3">Streak Milestones</h3>
           <div className="grid grid-cols-3 gap-2 mb-4">
             {[3, 7, 30].map((milestone) => {
               const reached = user.streak >= milestone
@@ -151,7 +153,7 @@ export function DailyChallengesScreen() {
                 <div
                   key={milestone}
                   className={cn(
-                    'rounded-xl border p-3 text-center',
+                    'rounded-2xl border p-3 text-center',
                     reached ? 'border-primary bg-primary/10' : 'border-border bg-muted/40'
                   )}
                 >
@@ -254,7 +256,7 @@ export function DailyChallengesScreen() {
             </div>
           ) : (
             <Card className="p-6 text-center">
-              <SparrowMascot size="md" mood="happy" className="mx-auto mb-4" />
+              <SparrowMascot size="md" mood="happy" branded className="mx-auto mb-4" />
               <h3 className="font-semibold text-foreground mb-2">
                 No challenges yet
               </h3>
@@ -266,8 +268,8 @@ export function DailyChallengesScreen() {
         </div>
 
         {/* Tips */}
-        <Card className="p-4 bg-secondary/50 border-secondary">
-          <h3 className="font-semibold text-foreground mb-2">Tips for Success</h3>
+        <Card className="tilio-card rounded-[1.75rem] p-4 bg-secondary/50 border-secondary">
+          <h3 className="font-black text-foreground mb-2">Tips for Success</h3>
           <ul className="space-y-2 text-sm text-muted-foreground">
             <li className="flex items-start gap-2">
               <span className="text-primary">1.</span>
@@ -289,7 +291,7 @@ export function DailyChallengesScreen() {
       <div className="p-6 safe-area-bottom">
         <Button
           onClick={handleStartLesson}
-          className="w-full h-14 text-lg font-semibold rounded-2xl"
+          className="tilio-button w-full h-14 text-lg font-black rounded-2xl"
           size="lg"
         >
           Start Learning

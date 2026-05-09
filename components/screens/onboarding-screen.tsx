@@ -162,7 +162,7 @@ export function OnboardingScreen() {
         {/* Welcome Step */}
         {step === 'welcome' && (
           <div className="flex-1 flex flex-col items-center justify-center text-center animate-bounce-in">
-            <SparrowMascot size="lg" mood="waving" />
+            <SparrowMascot size="lg" mood="waving" branded />
             
             <h1 className="text-3xl font-bold text-foreground mt-6">
               {telegramUser ? `Hey, ${telegramUser.first_name}!` : 'Welcome!'}
@@ -189,7 +189,7 @@ export function OnboardingScreen() {
         {step === 'path' && (
           <div className="flex-1 flex flex-col animate-bounce-in">
             <div className="text-center mb-8">
-              <SparrowMascot size="md" mood="thinking" className="mx-auto" />
+              <SparrowMascot size="md" mood="thinking" branded className="mx-auto" />
               <h2 className="text-2xl font-bold text-foreground mt-4">
                 Choose your path
               </h2>
@@ -241,7 +241,7 @@ export function OnboardingScreen() {
         {step === 'level' && (
           <div className="flex-1 flex flex-col animate-bounce-in">
             <div className="text-center mb-8">
-              <SparrowMascot size="md" mood="happy" className="mx-auto" />
+              <SparrowMascot size="md" mood="happy" branded className="mx-auto" />
               <h2 className="text-2xl font-bold text-foreground mt-4">
                 What&apos;s your level?
               </h2>
@@ -294,7 +294,7 @@ export function OnboardingScreen() {
         {step === 'goal' && (
           <div className="flex-1 flex flex-col animate-bounce-in">
             <div className="text-center mb-8">
-              <SparrowMascot size="md" mood="celebrating" className="mx-auto" />
+              <SparrowMascot size="md" mood="celebrating" branded className="mx-auto" />
               <h2 className="text-2xl font-bold text-foreground mt-4">
                 Set your daily goal
               </h2>

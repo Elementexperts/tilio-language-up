@@ -21,7 +21,8 @@ import {
   ChevronRight,
   LogOut,
   Feather,
-  Sparkles
+  Sparkles,
+  Languages
 } from 'lucide-react'
 
 export function ProfileScreen() {
@@ -30,6 +31,7 @@ export function ProfileScreen() {
   const toggleSound = useAppStore((state) => state.toggleSound)
   const setScreen = useAppStore((state) => state.setScreen)
   const setUser = useAppStore((state) => state.setUser)
+  const updateUser = useAppStore((state) => state.updateUser)
   const { hapticFeedback, showBackButton, hideBackButton } = useTelegram()
 
   useEffect(() => {
@@ -92,6 +94,11 @@ export function ProfileScreen() {
     hapticFeedback('medium')
     setUser(null)
     setScreen('splash')
+  }
+
+  const handleLearningPathChange = (learningPath: 'uz-en' | 'en-uz') => {
+    hapticFeedback('light')
+    updateUser({ learningPath })
   }
 
   return (
@@ -213,6 +220,42 @@ export function ProfileScreen() {
           </p>
           <div className="mt-3 rounded-2xl bg-emerald-50/80 p-3 text-sm font-semibold text-emerald-900">
             Maqsad: {user.dailyGoal} daqiqa / kun. Davom eting, {user.firstName}!
+          </div>
+        </Card>
+
+        <Card className="tilio-card rounded-[1.75rem] p-4 mb-6">
+          <h3 className="font-medium text-foreground mb-3">Interface preference</h3>
+          <div className="mb-3 flex items-center gap-2">
+            <Languages className="size-5 text-primary" />
+            <p className="text-sm text-muted-foreground">
+              UZ -&gt; EN shows English words first with English pronunciation. EN -&gt; UZ shows Uzbek words first.
+            </p>
+          </div>
+          <div className="grid grid-cols-2 gap-2 rounded-2xl bg-emerald-50/70 p-1.5">
+            <button
+              type="button"
+              onClick={() => handleLearningPathChange('uz-en')}
+              className={cn(
+                'tilio-pressed rounded-xl px-3 py-2 text-sm font-black transition-all',
+                user.learningPath === 'uz-en'
+                  ? 'bg-primary text-primary-foreground shadow-lg shadow-primary/20'
+                  : 'text-emerald-900 hover:bg-white/70'
+              )}
+            >
+              UZ -&gt; EN
+            </button>
+            <button
+              type="button"
+              onClick={() => handleLearningPathChange('en-uz')}
+              className={cn(
+                'tilio-pressed rounded-xl px-3 py-2 text-sm font-black transition-all',
+                user.learningPath === 'en-uz'
+                  ? 'bg-primary text-primary-foreground shadow-lg shadow-primary/20'
+                  : 'text-emerald-900 hover:bg-white/70'
+              )}
+            >
+              EN -&gt; UZ
+            </button>
           </div>
         </Card>
 

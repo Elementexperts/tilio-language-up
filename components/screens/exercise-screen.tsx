@@ -67,8 +67,8 @@ export function ExerciseScreen() {
     window.speechSynthesis.speak(utterance)
   }, [])
 
-  const speakUzbekWord = useCallback((word: Word) => {
-    speakText(word.uzbek, 'uz-UZ')
+  const speakNewWord = useCallback((word: Word, pathIsUzToEn: boolean) => {
+    speakText(pathIsUzToEn ? word.english : word.uzbek, pathIsUzToEn ? 'en-US' : 'uz-UZ')
   }, [speakText])
 
   // Setup back button
@@ -83,17 +83,17 @@ export function ExerciseScreen() {
   useEffect(() => {
     if (!currentExercise) return
     if (currentExercise.type !== 'vocabulary' || !showVocabulary) return
-    const timer = window.setTimeout(() => speakUzbekWord(currentExercise.word), 350)
+    const timer = window.setTimeout(() => speakNewWord(currentExercise.word, isUzToEn), 350)
     return () => {
       window.clearTimeout(timer)
       if ('speechSynthesis' in window) window.speechSynthesis.cancel()
       setIsSpeaking(false)
     }
-  }, [currentExercise, showVocabulary, speakUzbekWord])
+  }, [currentExercise, isUzToEn, showVocabulary, speakNewWord])
 
   useEffect(() => {
     if (!currentExercise || currentExercise.type !== 'listening' || isAnswered) return
-    const timer = window.setTimeout(() => speakText(currentExercise.speakText ?? currentExercise.word.uzbek, isUzToEn ? 'uz-UZ' : 'en-US'), 300)
+    const timer = window.setTimeout(() => speakText(currentExercise.speakText ?? (isUzToEn ? currentExercise.word.english : currentExercise.word.uzbek), isUzToEn ? 'en-US' : 'uz-UZ'), 300)
     return () => window.clearTimeout(timer)
   }, [currentExercise, isAnswered, isUzToEn, speakText])
 
@@ -198,7 +198,7 @@ export function ExerciseScreen() {
             isUzToEn={isUzToEn}
             onContinue={handleVocabContinue}
             isSpeaking={isSpeaking}
-            onSpeak={() => speakUzbekWord(currentExercise.word)}
+            onSpeak={() => speakNewWord(currentExercise.word, isUzToEn)}
           />
         )}
 
@@ -219,7 +219,7 @@ export function ExerciseScreen() {
             prompt={currentExercise.prompt}
             questionText={currentExercise.questionText}
             isSpeaking={isSpeaking}
-            onReplay={() => speakText(currentExercise.speakText ?? currentExercise.word.uzbek, isUzToEn ? 'uz-UZ' : 'en-US')}
+            onReplay={() => speakText(currentExercise.speakText ?? (isUzToEn ? currentExercise.word.english : currentExercise.word.uzbek), isUzToEn ? 'en-US' : 'uz-UZ')}
             onAnswer={handleAnswer}
           />
         )}
@@ -304,18 +304,23 @@ interface VocabularyCardProps {
 }
 
 function VocabularyCard({ word, isUzToEn, onContinue, isSpeaking, onSpeak }: VocabularyCardProps) {
+  const newWord = isUzToEn ? word.english : word.uzbek
+  const meaning = isUzToEn ? word.uzbek : word.english
+  const example = isUzToEn ? word.example?.english : word.example?.uzbek
+  const translatedExample = isUzToEn ? word.example?.uzbek : word.example?.english
+
   return (
     <div className="flex flex-1 flex-col items-center justify-center animate-soft-pop">
       <div className="mb-4 flex items-center gap-2 rounded-full bg-white/80 px-3 py-1 text-xs font-extrabold uppercase tracking-[0.16em] text-primary shadow-sm">
         <Sparkles className="size-3.5" />
-        New Word
+        {isUzToEn ? 'English New Word' : 'Yangi o‘zbekcha so‘z'}
       </div>
       
       <Card className="tilio-card w-full max-w-sm rounded-[2rem] p-7 text-center">
         <SparrowMascot size="sm" mood="thinking" branded className="mx-auto mb-4" />
         <div className="mb-4 flex items-center justify-center gap-3">
           <div className="text-5xl font-black leading-none text-emerald-950">
-            {isUzToEn ? word.uzbek : word.english}
+            {newWord}
           </div>
           <button
             type="button"
@@ -333,17 +338,17 @@ function VocabularyCard({ word, isUzToEn, onContinue, isSpeaking, onSpeak }: Voc
         <div className="mb-4 flex items-center justify-center gap-2 text-xl font-black text-muted-foreground">
           <span>=</span>
           <span className="font-medium text-primary">
-            {isUzToEn ? word.english : word.uzbek}
+            {meaning}
           </span>
         </div>
 
-        {word.example && (
+        {example && (
           <div className="mt-6 rounded-2xl bg-emerald-50/80 p-4 text-left">
             <p className="text-sm font-bold text-foreground">
-              {isUzToEn ? word.example.uzbek : word.example.english}
+              {example}
             </p>
             <p className="mt-1 text-sm font-medium text-muted-foreground">
-              {isUzToEn ? word.example.english : word.example.uzbek}
+              {translatedExample}
             </p>
           </div>
         )}
@@ -398,7 +403,7 @@ function TranslationExercise({
         ? 'Complete the phrase'
         : 'Choose the meaning'
   const eyebrow = type === 'listening' ? 'Listening' : type === 'sentence' ? 'Sentence' : 'Translate'
-  const displayText = questionText ?? (isUzToEn ? word.uzbek : word.english)
+  const displayText = questionText ?? (isUzToEn ? word.english : word.uzbek)
 
   return (
     <div key={`${type}-${word.id}`} className="flex flex-1 flex-col animate-soft-pop">
@@ -480,11 +485,11 @@ function MatchingExercise({ words, isUzToEn, onComplete, isAnswered }: MatchingE
   const [matches, setMatches] = useState<Record<string, string>>({})
   const [wrongMatch, setWrongMatch] = useState<string | null>(null)
 
-  const leftItems = words.map((w) => ({ id: w.id, text: isUzToEn ? w.uzbek : w.english }))
+  const leftItems = words.map((w) => ({ id: w.id, text: isUzToEn ? w.english : w.uzbek }))
   const rightItems = useMemo(
     () =>
       seededSort(
-        words.map((w) => ({ id: w.id, text: isUzToEn ? w.english : w.uzbek })),
+        words.map((w) => ({ id: w.id, text: isUzToEn ? w.uzbek : w.english })),
         `matching-${words.map((w) => w.id).join('-')}-${isUzToEn ? 'uz-en' : 'en-uz'}`
       ),
     [words, isUzToEn]

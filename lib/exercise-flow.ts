@@ -81,11 +81,11 @@ export function buildChoiceOptions(
   index: number,
   isUzToEn: boolean
 ) {
-  const correctAnswer = isUzToEn ? word.english : word.uzbek
-  const optionsForWord = (candidate: Word) => (isUzToEn ? candidate.english : candidate.uzbek)
+  const correctAnswer = isUzToEn ? word.uzbek : word.english
+  const optionsForWord = (candidate: Word) => (isUzToEn ? candidate.uzbek : candidate.english)
   const fallbackOptions = isUzToEn
-    ? ['Goodbye', 'Thank you', 'Please', 'Yes', 'No', 'Welcome', 'Good morning']
-    : ['Xayr', 'Rahmat', 'Iltimos', 'Ha', "Yo'q", 'Xush kelibsiz', 'Hayrli tong']
+    ? ['Xayr', 'Rahmat', 'Iltimos', 'Ha', "Yo'q", 'Xush kelibsiz', 'Hayrli tong']
+    : ['Goodbye', 'Thank you', 'Please', 'Yes', 'No', 'Welcome', 'Good morning']
   const wrongOptions = seededSort(
     words.filter((candidate) => candidate.id !== word.id).map(optionsForWord),
     `wrong-${word.id}-${index}-${isUzToEn ? 'uz-en' : 'en-uz'}`
@@ -119,12 +119,11 @@ export function buildLessonExercises(
     )
 
     roundWords.forEach((word, wordIndex) => {
-      const correctAnswer = isUzToEn ? word.english : word.uzbek
+      const correctAnswer = isUzToEn ? word.uzbek : word.english
       const options = buildChoiceOptions(words, word, roundIndex * words.length + wordIndex, isUzToEn)
-      const sourceText = isUzToEn ? word.uzbek : word.english
-      const targetText = isUzToEn ? word.english : word.uzbek
-      const example = isUzToEn ? word.example?.uzbek : word.example?.english
-      const translatedExample = isUzToEn ? word.example?.english : word.example?.uzbek
+      const sourceText = isUzToEn ? word.english : word.uzbek
+      const example = isUzToEn ? word.example?.english : word.example?.uzbek
+      const translatedExample = isUzToEn ? word.example?.uzbek : word.example?.english
 
       exerciseList.push({
         type,

@@ -19,7 +19,9 @@ import {
   Volume2,
   VolumeX,
   ChevronRight,
-  LogOut
+  LogOut,
+  Feather,
+  Sparkles
 } from 'lucide-react'
 
 export function ProfileScreen() {
@@ -92,26 +94,28 @@ export function ProfileScreen() {
   }
 
   return (
-    <div className="flex flex-col min-h-screen bg-background">
+    <div className="tilio-shell flex flex-col">
       {/* Header */}
-      <header className="sticky top-0 z-10 bg-background/95 backdrop-blur-sm border-b border-border safe-area-top">
-        <div className="flex items-center gap-4 px-4 py-3">
+      <header className="sticky top-0 z-10 safe-area-top">
+        <div className="tilio-container px-4 py-3">
+        <div className="flex items-center gap-4 rounded-[1.6rem] border border-white/70 bg-white/80 px-3 py-2 shadow-lg shadow-emerald-950/5 backdrop-blur-xl">
           <button
             onClick={handleBack}
-            className="p-2 -ml-2 text-muted-foreground hover:text-foreground transition-colors"
+            className="tilio-pressed flex size-10 items-center justify-center rounded-full bg-emerald-50 text-muted-foreground transition-colors hover:text-foreground"
             aria-label="Go back"
           >
             <ArrowLeft className="w-6 h-6" />
           </button>
-          <h1 className="text-xl font-bold text-foreground">Profile</h1>
+          <h1 className="text-xl font-black text-foreground">Profile</h1>
+        </div>
         </div>
       </header>
 
       {/* Content */}
-      <main className="flex-1 overflow-y-auto px-4 py-6 pb-24">
+      <main className="tilio-container flex-1 overflow-y-auto px-4 py-4 pb-24">
         {/* Profile Header */}
-        <div className="flex flex-col items-center mb-8">
-          <div className="w-24 h-24 rounded-full bg-primary/10 flex items-center justify-center overflow-hidden mb-4">
+        <div className="mb-5 overflow-hidden rounded-[2rem] bg-gradient-to-br from-emerald-50 to-lime-100 p-6 text-center shadow-xl shadow-emerald-950/8">
+          <div className="mx-auto mb-4 flex size-24 items-center justify-center overflow-hidden rounded-[2rem] bg-primary/10 ring-4 ring-white">
             {user.photoUrl ? (
               <img 
                 src={user.photoUrl} 
@@ -119,51 +123,65 @@ export function ProfileScreen() {
                 className="w-full h-full object-cover"
               />
             ) : (
-              <span className="text-primary font-bold text-4xl">
+                <span className="text-primary font-black text-4xl">
                 {user.firstName.charAt(0)}
               </span>
             )}
           </div>
-          <h2 className="text-2xl font-bold text-foreground">
+          <h2 className="text-2xl font-black text-foreground">
             {user.firstName} {user.lastName || ''}
           </h2>
           {user.username && (
             <p className="text-muted-foreground">@{user.username}</p>
           )}
-          <p className="text-sm text-muted-foreground mt-1">
+          <p className="text-sm font-semibold text-muted-foreground mt-1">
             Learning since {joinDate}
           </p>
+          <div className="mt-4 grid grid-cols-3 gap-2">
+            <div className="rounded-2xl bg-white/80 p-2">
+              <p className="text-xs font-bold text-muted-foreground">Level</p>
+              <p className="text-xl font-black text-primary">{user.userLevel}</p>
+            </div>
+            <div className="rounded-2xl bg-white/80 p-2">
+              <p className="text-xs font-bold text-muted-foreground">Feathers</p>
+              <p className="inline-flex items-center justify-center gap-1 text-xl font-black text-emerald-700"><Feather className="size-4" />{user.feathers}</p>
+            </div>
+            <div className="rounded-2xl bg-white/80 p-2">
+              <p className="text-xs font-bold text-muted-foreground">Freeze</p>
+              <p className="text-xl font-black text-sky-600">{user.streakFreezes}</p>
+            </div>
+          </div>
         </div>
 
         {/* Stats Grid */}
         <div className="grid grid-cols-2 gap-4 mb-6">
-          <Card className="p-4 text-center">
+          <Card className="tilio-card rounded-[1.5rem] p-4 text-center">
             <Zap className="w-6 h-6 text-primary mx-auto mb-2" />
-            <p className="text-2xl font-bold text-foreground">{user.xp}</p>
+            <p className="text-2xl font-black text-foreground">{user.xp}</p>
             <p className="text-sm text-muted-foreground">Total XP</p>
           </Card>
-          <Card className="p-4 text-center">
+          <Card className="tilio-card rounded-[1.5rem] p-4 text-center">
             <Flame className={cn(
               'w-6 h-6 mx-auto mb-2',
               user.streak > 0 ? 'text-orange-500' : 'text-muted-foreground'
             )} />
-            <p className="text-2xl font-bold text-foreground">{user.streak}</p>
+            <p className="text-2xl font-black text-foreground">{user.streak}</p>
             <p className="text-sm text-muted-foreground">Day Streak</p>
           </Card>
-          <Card className="p-4 text-center">
+          <Card className="tilio-card rounded-[1.5rem] p-4 text-center">
             <Book className="w-6 h-6 text-secondary-foreground mx-auto mb-2" />
-            <p className="text-2xl font-bold text-foreground">{completedLessons}</p>
+            <p className="text-2xl font-black text-foreground">{completedLessons}</p>
             <p className="text-sm text-muted-foreground">Lessons Done</p>
           </Card>
-          <Card className="p-4 text-center">
+          <Card className="tilio-card rounded-[1.5rem] p-4 text-center">
             <Trophy className="w-6 h-6 text-accent mx-auto mb-2" />
-            <p className="text-2xl font-bold text-foreground">{unlockedAchievements}</p>
+            <p className="text-2xl font-black text-foreground">{unlockedAchievements}</p>
             <p className="text-sm text-muted-foreground">Achievements</p>
           </Card>
         </div>
 
         {/* Progress Card */}
-        <Card className="p-4 mb-6">
+        <Card className="tilio-card rounded-[1.75rem] p-4 mb-6">
           <div className="flex items-center justify-between mb-3">
             <div className="flex items-center gap-2">
               <Target className="w-5 h-5 text-primary" />
@@ -173,19 +191,20 @@ export function ProfileScreen() {
               {completedLessons}/{totalLessons}
             </span>
           </div>
-          <Progress value={progressPercent} className="h-3" />
+          <Progress value={progressPercent} className="tilio-progress h-3" />
           <p className="text-sm text-muted-foreground mt-2">
             {Math.round(progressPercent)}% complete
           </p>
         </Card>
 
         {/* Badges */}
-        <Card className="p-4 mb-6">
+        <Card className="tilio-card rounded-[1.75rem] p-4 mb-6">
           <h3 className="font-medium text-foreground mb-3">Badge Collection</h3>
           {unlockedBadges.length > 0 ? (
             <div className="grid grid-cols-2 gap-2">
               {unlockedBadges.slice(0, 6).map((badge) => (
                 <div key={badge.id} className="rounded-xl bg-primary/10 border border-primary/20 px-3 py-2">
+                  <Sparkles className="mb-1 size-4 text-accent" />
                   <p className="text-sm font-semibold">{badge.title}</p>
                   <p className="text-xs text-muted-foreground">Unlocked</p>
                 </div>

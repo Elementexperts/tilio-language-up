@@ -1,17 +1,6 @@
 import type { Metadata, Viewport } from 'next'
-import { Nunito, Geist_Mono } from 'next/font/google'
 import Script from 'next/script'
 import './globals.css'
-
-const nunito = Nunito({ 
-  subsets: ['latin', 'cyrillic'],
-  variable: '--font-nunito',
-})
-
-const geistMono = Geist_Mono({ 
-  subsets: ['latin'],
-  variable: '--font-geist-mono',
-})
 
 export const metadata: Metadata = {
   title: 'Tilio - Learn Uzbek & English',
@@ -51,7 +40,7 @@ export default function RootLayout({
   children: React.ReactNode
 }) {
   return (
-    <html suppressHydrationWarning lang="en" className={`${nunito.variable} ${geistMono.variable}`}>
+    <html suppressHydrationWarning lang="en">
       <head>
         <Script 
           src="https://telegram.org/js/telegram-web-app.js" 

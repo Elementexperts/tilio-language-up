@@ -7,7 +7,7 @@ import { useAppStore } from '@/lib/store'
 import { useTelegram } from '@/hooks/use-telegram'
 import { achievementsData } from '@/lib/data/lessons'
 import { cn } from '@/lib/utils'
-import { ArrowLeft, Star, Zap, Flame, Book, Trophy, Medal, Crown, Users, GraduationCap, Lock } from 'lucide-react'
+import { ArrowLeft, Book, Crown, Feather, Flame, GraduationCap, Lock, Medal, PartyPopper, Star, Trophy, Users, Zap } from 'lucide-react'
 
 const iconMap: Record<string, React.ElementType> = {
   star: Star,
@@ -36,11 +36,9 @@ export function AchievementsScreen() {
 
   const achievements = useMemo(() => {
     if (!user) return []
-
     return achievementsData.map((achievement) => {
       let current = 0
       const target = achievement.requirement.value
-
       switch (achievement.requirement.type) {
         case 'xp':
           current = user.xp
@@ -62,144 +60,102 @@ export function AchievementsScreen() {
           break
       }
 
-      const progress = Math.min((current / target) * 100, 100)
-      const isUnlocked = current >= target
-
       return {
         ...achievement,
         current,
-        progress,
-        isUnlocked,
+        progress: Math.min((current / target) * 100, 100),
+        isUnlocked: current >= target,
       }
     })
   }, [user])
 
-  const unlockedCount = achievements.filter((a) => a.isUnlocked).length
-  const totalXpFromAchievements = achievements
-    .filter((a) => a.isUnlocked)
-    .reduce((sum, a) => sum + a.xpReward, 0)
-
-  const handleBack = () => {
-    hapticFeedback('light')
-    setScreen('home')
-  }
-
   if (!user) return null
 
+  const unlockedCount = achievements.filter((achievement) => achievement.isUnlocked).length
+  const totalXpFromAchievements = achievements.filter((achievement) => achievement.isUnlocked).reduce((sum, achievement) => sum + achievement.xpReward, 0)
+
   return (
-    <div className="flex flex-col min-h-screen bg-background">
-      {/* Header */}
-      <header className="sticky top-0 z-10 bg-background/95 backdrop-blur-sm border-b border-border safe-area-top">
-        <div className="flex items-center gap-4 px-4 py-3">
-          <button
-            onClick={handleBack}
-            className="p-2 -ml-2 text-muted-foreground hover:text-foreground transition-colors"
-            aria-label="Go back"
-          >
-            <ArrowLeft className="w-6 h-6" />
-          </button>
-          <div className="flex-1">
-            <h1 className="text-xl font-bold text-foreground">Achievements</h1>
-            <p className="text-sm text-muted-foreground">
-              {unlockedCount}/{achievements.length} unlocked
-            </p>
-          </div>
-          <div className="flex items-center gap-1.5 px-3 py-1.5 bg-accent/20 rounded-full">
-            <Trophy className="w-4 h-4 text-accent" />
-            <span className="text-sm font-bold text-foreground">{totalXpFromAchievements}</span>
+    <div className="tilio-shell flex flex-col">
+      <header className="sticky top-0 z-10 safe-area-top">
+        <div className="tilio-container px-4 py-3">
+          <div className="flex items-center gap-4 rounded-[1.6rem] border border-white/70 bg-white/80 px-3 py-2 shadow-lg shadow-emerald-950/5 backdrop-blur-xl">
+            <button
+              onClick={() => {
+                hapticFeedback('light')
+                setScreen('home')
+              }}
+              className="tilio-pressed flex size-10 items-center justify-center rounded-full bg-emerald-50 text-muted-foreground"
+              aria-label="Go back"
+            >
+              <ArrowLeft className="size-6" />
+            </button>
+            <div className="min-w-0 flex-1">
+              <h1 className="text-xl font-black">Achievements</h1>
+              <p className="text-sm font-semibold text-muted-foreground">{unlockedCount}/{achievements.length} unlocked</p>
+            </div>
+            <div className="flex items-center gap-1.5 rounded-full bg-accent/20 px-3 py-1.5">
+              <Trophy className="size-4 text-accent" />
+              <span className="text-sm font-black">{totalXpFromAchievements}</span>
+            </div>
           </div>
         </div>
       </header>
 
-      {/* Achievements List */}
-      <main className="flex-1 overflow-y-auto px-4 py-6 pb-24">
-        <div className="space-y-4">
+      <main className="tilio-container flex-1 overflow-y-auto px-4 py-4 pb-24">
+        <section className="mb-4 overflow-hidden rounded-[2rem] bg-gradient-to-br from-emerald-600 to-lime-500 p-5 text-white shadow-2xl shadow-emerald-900/15">
+          <div className="flex items-center gap-4">
+            <div className="flex size-16 items-center justify-center rounded-[1.35rem] bg-white/18">
+              <PartyPopper className="size-8" />
+            </div>
+            <div>
+              <p className="text-sm font-bold text-white/75">Badge collection</p>
+              <h2 className="text-3xl font-black">{unlockedCount} unlocked</h2>
+            </div>
+          </div>
+        </section>
+
+        <div className="grid grid-cols-2 gap-3">
           {achievements.map((achievement) => {
             const IconComponent = iconMap[achievement.icon] || Star
+            const title = user.learningPath === 'uz-en' ? achievement.title : achievement.titleUz
+            const description = user.learningPath === 'uz-en' ? achievement.description : achievement.descriptionUz
 
             return (
               <Card
                 key={achievement.id}
                 className={cn(
-                  'p-4 transition-all duration-200',
-                  achievement.isUnlocked
-                    ? 'bg-primary/5 border-primary/20'
-                    : 'opacity-80'
+                  'tilio-pressed gap-0 rounded-[1.55rem] p-4 transition-all duration-200',
+                  achievement.isUnlocked ? 'border-primary/20 bg-white/90 shadow-xl shadow-primary/10' : 'border-white/70 bg-white/55 opacity-85',
                 )}
               >
-                <div className="flex items-start gap-4">
-                  {/* Icon */}
-                  <div
-                    className={cn(
-                      'w-14 h-14 rounded-2xl flex items-center justify-center',
-                      achievement.isUnlocked
-                        ? 'bg-primary text-primary-foreground'
-                        : 'bg-muted text-muted-foreground'
-                    )}
-                  >
-                    {achievement.isUnlocked ? (
-                      <IconComponent className="w-7 h-7" />
-                    ) : (
-                      <Lock className="w-6 h-6" />
-                    )}
-                  </div>
-
-                  {/* Content */}
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-center justify-between gap-2">
-                      <h3 className={cn(
-                        'font-semibold',
-                        achievement.isUnlocked ? 'text-foreground' : 'text-muted-foreground'
-                      )}>
-                        {user.learningPath === 'uz-en' 
-                          ? achievement.title 
-                          : achievement.titleUz
-                        }
-                      </h3>
-                      <span className={cn(
-                        'text-sm font-medium',
-                        achievement.isUnlocked ? 'text-primary' : 'text-muted-foreground'
-                      )}>
-                        +{achievement.xpReward} XP
-                      </span>
-                      {!!achievement.featherReward && (
-                        <span className={cn(
-                          'text-sm font-medium',
-                          achievement.isUnlocked ? 'text-emerald-700' : 'text-muted-foreground'
-                        )}>
-                          +{achievement.featherReward} 🪶
-                        </span>
-                      )}
-                    </div>
-
-                    <p className="text-sm text-muted-foreground mt-1">
-                      {user.learningPath === 'uz-en' 
-                        ? achievement.description 
-                        : achievement.descriptionUz
-                      }
-                    </p>
-
-                    {/* Progress */}
-                    {!achievement.isUnlocked && (
-                      <div className="mt-3">
-                        <div className="flex items-center justify-between text-xs text-muted-foreground mb-1">
-                          <span>Progress</span>
-                          <span>
-                            {achievement.current}/{achievement.requirement.value}
-                          </span>
-                        </div>
-                        <Progress value={achievement.progress} className="h-2" />
-                      </div>
-                    )}
-
-                    {achievement.isUnlocked && (
-                      <div className="flex items-center gap-1 mt-2 text-primary">
-                        <Star className="w-4 h-4 fill-current" />
-                        <span className="text-sm font-medium">Unlocked!</span>
-                      </div>
-                    )}
-                  </div>
+                <div className={cn('mb-3 flex size-14 items-center justify-center rounded-2xl', achievement.isUnlocked ? 'bg-primary text-primary-foreground shadow-lg shadow-primary/25' : 'bg-muted text-muted-foreground')}>
+                  {achievement.isUnlocked ? <IconComponent className="size-7" /> : <Lock className="size-6" />}
                 </div>
+                <h3 className={cn('font-black leading-tight', achievement.isUnlocked ? 'text-foreground' : 'text-muted-foreground')}>{title}</h3>
+                <p className="mt-2 min-h-10 text-xs font-semibold leading-4 text-muted-foreground">{description}</p>
+                <div className="mt-3 flex flex-wrap gap-1.5 text-xs font-black">
+                  <span className={achievement.isUnlocked ? 'text-primary' : 'text-muted-foreground'}>+{achievement.xpReward} XP</span>
+                  {!!achievement.featherReward && (
+                    <span className={cn('inline-flex items-center gap-1', achievement.isUnlocked ? 'text-emerald-700' : 'text-muted-foreground')}>
+                      <Feather className="size-3" />
+                      +{achievement.featherReward}
+                    </span>
+                  )}
+                </div>
+                {!achievement.isUnlocked ? (
+                  <div className="mt-3">
+                    <div className="mb-1 flex items-center justify-between text-xs font-bold text-muted-foreground">
+                      <span>Progress</span>
+                      <span>{achievement.current}/{achievement.requirement.value}</span>
+                    </div>
+                    <Progress value={achievement.progress} className="h-2" />
+                  </div>
+                ) : (
+                  <div className="mt-3 inline-flex items-center gap-1 rounded-full bg-primary/10 px-2.5 py-1 text-xs font-black text-primary">
+                    <Star className="size-3 fill-current" />
+                    Unlocked
+                  </div>
+                )}
               </Card>
             )
           })}

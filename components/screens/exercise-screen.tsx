@@ -4,12 +4,13 @@ import { useState, useMemo, useCallback, useEffect } from 'react'
 import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
 import { Progress } from '@/components/ui/progress'
+import { SparrowMascot } from '@/components/sparrow-mascot'
 import { useAppStore } from '@/lib/store'
 import { useTelegram } from '@/hooks/use-telegram'
 import { cn } from '@/lib/utils'
 import { playAnswerSound } from '@/lib/sound'
 import { buildLessonExercises, seededSort } from '@/lib/exercise-flow'
-import { X, Check, ArrowRight } from 'lucide-react'
+import { X, Check, ArrowRight, Sparkles, Zap } from 'lucide-react'
 import type { Word } from '@/lib/types'
 
 export function ExerciseScreen() {
@@ -27,6 +28,7 @@ export function ExerciseScreen() {
   const [isAnswered, setIsAnswered] = useState(false)
   const [isCorrect, setIsCorrect] = useState(false)
   const [showVocabulary, setShowVocabulary] = useState(true)
+  const [showCelebration, setShowCelebration] = useState(false)
 
   // Generate exercises from lesson words
   const exercises = useMemo(() => {
@@ -58,6 +60,8 @@ export function ExerciseScreen() {
     
     if (correct) {
       hapticFeedback('success')
+      setShowCelebration(true)
+      window.setTimeout(() => setShowCelebration(false), 900)
     } else {
       hapticFeedback('error')
     }
@@ -75,6 +79,7 @@ export function ExerciseScreen() {
     setIsAnswered(false)
     setIsCorrect(false)
     setShowVocabulary(true)
+    setShowCelebration(false)
     
     // Check if lesson is complete
     if (currentExerciseIndex + 1 >= totalExercises) {
@@ -99,26 +104,46 @@ export function ExerciseScreen() {
   const isUzToEn = user?.learningPath === 'uz-en'
 
   return (
-    <div className="flex flex-col min-h-screen bg-background">
+    <div className="tilio-shell flex flex-col">
+      {showCelebration && (
+        <div className="pointer-events-none fixed inset-0 z-40 overflow-hidden">
+          {Array.from({ length: 12 }).map((_, index) => (
+            <Sparkles
+              key={index}
+              className="absolute size-5 animate-confetti text-accent"
+              style={{
+                left: `${10 + ((index * 17) % 78)}%`,
+                top: `${35 + ((index * 11) % 28)}%`,
+                animationDelay: `${index * 45}ms`,
+              }}
+            />
+          ))}
+          <div className="absolute left-1/2 top-1/3 -translate-x-1/2 animate-float-up rounded-full bg-white px-4 py-2 text-sm font-black text-primary shadow-xl">
+            <span className="inline-flex items-center gap-1"><Zap className="size-4" /> +5 XP</span>
+          </div>
+        </div>
+      )}
       {/* Header */}
-      <header className="sticky top-0 z-10 bg-background px-4 py-3 safe-area-top">
-        <div className="flex items-center gap-4">
+      <header className="sticky top-0 z-10 safe-area-top">
+        <div className="tilio-container px-4 py-3">
+        <div className="flex items-center gap-4 rounded-[1.5rem] border border-white/70 bg-white/80 p-2 shadow-lg shadow-emerald-950/5 backdrop-blur-xl">
           <button
             onClick={handleExit}
-            className="p-2 -ml-2 text-muted-foreground hover:text-foreground transition-colors"
+            className="tilio-pressed flex size-10 items-center justify-center rounded-full bg-emerald-50 text-muted-foreground transition-colors hover:text-foreground"
             aria-label="Exit lesson"
           >
             <X className="w-6 h-6" />
           </button>
-          <Progress value={progressPercent} className="flex-1 h-3" />
-          <span className="text-sm font-medium text-muted-foreground">
+          <Progress value={progressPercent} className="tilio-progress h-3 flex-1" />
+          <span className="pr-2 text-sm font-black text-muted-foreground">
             {currentExerciseIndex + 1}/{totalExercises}
           </span>
+        </div>
         </div>
       </header>
 
       {/* Exercise Content */}
-      <main className="flex-1 flex flex-col px-6 py-4">
+      <main className="tilio-container flex flex-1 flex-col px-5 py-4">
         {/* Vocabulary Introduction */}
         {currentExercise.type === 'vocabulary' && showVocabulary && (
           <VocabularyCard 
@@ -165,25 +190,29 @@ export function ExerciseScreen() {
       {/* Bottom Action */}
       {isAnswered && (
         <div className={cn(
-          'p-6 safe-area-bottom',
+          'relative z-20 safe-area-bottom',
           isCorrect ? 'bg-primary/10' : 'bg-destructive/10'
         )}>
-          <div className="flex items-center gap-3 mb-4">
+          <div className="tilio-container p-5">
+          <div className="mb-4 flex items-center gap-3">
             {isCorrect ? (
               <>
-                <div className="w-8 h-8 rounded-full bg-primary flex items-center justify-center">
+                <div className="flex size-10 items-center justify-center rounded-2xl bg-primary text-primary-foreground shadow-lg shadow-primary/25">
                   <Check className="w-5 h-5 text-primary-foreground" />
                 </div>
-                <span className="font-semibold text-primary">Correct!</span>
+                <div>
+                  <span className="text-lg font-black text-primary">Correct!</span>
+                  <p className="text-sm font-semibold text-muted-foreground">Nice answer. Keep the rhythm.</p>
+                </div>
               </>
             ) : (
               <>
-                <div className="w-8 h-8 rounded-full bg-destructive flex items-center justify-center">
+                <div className="flex size-10 items-center justify-center rounded-2xl bg-destructive">
                   <X className="w-5 h-5 text-destructive-foreground" />
                 </div>
                 <div>
-                  <span className="font-semibold text-destructive">Not quite</span>
-                  <p className="text-sm text-muted-foreground">
+                  <span className="text-lg font-black text-destructive">Almost</span>
+                  <p className="text-sm font-semibold text-muted-foreground">
                     Correct: {currentExercise.correctAnswer}
                   </p>
                 </div>
@@ -193,7 +222,7 @@ export function ExerciseScreen() {
           <Button
             onClick={handleContinue}
             className={cn(
-              'w-full h-14 text-lg font-semibold rounded-2xl',
+              'tilio-button h-14 w-full rounded-2xl text-lg font-black',
               isCorrect 
                 ? 'bg-primary hover:bg-primary/90' 
                 : 'bg-destructive hover:bg-destructive/90'
@@ -202,6 +231,7 @@ export function ExerciseScreen() {
             Continue
             <ArrowRight className="w-5 h-5 ml-2" />
           </Button>
+          </div>
         </div>
       )}
     </div>
@@ -217,15 +247,19 @@ interface VocabularyCardProps {
 
 function VocabularyCard({ word, isUzToEn, onContinue }: VocabularyCardProps) {
   return (
-    <div className="flex-1 flex flex-col items-center justify-center animate-bounce-in">
-      <p className="text-sm text-muted-foreground mb-2">New Word</p>
+    <div className="flex flex-1 flex-col items-center justify-center animate-soft-pop">
+      <div className="mb-4 flex items-center gap-2 rounded-full bg-white/80 px-3 py-1 text-xs font-extrabold uppercase tracking-[0.16em] text-primary shadow-sm">
+        <Sparkles className="size-3.5" />
+        New Word
+      </div>
       
-      <Card className="w-full max-w-sm p-8 text-center">
-        <div className="text-4xl font-bold text-foreground mb-4">
+      <Card className="tilio-card w-full max-w-sm rounded-[2rem] p-7 text-center">
+        <SparrowMascot size="sm" mood="thinking" branded className="mx-auto mb-4" />
+        <div className="mb-4 text-5xl font-black leading-none text-emerald-950">
           {isUzToEn ? word.uzbek : word.english}
         </div>
         
-        <div className="flex items-center justify-center gap-2 text-xl text-muted-foreground mb-4">
+        <div className="mb-4 flex items-center justify-center gap-2 text-xl font-black text-muted-foreground">
           <span>=</span>
           <span className="font-medium text-primary">
             {isUzToEn ? word.english : word.uzbek}
@@ -233,11 +267,11 @@ function VocabularyCard({ word, isUzToEn, onContinue }: VocabularyCardProps) {
         </div>
 
         {word.example && (
-          <div className="mt-6 p-4 bg-muted/50 rounded-xl text-left">
-            <p className="text-sm text-foreground">
+          <div className="mt-6 rounded-2xl bg-emerald-50/80 p-4 text-left">
+            <p className="text-sm font-bold text-foreground">
               {isUzToEn ? word.example.uzbek : word.example.english}
             </p>
-            <p className="text-sm text-muted-foreground mt-1">
+            <p className="mt-1 text-sm font-medium text-muted-foreground">
               {isUzToEn ? word.example.english : word.example.uzbek}
             </p>
           </div>
@@ -246,7 +280,7 @@ function VocabularyCard({ word, isUzToEn, onContinue }: VocabularyCardProps) {
 
       <Button
         onClick={onContinue}
-        className="mt-8 h-14 px-12 text-lg font-semibold rounded-2xl"
+        className="tilio-button mt-8 h-14 rounded-2xl px-12 text-lg font-black"
       >
         Got it!
         <ArrowRight className="w-5 h-5 ml-2" />
@@ -277,11 +311,17 @@ function TranslationExercise({
   onAnswer,
 }: TranslationExerciseProps) {
   return (
-    <div className="flex-1 flex flex-col animate-bounce-in">
-      <p className="text-sm text-muted-foreground mb-2">Translate this word</p>
+    <div className="flex flex-1 flex-col animate-soft-pop">
+      <div className="mb-4 flex items-center justify-between">
+        <div>
+          <p className="text-xs font-extrabold uppercase tracking-[0.16em] text-primary">Translate</p>
+          <h1 className="text-2xl font-black">Choose the meaning</h1>
+        </div>
+        <SparrowMascot size="sm" mood={isAnswered ? 'celebrating' : 'happy'} branded />
+      </div>
       
-      <Card className="p-6 mb-8">
-        <div className="text-2xl font-bold text-foreground text-center">
+      <Card className="tilio-card mb-8 rounded-[2rem] p-7">
+        <div className="text-center text-4xl font-black leading-tight text-emerald-950">
           {isUzToEn ? word.uzbek : word.english}
         </div>
       </Card>
@@ -297,12 +337,12 @@ function TranslationExercise({
               onClick={() => onAnswer(option)}
               disabled={isAnswered}
               className={cn(
-                'w-full p-4 rounded-2xl border-2 text-left font-medium transition-all duration-200',
-                !isAnswered && 'hover:border-primary/50 hover:bg-primary/5 active:scale-98',
-                !isAnswered && !isSelected && 'border-border bg-card',
+                'tilio-pressed w-full rounded-[1.35rem] border-2 p-4 text-left text-base font-black shadow-sm transition-all duration-200',
+                !isAnswered && 'hover:border-primary/50 hover:bg-primary/5',
+                !isAnswered && !isSelected && 'border-emerald-100 bg-white/85',
                 isAnswered && isCorrectOption && 'border-primary bg-primary/10 text-primary',
                 isAnswered && isSelected && !isCorrectOption && 'border-destructive bg-destructive/10 text-destructive',
-                isAnswered && !isSelected && !isCorrectOption && 'border-border bg-card opacity-50'
+                isAnswered && !isSelected && !isCorrectOption && 'border-border bg-white/60 opacity-50'
               )}
             >
               <div className="flex items-center justify-between">
@@ -380,8 +420,14 @@ function MatchingExercise({ words, isUzToEn, onComplete, isAnswered }: MatchingE
   }, [matches, words.length, isAnswered, onComplete])
 
   return (
-    <div className="flex-1 flex flex-col animate-bounce-in">
-      <p className="text-sm text-muted-foreground mb-4">Match the pairs</p>
+    <div className="flex flex-1 flex-col animate-soft-pop">
+      <div className="mb-4 flex items-center justify-between">
+        <div>
+          <p className="text-xs font-extrabold uppercase tracking-[0.16em] text-primary">Pairs</p>
+          <h1 className="text-2xl font-black">Match the words</h1>
+        </div>
+        <SparrowMascot size="sm" mood="thinking" branded />
+      </div>
       
       <div className="flex gap-4">
         {/* Left column */}
@@ -392,10 +438,10 @@ function MatchingExercise({ words, isUzToEn, onComplete, isAnswered }: MatchingE
               onClick={() => handleLeftClick(item.id)}
               disabled={!!matches[item.id] || isAnswered}
               className={cn(
-                'w-full p-4 rounded-xl border-2 text-center font-medium transition-all',
+                'tilio-pressed w-full rounded-[1.2rem] border-2 p-4 text-center font-black transition-all',
                 matches[item.id] && 'border-primary bg-primary/10 text-primary',
                 selectedLeft === item.id && 'border-primary bg-primary/5',
-                !matches[item.id] && selectedLeft !== item.id && 'border-border bg-card',
+                !matches[item.id] && selectedLeft !== item.id && 'border-emerald-100 bg-white/85 shadow-sm',
                 matches[item.id] && 'opacity-50'
               )}
             >
@@ -415,10 +461,10 @@ function MatchingExercise({ words, isUzToEn, onComplete, isAnswered }: MatchingE
                 onClick={() => handleRightClick(item.id)}
                 disabled={isMatched || isAnswered}
                 className={cn(
-                  'w-full p-4 rounded-xl border-2 text-center font-medium transition-all',
+                  'tilio-pressed w-full rounded-[1.2rem] border-2 p-4 text-center font-black transition-all',
                   isMatched && 'border-primary bg-primary/10 text-primary opacity-50',
                   wrongMatch === item.id && 'border-destructive bg-destructive/10 animate-shake',
-                  !isMatched && wrongMatch !== item.id && 'border-border bg-card',
+                  !isMatched && wrongMatch !== item.id && 'border-emerald-100 bg-white/85 shadow-sm',
                   selectedLeft && !isMatched && 'hover:border-primary/50'
                 )}
               >

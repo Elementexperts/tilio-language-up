@@ -67,27 +67,29 @@ export function ReferralScreen() {
   ]
 
   return (
-    <div className="flex flex-col min-h-screen bg-background">
+    <div className="tilio-shell flex flex-col">
       {/* Header */}
-      <header className="sticky top-0 z-10 bg-background/95 backdrop-blur-sm border-b border-border safe-area-top">
-        <div className="flex items-center gap-4 px-4 py-3">
+      <header className="sticky top-0 z-10 safe-area-top">
+        <div className="tilio-container px-4 py-3">
+        <div className="flex items-center gap-4 rounded-[1.6rem] border border-white/70 bg-white/80 px-3 py-2 shadow-lg shadow-emerald-950/5 backdrop-blur-xl">
           <button
             onClick={handleBack}
-            className="p-2 -ml-2 text-muted-foreground hover:text-foreground transition-colors"
+            className="tilio-pressed flex size-10 items-center justify-center rounded-full bg-emerald-50 text-muted-foreground transition-colors hover:text-foreground"
             aria-label="Go back"
           >
             <ArrowLeft className="w-6 h-6" />
           </button>
-          <h1 className="text-xl font-bold text-foreground">Invite Friends</h1>
+          <h1 className="text-xl font-black text-foreground">Invite Friends</h1>
+        </div>
         </div>
       </header>
 
       {/* Content */}
-      <main className="flex-1 overflow-y-auto px-4 py-6 pb-24">
+      <main className="tilio-container flex-1 overflow-y-auto px-4 py-4 pb-24">
         {/* Hero Section */}
         <div className="text-center mb-8">
-          <SparrowMascot size="lg" mood="celebrating" className="mx-auto mb-4" />
-          <h2 className="text-2xl font-bold text-foreground mb-2">
+          <SparrowMascot size="xl" mood="celebrating" branded className="mx-auto mb-4" />
+          <h2 className="text-3xl font-black text-foreground mb-2">
             Earn XP by Inviting Friends
           </h2>
           <p className="text-muted-foreground max-w-xs mx-auto">
@@ -96,7 +98,7 @@ export function ReferralScreen() {
         </div>
 
         {/* Current Stats */}
-        <Card className="p-5 bg-primary/5 border-primary/20 mb-6">
+        <Card className="tilio-card rounded-[1.75rem] p-5 bg-primary/5 border-primary/20 mb-6">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-4">
               <div className="w-14 h-14 rounded-2xl bg-primary/20 flex items-center justify-center">
@@ -104,12 +106,12 @@ export function ReferralScreen() {
               </div>
               <div>
                 <p className="text-sm text-muted-foreground">Friends Invited</p>
-                <p className="text-3xl font-bold text-foreground">{user.referralCount}</p>
+                <p className="text-3xl font-black text-foreground">{user.referralCount}</p>
               </div>
             </div>
             <div className="text-right">
               <p className="text-sm text-muted-foreground">XP Earned</p>
-              <p className="text-xl font-bold text-primary">
+              <p className="text-xl font-black text-primary">
                 +{user.referralCount * 35}
               </p>
               <p className="text-sm font-semibold text-emerald-700">+{user.referralCount * 20} 🪶</p>
@@ -118,7 +120,7 @@ export function ReferralScreen() {
         </Card>
 
         {/* Referral Link */}
-        <Card className="p-4 mb-6">
+        <Card className="tilio-card rounded-[1.75rem] p-4 mb-6">
           <p className="text-sm font-medium text-foreground mb-3">Your Referral Link</p>
           <div className="flex items-center gap-2">
             <div className="flex-1 p-3 bg-muted rounded-xl overflow-hidden">
@@ -159,7 +161,7 @@ export function ReferralScreen() {
                 <Card
                   key={reward.friends}
                   className={cn(
-                    'p-4 transition-all',
+                    'tilio-pressed rounded-[1.55rem] p-4 transition-all',
                     isUnlocked && 'bg-primary/5 border-primary/20',
                     isCurrent && 'border-primary/50 shadow-md'
                   )}
@@ -216,8 +218,8 @@ export function ReferralScreen() {
         </div>
 
         {/* How it works */}
-        <Card className="p-4 bg-secondary/50 border-secondary">
-          <h3 className="font-semibold text-foreground mb-3">How It Works</h3>
+        <Card className="tilio-card rounded-[1.75rem] p-4 bg-secondary/50 border-secondary">
+          <h3 className="font-black text-foreground mb-3">How It Works</h3>
           <div className="space-y-3">
             <div className="flex items-start gap-3">
               <div className="w-6 h-6 rounded-full bg-primary/20 flex items-center justify-center shrink-0 mt-0.5">
@@ -246,7 +248,7 @@ export function ReferralScreen() {
           </div>
         </Card>
 
-        <Card className="p-4 mb-6 border-dashed border-primary/40 bg-primary/5">
+        <Card className="tilio-card rounded-[1.75rem] p-4 mb-6 border-dashed border-primary/40 bg-primary/5">
           <p className="font-semibold text-foreground">Referral progress tracker</p>
           <p className="text-sm text-muted-foreground mt-1">
             Rewards trigger when your friend joins from your invite.
@@ -268,7 +270,7 @@ export function ReferralScreen() {
       <div className="p-6 safe-area-bottom">
         <Button
           onClick={handleShare}
-          className="w-full h-14 text-lg font-semibold rounded-2xl"
+          className="tilio-button w-full h-14 text-lg font-black rounded-2xl"
           size="lg"
         >
           <Share2 className="w-5 h-5 mr-2" />

@@ -1,7 +1,6 @@
 'use client'
 
 import { useMemo } from 'react'
-import { Card } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Progress } from '@/components/ui/progress'
 import { SparrowMascot } from '@/components/sparrow-mascot'
@@ -12,7 +11,7 @@ import { useHasMounted } from '@/hooks/use-has-mounted'
 import { lessonsData, getNextLesson } from '@/lib/data/lessons'
 import { getXpProgress, getXpToNextLevel } from '@/lib/types'
 import { cn } from '@/lib/utils'
-import { Flame, Zap, Trophy, Target, Users, Sparkles, Gift, Store } from 'lucide-react'
+import { BookOpen, ChevronRight, Flame, Feather, Gift, Home, Medal, Play, ShoppingBag, Sparkles, Target, Trophy, UserRound, Users, Zap } from 'lucide-react'
 
 export function HomeScreen() {
   const user = useAppStore((state) => state.user)
@@ -39,10 +38,10 @@ export function HomeScreen() {
 
   const motivationalMessage = useMemo(() => {
     if (!user) return ''
-    if (user.streak >= 30) return 'Legendary streak! You inspire everyone.'
-    if (user.streak >= 7) return 'Amazing consistency! Keep your streak blazing.'
-    if (user.streak >= 3) return 'Momentum unlocked. You are on a roll!'
-    return 'A small lesson today keeps the streak alive.'
+    if (user.streak >= 30) return 'Afsona darajasidasiz. Keep the flame alive.'
+    if (user.streak >= 7) return 'A full week of momentum. Beautiful work.'
+    if (user.streak >= 3) return 'You are building a real habit now.'
+    return 'One tiny lesson today. A bigger voice tomorrow.'
   }, [user])
 
   const getGreeting = () => {
@@ -60,276 +59,231 @@ export function HomeScreen() {
   const chestReady = hasMounted ? canClaimChest() : false
 
   return (
-    <div className="flex flex-col min-h-screen bg-background">
-      {/* Header */}
-      <header className="sticky top-0 z-10 bg-background/95 backdrop-blur-sm border-b border-border safe-area-top">
-        <div className="flex items-center justify-between px-4 py-3">
-          {/* User greeting */}
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center overflow-hidden">
-              {user.photoUrl ? (
-                <img 
-                  src={user.photoUrl} 
-                  alt={user.firstName}
-                  className="w-full h-full object-cover"
-                />
-              ) : (
-                <span className="text-primary font-bold text-lg">
-                  {user.firstName.charAt(0)}
-                </span>
-              )}
-            </div>
-            <div>
-              <p className="text-xs text-muted-foreground">{getGreeting()}</p>
-              <p className="font-semibold text-foreground">{user.firstName}</p>
-            </div>
-          </div>
-
-          {/* Stats */}
-          <div className="flex items-center gap-4">
-            {/* Streak */}
-            <button
-              onClick={() => {
-                hapticFeedback('light')
-                setScreen('daily-challenges')
-              }}
-              className="flex items-center gap-1.5 px-3 py-1.5 bg-accent/20 rounded-full"
-            >
-              <Flame className={cn(
-                'w-4 h-4',
-                user.streak > 0 ? 'text-orange-500 animate-streak-flame' : 'text-muted-foreground'
-              )} />
-              <span className="text-sm font-bold text-foreground">{user.streak}</span>
-            </button>
-
-            {/* XP */}
-            <div className="flex items-center gap-1.5 px-3 py-1.5 bg-primary/10 rounded-full">
-              <Zap className="w-4 h-4 text-primary" />
-              <span className="text-sm font-bold text-foreground">Lv {user.userLevel}</span>
+    <div className="tilio-shell flex flex-col">
+      <header className="sticky top-0 z-20 safe-area-top">
+        <div className="tilio-container px-4 pt-3">
+          <div className="flex items-center justify-between rounded-[1.6rem] border border-white/70 bg-white/75 px-3 py-2 shadow-lg shadow-emerald-950/5 backdrop-blur-xl">
+            <div className="flex min-w-0 items-center gap-3">
+              <div className="flex size-11 shrink-0 items-center justify-center overflow-hidden rounded-2xl bg-primary/10 ring-2 ring-white">
+                {user.photoUrl ? (
+                  <img src={user.photoUrl} alt={user.firstName} className="h-full w-full object-cover" />
+                ) : (
+                  <span className="text-lg font-black text-primary">{user.firstName.charAt(0)}</span>
+                )}
+              </div>
+              <div className="min-w-0">
+                <p className="text-[11px] font-bold uppercase tracking-[0.14em] text-muted-foreground">{getGreeting()}</p>
+                <p className="truncate text-base font-black text-foreground">{user.firstName}</p>
+              </div>
             </div>
 
-            {/* Feathers */}
-            <div className="flex items-center gap-1.5 px-3 py-1.5 bg-emerald-100 rounded-full">
-              <Sparkles className="w-4 h-4 text-emerald-600" />
-              <span className="text-sm font-bold text-foreground">{user.feathers}</span>
+            <div className="flex items-center gap-2">
+              <StatPill icon={<Flame className={cn('size-4', user.streak > 0 && 'animate-streak-flame text-orange-500')} />} value={user.streak} onClick={() => setScreen('daily-challenges')} />
+              <StatPill icon={<Feather className="size-4 text-emerald-700" />} value={user.feathers} />
             </div>
           </div>
         </div>
       </header>
 
-      {/* Main Content */}
-      <main className="flex-1 overflow-y-auto pb-24">
-        {/* XP and motivation */}
-        <div className="px-4 pt-4">
-          <Card className="p-4 bg-gradient-to-r from-primary/10 to-emerald-100/70 border-primary/20">
-            <div className="flex items-center justify-between mb-2">
-              <span className="text-sm font-medium text-foreground">Level {user.userLevel}</span>
-              <span className="text-xs text-muted-foreground">{xpProgress}/100 XP</span>
+      <main className="tilio-container flex-1 overflow-y-auto px-4 pb-28 pt-4">
+        <section className="relative overflow-hidden rounded-[2rem] bg-gradient-to-br from-[#fffbea] via-[#f3fbde] to-[#d9f4bd] p-5 shadow-2xl shadow-emerald-900/10">
+          <div className="absolute -right-12 top-0 h-40 w-40 rounded-full bg-primary/15" />
+          <div className="absolute bottom-0 left-0 h-20 w-full bg-[linear-gradient(135deg,transparent_0_40%,rgba(34,197,94,0.12)_40%_52%,transparent_52%)] bg-[length:42px_42px]" />
+          <div className="relative z-10 flex items-center gap-4">
+            <div className="min-w-0 flex-1">
+              <div className="mb-3 inline-flex items-center gap-1.5 rounded-full bg-white/75 px-3 py-1 text-xs font-extrabold text-emerald-800 shadow-sm">
+                <Sparkles className="size-3.5 text-accent" />
+                Tilio Daily
+              </div>
+              <h1 className="text-3xl font-black leading-[1.02] tracking-normal text-emerald-950">
+                O&apos;rgan. Mashq qil. So&apos;zla.
+              </h1>
+              <p className="mt-3 text-sm font-medium leading-5 text-emerald-900/75">{motivationalMessage}</p>
             </div>
-            <Progress value={xpProgress} className="h-2.5" />
-            <p className="text-xs text-muted-foreground mt-2">{xpToNext} XP to next level</p>
-            <p className="text-sm text-foreground mt-2">{motivationalMessage}</p>
-            <p className="text-xs text-muted-foreground mt-1">
-              Come back tomorrow for your next chest and streak bonus.
-            </p>
-          </Card>
-        </div>
+            <SparrowMascot branded size="lg" mood="waving" className="shrink-0" />
+          </div>
+          {nextLesson && (
+            <Button
+              className="tilio-button relative z-10 mt-5 h-14 w-full rounded-2xl bg-primary text-base font-black hover:bg-primary/95"
+              onClick={() => {
+                hapticFeedback('medium')
+                useAppStore.getState().startLesson(nextLesson)
+              }}
+            >
+              <Play className="size-5 fill-current" />
+              Continue Learning
+            </Button>
+          )}
+        </section>
 
-        {/* Chest + quick actions */}
-        <div className="px-4 pt-4 grid grid-cols-2 gap-3">
-          <Card
-            className={cn(
-              'p-4 cursor-pointer border-primary/20',
-              chestReady ? 'bg-primary/10' : 'bg-muted/40'
-            )}
+        <section className="mt-4 grid grid-cols-3 gap-3">
+          <MetricCard label="Level" value={user.userLevel} icon={<Zap className="size-5" />} />
+          <MetricCard label="Streak" value={user.streak} icon={<Flame className="size-5" />} tone="orange" />
+          <MetricCard label="Feathers" value={user.feathers} icon={<Feather className="size-5" />} />
+        </section>
+
+        <section className="tilio-card mt-4 rounded-[1.75rem] p-4">
+          <div className="flex items-center justify-between gap-4">
+            <div>
+              <p className="text-xs font-extrabold uppercase tracking-[0.16em] text-primary">Level {user.userLevel}</p>
+              <h2 className="mt-1 text-xl font-black">Your Uzbek voice is growing</h2>
+            </div>
+            <div className="flex size-14 items-center justify-center rounded-2xl bg-primary/10 text-primary">
+              <BookOpen className="size-7" />
+            </div>
+          </div>
+          <div className="mt-4">
+            <Progress value={xpProgress} className="tilio-progress h-4 rounded-full bg-emerald-100" />
+            <div className="mt-2 flex justify-between text-xs font-bold text-muted-foreground">
+              <span>{xpProgress}/100 XP</span>
+              <span>{xpToNext} XP to next level</span>
+            </div>
+          </div>
+        </section>
+
+        <section className="mt-4 grid grid-cols-2 gap-3">
+          <button
+            className={cn('tilio-pressed rounded-[1.5rem] border p-4 text-left shadow-lg shadow-emerald-950/5', chestReady ? 'border-accent/50 bg-amber-50' : 'border-border bg-white/75')}
             onClick={() => {
               hapticFeedback('medium')
               setScreen('daily-chest')
             }}
           >
-            <div className="flex items-center gap-2">
-              <Gift className={cn('w-5 h-5', chestReady ? 'text-primary' : 'text-muted-foreground')} />
-              <span className="font-medium text-sm">Daily Chest</span>
+            <div className="flex size-12 items-center justify-center rounded-2xl bg-white text-accent shadow-sm">
+              <Gift className="size-6" />
             </div>
-            <p className="text-xs text-muted-foreground mt-1">
-              {chestReady ? 'Ready to open' : 'Come back tomorrow'}
-            </p>
-          </Card>
-          <Card
-            className="p-4 cursor-pointer border-emerald-200 bg-emerald-50/60"
+            <p className="mt-3 font-black">Daily Chest</p>
+            <p className="text-xs font-semibold text-muted-foreground">{chestReady ? 'Ready to open' : 'Claimed today'}</p>
+          </button>
+          <button
+            className="tilio-pressed rounded-[1.5rem] border border-primary/20 bg-white/75 p-4 text-left shadow-lg shadow-emerald-950/5"
             onClick={() => {
               hapticFeedback('light')
               setScreen('store')
             }}
           >
-            <div className="flex items-center gap-2">
-              <Store className="w-5 h-5 text-emerald-700" />
-              <span className="font-medium text-sm">Rewards Store</span>
+            <div className="flex size-12 items-center justify-center rounded-2xl bg-primary/10 text-primary shadow-sm">
+              <ShoppingBag className="size-6" />
             </div>
-            <p className="text-xs text-muted-foreground mt-1">Spend feathers on cosmetics</p>
-          </Card>
-        </div>
+            <p className="mt-3 font-black">Cosmetics</p>
+            <p className="text-xs font-semibold text-muted-foreground">Mascot looks and boosts</p>
+          </button>
+        </section>
 
-        {/* Daily Challenge Card */}
         {activeChallenge && (
-          <div className="px-4 pt-4">
-            <Card 
-              className="p-4 bg-gradient-to-r from-primary/10 to-accent/10 border-primary/20 cursor-pointer"
-              onClick={() => {
-                hapticFeedback('light')
-                setScreen('daily-challenges')
-              }}
-            >
-              <div className="flex items-center gap-4">
-                <div className="w-12 h-12 rounded-xl bg-primary/20 flex items-center justify-center">
-                  <Target className="w-6 h-6 text-primary" />
-                </div>
-                <div className="flex-1">
-                  <p className="text-sm font-medium text-foreground">Daily Challenge</p>
-                  <p className="text-xs text-muted-foreground">
-                    {activeChallenge.type === 'lessons' 
-                      ? `Complete ${activeChallenge.target} lessons`
-                      : `Earn ${activeChallenge.target} XP`
-                    }
-                  </p>
-                  <div className="mt-2">
-                    <Progress 
-                      value={(activeChallenge.current / activeChallenge.target) * 100}
-                      className="h-2"
-                    />
-                  </div>
-                </div>
-                <div className="text-right">
-                  <span className="text-xs text-primary font-medium">+{activeChallenge.xpReward} XP</span>
-                  <p className="text-xs text-emerald-700">+{activeChallenge.featherReward} 🪶</p>
-                </div>
+          <button
+            className="tilio-pressed mt-4 w-full rounded-[1.75rem] border border-primary/20 bg-white/80 p-4 text-left shadow-xl shadow-emerald-950/5"
+            onClick={() => {
+              hapticFeedback('light')
+              setScreen('daily-challenges')
+            }}
+          >
+            <div className="flex items-center gap-4">
+              <div className="flex size-14 items-center justify-center rounded-2xl bg-primary text-primary-foreground shadow-lg shadow-primary/25">
+                <Target className="size-7" />
               </div>
-            </Card>
-          </div>
+              <div className="min-w-0 flex-1">
+                <div className="flex items-center justify-between gap-2">
+                  <p className="font-black">Daily Challenge</p>
+                  <p className="shrink-0 text-sm font-black text-primary">+{activeChallenge.xpReward} XP</p>
+                </div>
+                <p className="text-sm font-medium text-muted-foreground">
+                  {activeChallenge.type === 'lessons' ? `Complete ${activeChallenge.target} lessons` : `Earn ${activeChallenge.target} XP`}
+                </p>
+                <Progress value={(activeChallenge.current / activeChallenge.target) * 100} className="tilio-progress mt-3 h-3" />
+              </div>
+              <ChevronRight className="size-5 text-muted-foreground" />
+            </div>
+          </button>
         )}
 
-        {/* Quick lesson access */}
         {nextLesson && (
-          <div className="px-4 pt-4">
-            <Card className="p-4 border-primary/20">
-              <p className="text-xs text-muted-foreground">Quick lesson</p>
-              <p className="text-base font-semibold">{nextLesson.title}</p>
-              <p className="text-xs text-muted-foreground">{nextLesson.description}</p>
-              <Button
-                className="mt-3 h-10 rounded-xl"
-                onClick={() => {
-                  hapticFeedback('light')
-                  useAppStore.getState().startLesson(nextLesson)
-                }}
-              >
-                Continue Learning
-              </Button>
-            </Card>
-          </div>
+          <section className="tilio-card mt-4 rounded-[1.75rem] p-4">
+            <div className="flex items-center gap-3">
+              <SparrowMascot size="sm" mood="happy" branded />
+              <div className="min-w-0 flex-1">
+                <p className="text-xs font-extrabold uppercase tracking-[0.16em] text-muted-foreground">Next lesson</p>
+                <h2 className="truncate text-lg font-black">{nextLesson.title}</h2>
+                <p className="text-sm font-medium text-muted-foreground">{nextLesson.description}</p>
+              </div>
+            </div>
+          </section>
         )}
 
-        {/* Progress Overview */}
-        <div className="px-4 pt-4">
-          <Card className="p-4">
-            <div className="flex items-center justify-between mb-3">
-              <span className="text-sm font-medium text-foreground">Course Progress</span>
-              <span className="text-sm text-muted-foreground">
-                {completedCount}/{totalLessons} lessons
-              </span>
-            </div>
-            <Progress value={progressPercent} className="h-3" />
-            <div className="flex items-center justify-between mt-3 text-xs text-muted-foreground">
-              <span>{Math.round(progressPercent)}% complete</span>
-              <span>{totalLessons - completedCount} lessons remaining</span>
-            </div>
-          </Card>
-        </div>
+        <section className="tilio-card mt-4 rounded-[1.75rem] p-4">
+          <div className="mb-3 flex items-center justify-between">
+            <h2 className="text-lg font-black">Course Progress</h2>
+            <span className="rounded-full bg-primary/10 px-3 py-1 text-xs font-black text-primary">{completedCount}/{totalLessons}</span>
+          </div>
+          <Progress value={progressPercent} className="tilio-progress h-4" />
+          <p className="mt-2 text-sm font-semibold text-muted-foreground">{Math.round(progressPercent)}% complete. {totalLessons - completedCount} lessons to go.</p>
+        </section>
 
-        {/* Lesson Map */}
-        <div className="px-4 pt-6">
-          <div className="flex items-center justify-between mb-4">
-            <h2 className="text-lg font-bold text-foreground">Your Learning Path</h2>
-            <SparrowMascot size="sm" mood="happy" />
+        <section className="mt-6">
+          <div className="mb-4 flex items-center justify-between">
+            <div>
+              <p className="text-xs font-extrabold uppercase tracking-[0.16em] text-primary">Path</p>
+              <h2 className="text-xl font-black">Your Learning Journey</h2>
+            </div>
+            <Medal className="size-6 text-accent" />
           </div>
           <LessonMap />
-        </div>
+        </section>
       </main>
 
-      {/* Bottom Navigation */}
-      <nav className="fixed bottom-0 left-0 right-0 bg-card border-t border-border safe-area-bottom">
-        <div className="max-w-lg mx-auto flex items-center justify-around py-2">
-          <NavButton 
-            icon={<Target className="w-5 h-5" />} 
-            label="Learn" 
-            active 
-            onClick={() => {
-              hapticFeedback('light')
-            }}
-          />
-          <NavButton 
-            icon={<Trophy className="w-5 h-5" />} 
-            label="Achievements" 
-            onClick={() => {
-              hapticFeedback('light')
-              setScreen('achievements')
-            }}
-          />
-          <NavButton 
-            icon={<Users className="w-5 h-5" />} 
-            label="Invite" 
-            onClick={() => {
-              hapticFeedback('light')
-              setScreen('referral')
-            }}
-          />
-          <NavButton
-            icon={<Store className="w-5 h-5" />}
-            label="Store"
-            onClick={() => {
-              hapticFeedback('light')
-              setScreen('store')
-            }}
-          />
-          <NavButton 
-            icon={
-              <div className="w-5 h-5 rounded-full bg-primary/10 flex items-center justify-center overflow-hidden">
-                {user.photoUrl ? (
-                  <img src={user.photoUrl} alt="" className="w-full h-full object-cover" />
-                ) : (
-                  <span className="text-xs font-bold text-primary">{user.firstName.charAt(0)}</span>
-                )}
-              </div>
-            } 
-            label="Profile" 
-            onClick={() => {
-              hapticFeedback('light')
-              setScreen('profile')
-            }}
-          />
+      <nav className="fixed inset-x-0 bottom-0 z-30 safe-area-bottom">
+        <div className="tilio-container px-4 pb-3">
+          <div className="grid grid-cols-5 gap-1 rounded-[1.7rem] border border-white/70 bg-white/85 p-2 shadow-2xl shadow-emerald-950/12 backdrop-blur-xl">
+            <NavButton icon={<Home className="size-5" />} label="Learn" active onClick={() => hapticFeedback('light')} />
+            <NavButton icon={<Trophy className="size-5" />} label="Badges" onClick={() => setScreen('achievements')} />
+            <NavButton icon={<Users className="size-5" />} label="Invite" onClick={() => setScreen('referral')} />
+            <NavButton icon={<ShoppingBag className="size-5" />} label="Store" onClick={() => setScreen('store')} />
+            <NavButton icon={<UserRound className="size-5" />} label="Profile" onClick={() => setScreen('profile')} />
+          </div>
         </div>
       </nav>
     </div>
   )
 }
 
-interface NavButtonProps {
-  icon: React.ReactNode
-  label: string
-  active?: boolean
-  onClick: () => void
+function StatPill({ icon, value, onClick }: { icon: React.ReactNode; value: number; onClick?: () => void }) {
+  const content = (
+    <>
+      {icon}
+      <span className="text-sm font-black">{value}</span>
+    </>
+  )
+
+  if (!onClick) return <div className="flex items-center gap-1.5 rounded-full bg-emerald-50 px-3 py-2 text-emerald-950">{content}</div>
+
+  return (
+    <button className="tilio-pressed flex items-center gap-1.5 rounded-full bg-emerald-50 px-3 py-2 text-emerald-950" onClick={onClick}>
+      {content}
+    </button>
+  )
 }
 
-function NavButton({ icon, label, active, onClick }: NavButtonProps) {
+function MetricCard({ label, value, icon, tone = 'green' }: { label: string; value: number; icon: React.ReactNode; tone?: 'green' | 'orange' }) {
+  return (
+    <div className={cn('rounded-[1.35rem] border bg-white/78 p-3 text-center shadow-lg shadow-emerald-950/5', tone === 'orange' ? 'border-orange-200 text-orange-600' : 'border-primary/15 text-primary')}>
+      <div className="mx-auto mb-2 flex size-10 items-center justify-center rounded-2xl bg-current/10">{icon}</div>
+      <p className="text-xl font-black text-foreground">{value}</p>
+      <p className="text-[11px] font-extrabold uppercase tracking-[0.12em] text-muted-foreground">{label}</p>
+    </div>
+  )
+}
+
+function NavButton({ icon, label, active, onClick }: { icon: React.ReactNode; label: string; active?: boolean; onClick: () => void }) {
   return (
     <button
       onClick={onClick}
       className={cn(
-        'flex flex-col items-center gap-1 px-4 py-2 rounded-xl transition-colors touch-target',
-        active ? 'text-primary' : 'text-muted-foreground hover:text-foreground'
+        'tilio-pressed flex min-w-0 flex-col items-center gap-1 rounded-[1.2rem] px-1.5 py-2 text-[11px] font-black transition-colors',
+        active ? 'bg-primary text-primary-foreground shadow-lg shadow-primary/20' : 'text-muted-foreground hover:bg-primary/5 hover:text-foreground',
       )}
     >
       {icon}
-      <span className="text-xs font-medium">{label}</span>
+      <span className="truncate">{label}</span>
     </button>
   )
 }

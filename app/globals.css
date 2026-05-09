@@ -4,28 +4,28 @@
 @custom-variant dark (&:is(.dark *));
 
 :root {
-  /* Tilio Green + White Branding */
-  --background: oklch(0.985 0.002 120);
-  --foreground: oklch(0.25 0.02 150);
-  --card: oklch(1 0 0);
+  /* Tilio soft green + cream branding */
+  --background: oklch(0.976 0.028 112);
+  --foreground: oklch(0.225 0.045 150);
+  --card: oklch(0.998 0.008 98);
   --card-foreground: oklch(0.25 0.02 150);
   --popover: oklch(1 0 0);
   --popover-foreground: oklch(0.25 0.02 150);
   
-  /* Primary Green - Duolingo-inspired */
-  --primary: oklch(0.65 0.2 145);
+  /* Primary Green */
+  --primary: oklch(0.63 0.18 145);
   --primary-foreground: oklch(1 0 0);
   
   /* Secondary - Light Green */
-  --secondary: oklch(0.92 0.05 145);
+  --secondary: oklch(0.92 0.055 137);
   --secondary-foreground: oklch(0.35 0.1 145);
   
   /* Muted */
-  --muted: oklch(0.96 0.01 120);
+  --muted: oklch(0.95 0.025 112);
   --muted-foreground: oklch(0.5 0.02 150);
   
   /* Accent - Golden/Yellow for rewards */
-  --accent: oklch(0.85 0.18 85);
+  --accent: oklch(0.86 0.17 88);
   --accent-foreground: oklch(0.3 0.08 85);
   
   /* Destructive - Red for errors */
@@ -40,7 +40,7 @@
   --warning: oklch(0.75 0.18 60);
   --warning-foreground: oklch(0.3 0.08 60);
   
-  --border: oklch(0.9 0.02 145);
+  --border: oklch(0.9 0.035 122);
   --input: oklch(0.95 0.01 120);
   --ring: oklch(0.65 0.2 145);
   
@@ -51,7 +51,7 @@
   --chart-4: oklch(0.6 0.22 25);
   --chart-5: oklch(0.7 0.18 280);
   
-  --radius: 1rem;
+  --radius: 1.25rem;
   
   --sidebar: oklch(1 0 0);
   --sidebar-foreground: oklch(0.25 0.02 150);
@@ -103,8 +103,8 @@
 }
 
 @theme inline {
-  --font-sans: 'Nunito', 'Geist', sans-serif;
-  --font-mono: 'Geist Mono', 'Geist Mono Fallback';
+  --font-sans: 'Nunito', 'Aptos Rounded', 'Segoe UI', system-ui, sans-serif;
+  --font-mono: 'Cascadia Mono', 'SFMono-Regular', Consolas, monospace;
   --color-background: var(--background);
   --color-foreground: var(--foreground);
   --color-card: var(--card);
@@ -153,7 +153,15 @@
   }
   body {
     @apply bg-background text-foreground;
+    font-feature-settings: "cv02", "cv03", "cv04", "cv11";
   }
+}
+
+body {
+  background:
+    radial-gradient(circle at 15% 5%, oklch(0.91 0.08 118 / 0.7), transparent 28rem),
+    radial-gradient(circle at 85% 12%, oklch(0.91 0.09 88 / 0.55), transparent 24rem),
+    linear-gradient(180deg, oklch(0.985 0.03 105), oklch(0.955 0.045 137));
 }
 
 /* Custom animations for Tilio */
@@ -177,6 +185,29 @@
 @keyframes float {
   0%, 100% { transform: translateY(0); }
   50% { transform: translateY(-10px); }
+}
+
+@keyframes float-up {
+  0% { transform: translateY(10px) scale(0.92); opacity: 0; }
+  18% { opacity: 1; }
+  100% { transform: translateY(-56px) scale(1.08); opacity: 0; }
+}
+
+@keyframes soft-pop {
+  0% { transform: scale(0.94); opacity: 0; }
+  100% { transform: scale(1); opacity: 1; }
+}
+
+@keyframes progress-shine {
+  0% { transform: translateX(-100%); }
+  100% { transform: translateX(220%); }
+}
+
+@keyframes chest-open {
+  0%, 100% { transform: rotate(0deg) scale(1); }
+  25% { transform: rotate(-7deg) scale(1.05); }
+  50% { transform: rotate(7deg) scale(1.08); }
+  75% { transform: rotate(-3deg) scale(1.03); }
 }
 
 @keyframes confetti {
@@ -203,6 +234,18 @@
 
 .animate-float {
   animation: float 3s ease-in-out infinite;
+}
+
+.animate-float-up {
+  animation: float-up 1.15s ease-out forwards;
+}
+
+.animate-soft-pop {
+  animation: soft-pop 0.32s ease-out both;
+}
+
+.animate-chest-open {
+  animation: chest-open 0.9s ease-in-out infinite;
 }
 
 .animate-confetti {
@@ -245,4 +288,73 @@ input, textarea {
 .touch-target {
   min-height: 44px;
   min-width: 44px;
+}
+
+.tilio-shell {
+  position: relative;
+  min-height: 100vh;
+  background:
+    radial-gradient(circle at 8% 16%, oklch(0.95 0.06 130 / 0.85), transparent 11rem),
+    radial-gradient(circle at 88% 3%, oklch(0.92 0.07 92 / 0.75), transparent 12rem),
+    linear-gradient(180deg, oklch(0.99 0.025 100), oklch(0.952 0.04 132));
+  overflow: hidden;
+}
+
+.tilio-shell::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  opacity: 0.34;
+  background-image:
+    linear-gradient(135deg, transparent 0 46%, oklch(0.65 0.12 145 / 0.12) 46% 54%, transparent 54%),
+    radial-gradient(circle at 10% 85%, oklch(0.64 0.11 145 / 0.16) 0 0.22rem, transparent 0.24rem),
+    radial-gradient(circle at 90% 30%, oklch(0.75 0.13 86 / 0.16) 0 0.18rem, transparent 0.2rem);
+  background-size: 5.5rem 5.5rem, 3.4rem 3.4rem, 4rem 4rem;
+}
+
+.tilio-container {
+  position: relative;
+  z-index: 1;
+  width: 100%;
+  max-width: 30rem;
+  margin: 0 auto;
+}
+
+.tilio-card {
+  border: 1px solid oklch(0.9 0.035 122 / 0.85);
+  background: linear-gradient(180deg, oklch(1 0.006 105 / 0.94), oklch(0.985 0.018 108 / 0.9));
+  box-shadow: 0 18px 45px oklch(0.42 0.08 145 / 0.12);
+}
+
+.tilio-button {
+  box-shadow: 0 8px 0 oklch(0.47 0.15 145), 0 18px 32px oklch(0.44 0.13 145 / 0.24);
+  transition: transform 160ms ease, box-shadow 160ms ease, filter 160ms ease;
+}
+
+.tilio-button:active {
+  transform: translateY(4px) scale(0.985);
+  box-shadow: 0 4px 0 oklch(0.47 0.15 145), 0 10px 20px oklch(0.44 0.13 145 / 0.18);
+}
+
+.tilio-pressed {
+  transition: transform 160ms ease, box-shadow 160ms ease, border-color 160ms ease;
+}
+
+.tilio-pressed:active {
+  transform: scale(0.975);
+}
+
+.tilio-progress {
+  position: relative;
+  overflow: hidden;
+}
+
+.tilio-progress::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  width: 36%;
+  background: linear-gradient(90deg, transparent, rgb(255 255 255 / 0.55), transparent);
+  animation: progress-shine 2.4s ease-in-out infinite;
 }

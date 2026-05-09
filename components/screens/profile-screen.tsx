@@ -45,6 +45,7 @@ export function ProfileScreen() {
   const completedLessons = user.completedLessons.length
   const totalLessons = lessonsData.length
   const progressPercent = (completedLessons / totalLessons) * 100
+  const avatarSrc = user.photoUrl ?? (user.avatarStyle === 'girl' ? '/avatars/tilio-girl-avatar.png' : '/avatars/tilio-boy-avatar.png')
 
   const unlockedAchievements = achievementsData.filter((a) => {
     switch (a.requirement.type) {
@@ -116,17 +117,7 @@ export function ProfileScreen() {
         {/* Profile Header */}
         <div className="mb-5 overflow-hidden rounded-[2rem] bg-gradient-to-br from-emerald-50 to-lime-100 p-6 text-center shadow-xl shadow-emerald-950/8">
           <div className="mx-auto mb-4 flex size-24 items-center justify-center overflow-hidden rounded-[2rem] bg-primary/10 ring-4 ring-white">
-            {user.photoUrl ? (
-              <img 
-                src={user.photoUrl} 
-                alt={user.firstName}
-                className="w-full h-full object-cover"
-              />
-            ) : (
-                <span className="text-primary font-black text-4xl">
-                {user.firstName.charAt(0)}
-              </span>
-            )}
+            <img src={avatarSrc} alt={user.firstName} className="h-full w-full object-cover" />
           </div>
           <h2 className="text-2xl font-black text-foreground">
             {user.firstName} {user.lastName || ''}
@@ -135,19 +126,19 @@ export function ProfileScreen() {
             <p className="text-muted-foreground">@{user.username}</p>
           )}
           <p className="text-sm font-semibold text-muted-foreground mt-1">
-            Learning since {joinDate}
+            {joinDate} dan beri o‘rganmoqda
           </p>
           <div className="mt-4 grid grid-cols-3 gap-2">
             <div className="rounded-2xl bg-white/80 p-2">
-              <p className="text-xs font-bold text-muted-foreground">Level</p>
+              <p className="text-xs font-bold text-muted-foreground">Daraja</p>
               <p className="text-xl font-black text-primary">{user.userLevel}</p>
             </div>
             <div className="rounded-2xl bg-white/80 p-2">
-              <p className="text-xs font-bold text-muted-foreground">Feathers</p>
+              <p className="text-xs font-bold text-muted-foreground">Patlar</p>
               <p className="inline-flex items-center justify-center gap-1 text-xl font-black text-emerald-700"><Feather className="size-4" />{user.feathers}</p>
             </div>
             <div className="rounded-2xl bg-white/80 p-2">
-              <p className="text-xs font-bold text-muted-foreground">Freeze</p>
+              <p className="text-xs font-bold text-muted-foreground">Himoya</p>
               <p className="text-xl font-black text-sky-600">{user.streakFreezes}</p>
             </div>
           </div>
@@ -158,7 +149,7 @@ export function ProfileScreen() {
           <Card className="tilio-card rounded-[1.5rem] p-4 text-center">
             <Zap className="w-6 h-6 text-primary mx-auto mb-2" />
             <p className="text-2xl font-black text-foreground">{user.xp}</p>
-            <p className="text-sm text-muted-foreground">Total XP</p>
+            <p className="text-sm text-muted-foreground">Jami XP</p>
           </Card>
           <Card className="tilio-card rounded-[1.5rem] p-4 text-center">
             <Flame className={cn(
@@ -166,17 +157,17 @@ export function ProfileScreen() {
               user.streak > 0 ? 'text-orange-500' : 'text-muted-foreground'
             )} />
             <p className="text-2xl font-black text-foreground">{user.streak}</p>
-            <p className="text-sm text-muted-foreground">Day Streak</p>
+            <p className="text-sm text-muted-foreground">Ketma-ket kun</p>
           </Card>
           <Card className="tilio-card rounded-[1.5rem] p-4 text-center">
             <Book className="w-6 h-6 text-secondary-foreground mx-auto mb-2" />
             <p className="text-2xl font-black text-foreground">{completedLessons}</p>
-            <p className="text-sm text-muted-foreground">Lessons Done</p>
+            <p className="text-sm text-muted-foreground">Darslar</p>
           </Card>
           <Card className="tilio-card rounded-[1.5rem] p-4 text-center">
             <Trophy className="w-6 h-6 text-accent mx-auto mb-2" />
             <p className="text-2xl font-black text-foreground">{unlockedAchievements}</p>
-            <p className="text-sm text-muted-foreground">Achievements</p>
+            <p className="text-sm text-muted-foreground">Nishonlar</p>
           </Card>
         </div>
 
@@ -185,7 +176,7 @@ export function ProfileScreen() {
           <div className="flex items-center justify-between mb-3">
             <div className="flex items-center gap-2">
               <Target className="w-5 h-5 text-primary" />
-              <span className="font-medium text-foreground">Course Progress</span>
+              <span className="font-medium text-foreground">Kurs progressi</span>
             </div>
             <span className="text-sm text-muted-foreground">
               {completedLessons}/{totalLessons}
@@ -193,46 +184,56 @@ export function ProfileScreen() {
           </div>
           <Progress value={progressPercent} className="tilio-progress h-3" />
           <p className="text-sm text-muted-foreground mt-2">
-            {Math.round(progressPercent)}% complete
+            {Math.round(progressPercent)}% yakunlandi. Har bir dars sizni erkinroq gapirishga yaqinlashtiradi.
           </p>
         </Card>
 
         {/* Badges */}
         <Card className="tilio-card rounded-[1.75rem] p-4 mb-6">
-          <h3 className="font-medium text-foreground mb-3">Badge Collection</h3>
+          <h3 className="font-medium text-foreground mb-3">Nishonlar to‘plami</h3>
           {unlockedBadges.length > 0 ? (
             <div className="grid grid-cols-2 gap-2">
               {unlockedBadges.slice(0, 6).map((badge) => (
                 <div key={badge.id} className="rounded-xl bg-primary/10 border border-primary/20 px-3 py-2">
                   <Sparkles className="mb-1 size-4 text-accent" />
                   <p className="text-sm font-semibold">{badge.title}</p>
-                  <p className="text-xs text-muted-foreground">Unlocked</p>
+                  <p className="text-xs text-muted-foreground">Ochilgan</p>
                 </div>
               ))}
             </div>
           ) : (
-            <p className="text-sm text-muted-foreground">Complete challenges to unlock your first badge.</p>
+            <p className="text-sm text-muted-foreground">Birinchi nishonni ochish uchun kunlik vazifani bajaring.</p>
           )}
+        </Card>
+
+        <Card className="tilio-card rounded-[1.75rem] p-4 mb-6">
+          <h3 className="font-black text-foreground mb-2">Bugungi maslahat</h3>
+          <p className="text-sm text-muted-foreground">
+            Har kuni 5 daqiqa mashq qilsangiz, yangi so‘zlar xotirada mustahkamroq qoladi.
+          </p>
+          <div className="mt-3 rounded-2xl bg-emerald-50/80 p-3 text-sm font-semibold text-emerald-900">
+            Maqsad: {user.dailyGoal} daqiqa / kun. Davom eting, {user.firstName}!
+          </div>
         </Card>
 
         {/* Learning Path */}
         <Card className="p-4 mb-6">
-          <h3 className="font-medium text-foreground mb-3">Learning Settings</h3>
+          <h3 className="font-medium text-foreground mb-3">O‘rganish sozlamalari</h3>
           <div className="space-y-4">
             <div className="flex items-center justify-between">
-              <span className="text-sm text-muted-foreground">Learning Path</span>
+              <span className="text-sm text-muted-foreground">Yo‘nalish</span>
               <span className="text-sm font-medium text-foreground">
-                {user.learningPath === 'uz-en' ? 'Uzbek to English' : 'English to Uzbek'}
+                {user.learningPath === 'uz-en' ? 'O‘zbekcha → English' : 'English → O‘zbekcha'}
               </span>
             </div>
             <div className="flex items-center justify-between">
-              <span className="text-sm text-muted-foreground">Level</span>
+              <span className="text-sm text-muted-foreground">Bosqich</span>
               <span className="text-sm font-medium text-foreground capitalize">
                 {user.level}
               </span>
             </div>
             <div className="flex items-center justify-between">
-              <span className="text-sm text-muted-foreground">Daily Goal</span>
+              <span className="text-sm text-muted-foreground">Kunlik maqsad</span>
               <span className="text-sm font-medium text-foreground">
                 {user.dailyGoal} min/day
               </span>
@@ -252,7 +253,7 @@ export function ProfileScreen() {
               ) : (
                 <VolumeX className="w-5 h-5 text-muted-foreground" />
               )}
-              <span className="font-medium text-foreground">Sound Effects</span>
+              <span className="font-medium text-foreground">Ovoz effektlari</span>
             </div>
             <div className={cn(
               'w-12 h-7 rounded-full transition-colors relative',
@@ -276,7 +277,7 @@ export function ProfileScreen() {
           >
             <div className="flex items-center gap-3">
               <Trophy className="w-5 h-5 text-muted-foreground" />
-              <span className="font-medium text-foreground">Achievements</span>
+              <span className="font-medium text-foreground">Nishonlar</span>
             </div>
             <ChevronRight className="w-5 h-5 text-muted-foreground" />
           </button>
@@ -292,7 +293,7 @@ export function ProfileScreen() {
           >
             <div className="flex items-center gap-3">
               <Calendar className="w-5 h-5 text-muted-foreground" />
-              <span className="font-medium text-foreground">Daily Goals</span>
+              <span className="font-medium text-foreground">Kunlik maqsadlar</span>
             </div>
             <ChevronRight className="w-5 h-5 text-muted-foreground" />
           </button>
@@ -305,7 +306,7 @@ export function ProfileScreen() {
           className="w-full h-12 text-destructive border-destructive/30 hover:bg-destructive/10"
         >
           <LogOut className="w-4 h-4 mr-2" />
-          Log Out
+          Chiqish
         </Button>
       </main>
     </div>

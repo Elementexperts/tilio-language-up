@@ -7,10 +7,17 @@ import { SparrowMascot } from '@/components/sparrow-mascot'
 import { useAppStore } from '@/lib/store'
 import { useTelegram } from '@/hooks/use-telegram'
 import { cn } from '@/lib/utils'
-import { ArrowRight, Target, Zap } from 'lucide-react'
+import { ArrowRight, Check, Target, Zap } from 'lucide-react'
 import { getLevel, type User } from '@/lib/types'
 
-type OnboardingStep = 'welcome' | 'path' | 'level' | 'goal'
+type OnboardingStep = 'welcome' | 'avatar' | 'path' | 'level' | 'goal'
+
+interface AvatarOption {
+  id: 'boy' | 'girl'
+  title: string
+  description: string
+  image: string
+}
 
 interface PathOption {
   id: 'uz-en' | 'en-uz'
@@ -33,56 +40,74 @@ interface GoalOption {
   xpEstimate: string
 }
 
+const avatarOptions: AvatarOption[] = [
+  {
+    id: 'boy',
+    title: 'Azizbek',
+    description: 'Faol, qiziquvchan o‘quvchi',
+    image: '/avatars/tilio-boy-avatar.png',
+  },
+  {
+    id: 'girl',
+    title: 'Aziza',
+    description: 'Ishonchli, muloyim o‘quvchi',
+    image: '/avatars/tilio-girl-avatar.png',
+  },
+]
+
 const pathOptions: PathOption[] = [
   {
     id: 'uz-en',
-    title: 'Uzbek to English',
-    description: 'I speak Uzbek and want to learn English',
-    flag1: '🇺🇿',
-    flag2: '🇬🇧',
+    title: 'O‘zbekchadan inglizchaga',
+    description: 'Men o‘zbek tilida gaplashaman va ingliz tilini o‘rganmoqchiman',
+    flag1: 'UZ',
+    flag2: 'EN',
   },
   {
     id: 'en-uz',
-    title: 'English to Uzbek',
+    title: 'Inglizchadan o‘zbekchaga',
     description: 'I speak English and want to learn Uzbek',
-    flag1: '🇬🇧',
-    flag2: '🇺🇿',
+    flag1: 'EN',
+    flag2: 'UZ',
   },
 ]
 
 const levelOptions: LevelOption[] = [
   {
     id: 'beginner',
-    title: 'Beginner',
-    description: 'I am just starting to learn',
+    title: 'Boshlang‘ich',
+    description: 'Men endi boshlayapman',
   },
   {
     id: 'intermediate',
-    title: 'Intermediate',
-    description: 'I know some words and phrases',
+    title: 'O‘rtacha',
+    description: 'Ba’zi so‘z va iboralarni bilaman',
   },
 ]
 
 const goalOptions: GoalOption[] = [
-  { id: 5, title: 'Casual', description: '5 min/day', xpEstimate: '~10 XP' },
-  { id: 10, title: 'Regular', description: '10 min/day', xpEstimate: '~25 XP' },
-  { id: 15, title: 'Serious', description: '15 min/day', xpEstimate: '~50 XP' },
-  { id: 20, title: 'Intense', description: '20 min/day', xpEstimate: '~100 XP' },
+  { id: 5, title: 'Yengil', description: '5 daqiqa/kun', xpEstimate: '~10 XP' },
+  { id: 10, title: 'Doimiy', description: '10 daqiqa/kun', xpEstimate: '~25 XP' },
+  { id: 15, title: 'Jiddiy', description: '15 daqiqa/kun', xpEstimate: '~50 XP' },
+  { id: 20, title: 'Kuchli', description: '20 daqiqa/kun', xpEstimate: '~100 XP' },
 ]
 
 export function OnboardingScreen() {
   const [step, setStep] = useState<OnboardingStep>('welcome')
+  const [selectedAvatar, setSelectedAvatar] = useState<'boy' | 'girl'>('boy')
   const [selectedPath, setSelectedPath] = useState<'uz-en' | 'en-uz' | null>(null)
   const [selectedLevel, setSelectedLevel] = useState<'beginner' | 'intermediate' | null>(null)
   const [selectedGoal, setSelectedGoal] = useState<5 | 10 | 15 | 20 | null>(null)
-  
+
   const { setUser, setScreen, updateStreak } = useAppStore()
   const { user: telegramUser, hapticFeedback } = useTelegram()
 
   const handleNext = () => {
     hapticFeedback('light')
-    
+
     if (step === 'welcome') {
+      setStep('avatar')
+    } else if (step === 'avatar') {
       setStep('path')
     } else if (step === 'path' && selectedPath) {
       setStep('level')
@@ -95,13 +120,14 @@ export function OnboardingScreen() {
 
   const completeOnboarding = () => {
     hapticFeedback('success')
-    
+
     const newUser: User = {
       id: telegramUser?.id?.toString() || `user_${Date.now()}`,
       username: telegramUser?.username || 'learner',
-      firstName: telegramUser?.first_name || 'Learner',
+      firstName: telegramUser?.first_name || (selectedAvatar === 'girl' ? 'Aziza' : 'Azizbek'),
       lastName: telegramUser?.last_name,
       photoUrl: telegramUser?.photo_url,
+      avatarStyle: selectedAvatar,
       learningPath: selectedPath!,
       level: selectedLevel!,
       dailyGoal: selectedGoal!,
@@ -121,7 +147,7 @@ export function OnboardingScreen() {
       equippedFrame: 'default',
       purchasedItems: [],
     }
-    
+
     setUser(newUser)
     updateStreak()
     setScreen('home')
@@ -129,84 +155,112 @@ export function OnboardingScreen() {
 
   const canProceed = () => {
     switch (step) {
-      case 'welcome': return true
-      case 'path': return selectedPath !== null
-      case 'level': return selectedLevel !== null
-      case 'goal': return selectedGoal !== null
-      default: return false
+      case 'welcome':
+      case 'avatar':
+        return true
+      case 'path':
+        return selectedPath !== null
+      case 'level':
+        return selectedLevel !== null
+      case 'goal':
+        return selectedGoal !== null
     }
   }
 
   const getProgressWidth = () => {
     switch (step) {
-      case 'welcome': return '25%'
-      case 'path': return '50%'
-      case 'level': return '75%'
-      case 'goal': return '100%'
-      default: return '0%'
+      case 'welcome':
+        return '20%'
+      case 'avatar':
+        return '40%'
+      case 'path':
+        return '60%'
+      case 'level':
+        return '80%'
+      case 'goal':
+        return '100%'
     }
   }
 
   return (
-    <div className="flex flex-col min-h-screen bg-background">
-      {/* Progress bar */}
+    <div className="tilio-shell flex min-h-screen flex-col">
       <div className="h-1 bg-muted">
-        <div 
-          className="h-full bg-primary transition-all duration-500 ease-out"
-          style={{ width: getProgressWidth() }}
-        />
+        <div className="h-full bg-primary transition-all duration-500 ease-out" style={{ width: getProgressWidth() }} />
       </div>
 
-      {/* Content */}
-      <div className="flex-1 flex flex-col px-6 py-8 overflow-y-auto">
-        {/* Welcome Step */}
+      <div className="tilio-container flex flex-1 flex-col overflow-y-auto px-6 py-8">
         {step === 'welcome' && (
-          <div className="flex-1 flex flex-col items-center justify-center text-center animate-bounce-in">
+          <div className="flex flex-1 flex-col items-center justify-center text-center animate-bounce-in">
             <SparrowMascot size="lg" mood="waving" branded />
-            
-            <h1 className="text-3xl font-bold text-foreground mt-6">
-              {telegramUser ? `Hey, ${telegramUser.first_name}!` : 'Welcome!'}
+            <h1 className="mt-6 text-3xl font-black text-foreground">
+              {telegramUser ? `Salom, ${telegramUser.first_name}!` : 'Xush kelibsiz!'}
             </h1>
-            
-            <p className="text-muted-foreground mt-3 text-lg max-w-xs">
-              Ready to master a new language? Let&apos;s set up your learning journey!
+            <p className="mt-3 max-w-xs text-lg text-muted-foreground">
+              O‘zbekcha va inglizchani o‘yinli darslar orqali o‘rganamiz. Avval profilingizni sozlaymiz.
             </p>
-
-            <div className="flex items-center gap-4 mt-8">
+            <div className="mt-8 flex items-center gap-4">
               <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                <Zap className="w-4 h-4 text-accent" />
-                <span>Earn XP</span>
+                <Zap className="h-4 w-4 text-accent" />
+                <span>XP yig‘ing</span>
               </div>
               <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                <Target className="w-4 h-4 text-primary" />
-                <span>Build streaks</span>
+                <Target className="h-4 w-4 text-primary" />
+                <span>Ketma-ketlikni saqlang</span>
               </div>
             </div>
           </div>
         )}
 
-        {/* Path Selection Step */}
-        {step === 'path' && (
-          <div className="flex-1 flex flex-col animate-bounce-in">
-            <div className="text-center mb-8">
-              <SparrowMascot size="md" mood="thinking" branded className="mx-auto" />
-              <h2 className="text-2xl font-bold text-foreground mt-4">
-                Choose your path
-              </h2>
-              <p className="text-muted-foreground mt-2">
-                What language do you want to learn?
-              </p>
+        {step === 'avatar' && (
+          <div className="flex flex-1 flex-col animate-bounce-in">
+            <div className="mb-8 text-center">
+              <SparrowMascot size="md" mood="happy" branded className="mx-auto" />
+              <h2 className="mt-4 text-2xl font-black text-foreground">Profil qahramoningizni tanlang</h2>
+              <p className="mt-2 text-muted-foreground">Telegram rasmi bo‘lmasa, shu ikonka profilingizda ko‘rinadi.</p>
             </div>
+            <div className="grid grid-cols-2 gap-4">
+              {avatarOptions.map((option) => (
+                <Card
+                  key={option.id}
+                  className={cn(
+                    'tilio-pressed cursor-pointer rounded-[1.75rem] border-2 p-4 text-center transition-all duration-200',
+                    selectedAvatar === option.id ? 'border-primary bg-primary/5 shadow-lg shadow-primary/10' : 'border-border hover:border-primary/50',
+                  )}
+                  onClick={() => {
+                    setSelectedAvatar(option.id)
+                    hapticFeedback('light')
+                  }}
+                >
+                  <div className="mx-auto mb-3 size-28 overflow-hidden rounded-[2rem] bg-emerald-50 ring-4 ring-white">
+                    <img src={option.image} alt={option.title} className="h-full w-full object-cover" />
+                  </div>
+                  <h3 className="font-black text-foreground">{option.title}</h3>
+                  <p className="mt-1 text-xs font-semibold text-muted-foreground">{option.description}</p>
+                  {selectedAvatar === option.id && (
+                    <div className="mx-auto mt-3 flex size-7 items-center justify-center rounded-full bg-primary text-primary-foreground">
+                      <Check className="size-4" />
+                    </div>
+                  )}
+                </Card>
+              ))}
+            </div>
+          </div>
+        )}
 
+        {step === 'path' && (
+          <div className="flex flex-1 flex-col animate-bounce-in">
+            <div className="mb-8 text-center">
+              <SparrowMascot size="md" mood="thinking" branded className="mx-auto" />
+              <h2 className="mt-4 text-2xl font-black text-foreground">Yo‘nalishni tanlang</h2>
+              <p className="mt-2 text-muted-foreground">Qaysi tilda mashq qilmoqchisiz?</p>
+            </div>
             <div className="flex flex-col gap-4">
               {pathOptions.map((option) => (
                 <Card
                   key={option.id}
                   className={cn(
-                    'p-5 cursor-pointer transition-all duration-200 border-2',
-                    selectedPath === option.id
-                      ? 'border-primary bg-primary/5 shadow-lg'
-                      : 'border-border hover:border-primary/50'
+                    'cursor-pointer rounded-[1.5rem] border-2 p-5 transition-all duration-200',
+                    selectedPath === option.id ? 'border-primary bg-primary/5 shadow-lg' : 'border-border hover:border-primary/50',
                   )}
                   onClick={() => {
                     setSelectedPath(option.id)
@@ -214,20 +268,18 @@ export function OnboardingScreen() {
                   }}
                 >
                   <div className="flex items-center gap-4">
-                    <div className="flex items-center gap-2 text-3xl">
-                      <span>{option.flag1}</span>
-                      <ArrowRight className="w-5 h-5 text-muted-foreground" />
-                      <span>{option.flag2}</span>
+                    <div className="flex items-center gap-2 text-base font-black text-primary">
+                      <span className="rounded-full bg-primary/10 px-2 py-1">{option.flag1}</span>
+                      <ArrowRight className="h-5 w-5 text-muted-foreground" />
+                      <span className="rounded-full bg-primary/10 px-2 py-1">{option.flag2}</span>
                     </div>
                     <div className="flex-1">
-                      <h3 className="font-semibold text-foreground">{option.title}</h3>
+                      <h3 className="font-black text-foreground">{option.title}</h3>
                       <p className="text-sm text-muted-foreground">{option.description}</p>
                     </div>
                     {selectedPath === option.id && (
-                      <div className="w-6 h-6 bg-primary rounded-full flex items-center justify-center">
-                        <svg className="w-4 h-4 text-primary-foreground" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-                        </svg>
+                      <div className="flex h-6 w-6 items-center justify-center rounded-full bg-primary">
+                        <Check className="size-4 text-primary-foreground" />
                       </div>
                     )}
                   </div>
@@ -237,28 +289,20 @@ export function OnboardingScreen() {
           </div>
         )}
 
-        {/* Level Selection Step */}
         {step === 'level' && (
-          <div className="flex-1 flex flex-col animate-bounce-in">
-            <div className="text-center mb-8">
+          <div className="flex flex-1 flex-col animate-bounce-in">
+            <div className="mb-8 text-center">
               <SparrowMascot size="md" mood="happy" branded className="mx-auto" />
-              <h2 className="text-2xl font-bold text-foreground mt-4">
-                What&apos;s your level?
-              </h2>
-              <p className="text-muted-foreground mt-2">
-                We&apos;ll personalize your experience
-              </p>
+              <h2 className="mt-4 text-2xl font-black text-foreground">Darajangiz qanday?</h2>
+              <p className="mt-2 text-muted-foreground">Darslar sizga mos ravishda tavsiya qilinadi.</p>
             </div>
-
             <div className="flex flex-col gap-4">
               {levelOptions.map((option) => (
                 <Card
                   key={option.id}
                   className={cn(
-                    'p-5 cursor-pointer transition-all duration-200 border-2',
-                    selectedLevel === option.id
-                      ? 'border-primary bg-primary/5 shadow-lg'
-                      : 'border-border hover:border-primary/50'
+                    'cursor-pointer rounded-[1.5rem] border-2 p-5 transition-all duration-200',
+                    selectedLevel === option.id ? 'border-primary bg-primary/5 shadow-lg' : 'border-border hover:border-primary/50',
                   )}
                   onClick={() => {
                     setSelectedLevel(option.id)
@@ -266,21 +310,16 @@ export function OnboardingScreen() {
                   }}
                 >
                   <div className="flex items-center gap-4">
-                    <div className={cn(
-                      'w-12 h-12 rounded-xl flex items-center justify-center text-2xl',
-                      option.id === 'beginner' ? 'bg-secondary' : 'bg-accent/20'
-                    )}>
-                      {option.id === 'beginner' ? '🌱' : '🌳'}
+                    <div className={cn('flex h-12 w-12 items-center justify-center rounded-xl text-sm font-black', option.id === 'beginner' ? 'bg-secondary text-primary' : 'bg-accent/20 text-accent-foreground')}>
+                      {option.id === 'beginner' ? 'A1' : 'A2'}
                     </div>
                     <div className="flex-1">
-                      <h3 className="font-semibold text-foreground">{option.title}</h3>
+                      <h3 className="font-black text-foreground">{option.title}</h3>
                       <p className="text-sm text-muted-foreground">{option.description}</p>
                     </div>
                     {selectedLevel === option.id && (
-                      <div className="w-6 h-6 bg-primary rounded-full flex items-center justify-center">
-                        <svg className="w-4 h-4 text-primary-foreground" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-                        </svg>
+                      <div className="flex h-6 w-6 items-center justify-center rounded-full bg-primary">
+                        <Check className="size-4 text-primary-foreground" />
                       </div>
                     )}
                   </div>
@@ -290,43 +329,30 @@ export function OnboardingScreen() {
           </div>
         )}
 
-        {/* Daily Goal Step */}
         {step === 'goal' && (
-          <div className="flex-1 flex flex-col animate-bounce-in">
-            <div className="text-center mb-8">
+          <div className="flex flex-1 flex-col animate-bounce-in">
+            <div className="mb-8 text-center">
               <SparrowMascot size="md" mood="celebrating" branded className="mx-auto" />
-              <h2 className="text-2xl font-bold text-foreground mt-4">
-                Set your daily goal
-              </h2>
-              <p className="text-muted-foreground mt-2">
-                How much time can you dedicate?
-              </p>
+              <h2 className="mt-4 text-2xl font-black text-foreground">Kunlik maqsadni belgilang</h2>
+              <p className="mt-2 text-muted-foreground">Har kuni necha daqiqa mashq qilasiz?</p>
             </div>
-
             <div className="grid grid-cols-2 gap-4">
               {goalOptions.map((option) => (
                 <Card
                   key={option.id}
                   className={cn(
-                    'p-4 cursor-pointer transition-all duration-200 border-2 text-center',
-                    selectedGoal === option.id
-                      ? 'border-primary bg-primary/5 shadow-lg'
-                      : 'border-border hover:border-primary/50'
+                    'cursor-pointer rounded-[1.5rem] border-2 p-4 text-center transition-all duration-200',
+                    selectedGoal === option.id ? 'border-primary bg-primary/5 shadow-lg' : 'border-border hover:border-primary/50',
                   )}
                   onClick={() => {
                     setSelectedGoal(option.id)
                     hapticFeedback('light')
                   }}
                 >
-                  <div className="text-2xl mb-2">
-                    {option.id === 5 && '☕'}
-                    {option.id === 10 && '📚'}
-                    {option.id === 15 && '🎯'}
-                    {option.id === 20 && '🚀'}
-                  </div>
-                  <h3 className="font-semibold text-foreground">{option.title}</h3>
+                  <div className="mx-auto mb-2 flex size-11 items-center justify-center rounded-2xl bg-primary/10 text-sm font-black text-primary">{option.id}m</div>
+                  <h3 className="font-black text-foreground">{option.title}</h3>
                   <p className="text-sm text-muted-foreground">{option.description}</p>
-                  <p className="text-xs text-primary mt-1">{option.xpEstimate}</p>
+                  <p className="mt-1 text-xs text-primary">{option.xpEstimate}</p>
                 </Card>
               ))}
             </div>
@@ -334,16 +360,10 @@ export function OnboardingScreen() {
         )}
       </div>
 
-      {/* Continue Button */}
-      <div className="p-6 safe-area-bottom">
-        <Button
-          onClick={handleNext}
-          disabled={!canProceed()}
-          className="w-full h-14 text-lg font-semibold rounded-2xl touch-target"
-          size="lg"
-        >
-          {step === 'goal' ? "Let's start!" : 'Continue'}
-          <ArrowRight className="w-5 h-5 ml-2" />
+      <div className="tilio-container p-6 safe-area-bottom">
+        <Button onClick={handleNext} disabled={!canProceed()} className="tilio-button h-14 w-full rounded-2xl text-lg font-black touch-target" size="lg">
+          {step === 'goal' ? 'Boshlaymiz!' : 'Davom etish'}
+          <ArrowRight className="ml-2 h-5 w-5" />
         </Button>
       </div>
     </div>

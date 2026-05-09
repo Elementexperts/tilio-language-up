@@ -5,6 +5,7 @@ export interface User {
   firstName: string
   lastName?: string
   photoUrl?: string
+  avatarStyle?: 'boy' | 'girl'
   learningPath: 'uz-en' | 'en-uz'
   level: 'beginner' | 'intermediate'
   dailyGoal: 5 | 10 | 15 | 20

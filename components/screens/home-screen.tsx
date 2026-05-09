@@ -57,6 +57,7 @@ export function HomeScreen() {
   const xpProgress = getXpProgress(user.xp)
   const xpToNext = getXpToNextLevel(user.xp)
   const chestReady = hasMounted ? canClaimChest() : false
+  const avatarSrc = user.photoUrl ?? (user.avatarStyle === 'girl' ? '/avatars/tilio-girl-avatar.png' : '/avatars/tilio-boy-avatar.png')
 
   return (
     <div className="tilio-shell flex flex-col">
@@ -65,11 +66,7 @@ export function HomeScreen() {
           <div className="flex items-center justify-between rounded-[1.6rem] border border-white/70 bg-white/75 px-3 py-2 shadow-lg shadow-emerald-950/5 backdrop-blur-xl">
             <div className="flex min-w-0 items-center gap-3">
               <div className="flex size-11 shrink-0 items-center justify-center overflow-hidden rounded-2xl bg-primary/10 ring-2 ring-white">
-                {user.photoUrl ? (
-                  <img src={user.photoUrl} alt={user.firstName} className="h-full w-full object-cover" />
-                ) : (
-                  <span className="text-lg font-black text-primary">{user.firstName.charAt(0)}</span>
-                )}
+                <img src={avatarSrc} alt={user.firstName} className="h-full w-full object-cover" />
               </div>
               <div className="min-w-0">
                 <p className="text-[11px] font-bold uppercase tracking-[0.14em] text-muted-foreground">{getGreeting()}</p>

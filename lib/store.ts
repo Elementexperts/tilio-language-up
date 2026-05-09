@@ -134,6 +134,7 @@ export const useAppStore = create<AppState>()(
             ? {
                 ...user,
                 feathers: user.feathers ?? 0,
+                avatarStyle: user.avatarStyle ?? 'boy',
                 maxStreak: user.maxStreak ?? user.streak ?? 0,
                 streakFreezes: user.streakFreezes ?? 0,
                 lastChestClaim: user.lastChestClaim ?? null,

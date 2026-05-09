@@ -77,6 +77,14 @@ const wallpaperPreviewClass: Record<string, string> = {
   'wallpaper-cotton-sky': 'from-sky-100 via-white to-emerald-100',
 }
 
+const wallpaperImage: Record<string, string> = {
+  'classic-green': '/wallpapers/classic-green.png',
+  'wallpaper-samarqand-morning': '/wallpapers/samarqand-morning.png',
+  'wallpaper-silk-road': '/wallpapers/silk-road-path.png',
+  'wallpaper-orchard': '/wallpapers/orchard-garden.png',
+  'wallpaper-cotton-sky': '/wallpapers/cotton-sky.png',
+}
+
 const wallpaperIcon: Record<string, ElementType> = {
   leaf: Leaf,
   dome: Landmark,
@@ -172,10 +180,13 @@ export function StoreScreen() {
                 <Card key={item.id} className="tilio-pressed gap-0 rounded-[1.75rem] border-white/70 bg-white/85 p-3 shadow-xl shadow-emerald-950/5">
                   <div className="flex gap-3">
                     <div className={cn('relative h-28 w-24 shrink-0 overflow-hidden rounded-[1.35rem] bg-gradient-to-br shadow-inner', wallpaperPreviewClass[item.id])}>
-                      <div className="absolute -left-5 bottom-3 h-16 w-16 rounded-full bg-white/45" />
-                      <div className="absolute -right-5 top-3 h-16 w-16 rounded-full bg-primary/15" />
-                      <div className="absolute inset-x-3 bottom-3 h-7 rounded-full bg-white/45 blur-sm" />
-                      <Icon className="absolute left-1/2 top-1/2 size-10 -translate-x-1/2 -translate-y-1/2 text-emerald-800/75" />
+                      <img
+                        src={wallpaperImage[item.id]}
+                        alt={`${item.name} wallpaper preview`}
+                        className="h-full w-full object-cover"
+                      />
+                      <div className="absolute inset-0 bg-white/10" />
+                      <Icon className="absolute right-2 top-2 size-5 text-emerald-900/65 drop-shadow-sm" />
                     </div>
                     <div className="min-w-0 flex-1">
                       <div className="flex items-start justify-between gap-2">

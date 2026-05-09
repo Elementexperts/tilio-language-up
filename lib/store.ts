@@ -170,12 +170,13 @@ export const useAppStore = create<AppState>()(
         const state = get()
         if (!state.user || !state.currentLesson) return
 
+        const user = state.user
         const lessonId = state.currentLesson.id
         const xpEarned = state.currentLesson.xpReward
         const featherEarned = state.currentLesson.featherReward ?? 5
-        const newCompletedLessons = state.user.completedLessons.includes(lessonId)
-          ? state.user.completedLessons
-          : [...state.user.completedLessons, lessonId]
+        const newCompletedLessons = user.completedLessons.includes(lessonId)
+          ? user.completedLessons
+          : [...user.completedLessons, lessonId]
 
         // Update daily challenges
         const today = getToday()
@@ -204,7 +205,7 @@ export const useAppStore = create<AppState>()(
             }
           }
           if (challenge.type === 'streak') {
-            const newCurrent = Math.min(state.user.streak, challenge.target)
+            const newCurrent = Math.min(user.streak, challenge.target)
             return {
               ...challenge,
               current: newCurrent,
@@ -219,11 +220,11 @@ export const useAppStore = create<AppState>()(
           .filter((c) => c.completed && !state.dailyChallenges.find((dc) => dc.id === c.id && dc.completed))
         const challengeBonusXp = completedNow.reduce((sum, c) => sum + c.xpReward, 0)
         const challengeBonusFeathers = completedNow.reduce((sum, c) => sum + c.featherReward, 0)
-        const baseXp = state.user.xp + xpEarned + challengeBonusXp
-        const baseFeathers = state.user.feathers + featherEarned + challengeBonusFeathers
+        const baseXp = user.xp + xpEarned + challengeBonusXp
+        const baseFeathers = user.feathers + featherEarned + challengeBonusFeathers
         const leveled = getLevel(baseXp)
         const achievementRewards = claimableAchievementRewards({
-          ...state.user,
+          ...user,
           xp: baseXp,
           feathers: baseFeathers,
           completedLessons: newCompletedLessons,
@@ -235,17 +236,17 @@ export const useAppStore = create<AppState>()(
 
         set({
           user: {
-            ...state.user,
+            ...user,
             xp: finalXp,
             feathers: finalFeathers,
             userLevel: finalLevel,
-            achievements: [...state.user.achievements, ...achievementRewards.unlockedIds],
+            achievements: [...user.achievements, ...achievementRewards.unlockedIds],
             completedLessons: newCompletedLessons,
             lastActiveDate: today,
           },
           dailyChallenges: challenges,
           currentScreen: 'result',
-          showLevelUpModal: finalLevel > state.user.userLevel,
+          showLevelUpModal: finalLevel > user.userLevel,
           newLevel: finalLevel,
         })
 

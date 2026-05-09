@@ -8,30 +8,9 @@ import { useAppStore } from '@/lib/store'
 import { useTelegram } from '@/hooks/use-telegram'
 import { cn } from '@/lib/utils'
 import { playAnswerSound } from '@/lib/sound'
-import { X, Volume2, Check, ArrowRight } from 'lucide-react'
+import { buildLessonExercises, seededSort } from '@/lib/exercise-flow'
+import { X, Check, ArrowRight } from 'lucide-react'
 import type { Word } from '@/lib/types'
-
-type ExerciseType = 'vocabulary' | 'matching' | 'translation' | 'sentence'
-
-interface Exercise {
-  type: ExerciseType
-  word: Word
-  options?: string[]
-  correctAnswer: string
-}
-
-function seededSort<T>(items: T[], seed: string): T[] {
-  return [...items]
-    .map((item, index) => ({ item, key: `${seed}-${index}` }))
-    .sort((a, b) => {
-      let aScore = 0
-      let bScore = 0
-      for (let i = 0; i < a.key.length; i++) aScore += a.key.charCodeAt(i) * (i + 1)
-      for (let i = 0; i < b.key.length; i++) bScore += b.key.charCodeAt(i) * (i + 1)
-      return aScore - bScore
-    })
-    .map(({ item }) => item)
-}
 
 export function ExerciseScreen() {
   const currentLesson = useAppStore((state) => state.currentLesson)
@@ -52,49 +31,7 @@ export function ExerciseScreen() {
   // Generate exercises from lesson words
   const exercises = useMemo(() => {
     if (!currentLesson) return []
-    
-    const exerciseList: Exercise[] = []
-    const words = currentLesson.words
-    const isUzToEn = user?.learningPath === 'uz-en'
-
-    words.forEach((word, index) => {
-      // Vocabulary introduction
-      exerciseList.push({
-        type: 'vocabulary',
-        word,
-        correctAnswer: isUzToEn ? word.english : word.uzbek,
-      })
-
-      // Translation exercise
-      const otherWords = words.filter((_, i) => i !== index)
-      const wrongOptions = seededSort(otherWords, `wrong-${word.id}-${index}`)
-        .slice(0, 3)
-        .map((w) => (isUzToEn ? w.english : w.uzbek))
-      
-      const correctAnswer = isUzToEn ? word.english : word.uzbek
-      const options = seededSort(
-        [...wrongOptions, correctAnswer],
-        `options-${word.id}-${index}`
-      )
-
-      exerciseList.push({
-        type: 'translation',
-        word,
-        options,
-        correctAnswer,
-      })
-    })
-
-    // Add matching exercise at the end
-    if (words.length >= 4) {
-      exerciseList.push({
-        type: 'matching',
-        word: words[0],
-        correctAnswer: 'matching',
-      })
-    }
-
-    return exerciseList
+    return buildLessonExercises(currentLesson, user?.learningPath)
   }, [currentLesson, user?.learningPath])
 
   const currentExercise = exercises[currentExerciseIndex]

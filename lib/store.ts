@@ -150,7 +150,7 @@ export const useAppStore = create<AppState>()(
       currentScreen: 'splash',
       currentLesson: null,
       currentExerciseIndex: 0,
-      exerciseAnswers: { correct: 0, incorrect: 0 },
+      exerciseAnswers: { correct: 0, incorrect: 0, missedWordIds: [] },
       dailyChallenges: [],
       isLoading: false,
       isSoundEnabled: true,
@@ -203,7 +203,11 @@ export const useAppStore = create<AppState>()(
           dailyChallenges: snapshot.dailyChallenges ?? state.dailyChallenges,
           currentLesson: snapshot.currentLessonId ? getLessonById(snapshot.currentLessonId) ?? state.currentLesson : state.currentLesson,
           currentExerciseIndex: snapshot.currentExerciseIndex ?? state.currentExerciseIndex,
-          exerciseAnswers: snapshot.exerciseAnswers ?? state.exerciseAnswers,
+          exerciseAnswers: {
+            correct: snapshot.exerciseAnswers?.correct ?? state.exerciseAnswers.correct,
+            incorrect: snapshot.exerciseAnswers?.incorrect ?? state.exerciseAnswers.incorrect,
+            missedWordIds: snapshot.exerciseAnswers?.missedWordIds ?? state.exerciseAnswers.missedWordIds,
+          },
           syncStatus: 'synced',
           syncError: null,
         })),
@@ -217,11 +221,11 @@ export const useAppStore = create<AppState>()(
       startLesson: (lesson) => set({
         currentLesson: lesson,
         currentExerciseIndex: 0,
-        exerciseAnswers: { correct: 0, incorrect: 0 },
+        exerciseAnswers: { correct: 0, incorrect: 0, missedWordIds: [] },
         currentScreen: 'exercise',
       }),
 
-      completeExercise: (correct, wordId) => set((state) => {
+      completeExercise: (correct, wordId, trackMiss = true) => set((state) => {
         const user = state.user
         const today = getToday()
         const wordReviews = user?.wordReviews ?? {}
@@ -243,6 +247,9 @@ export const useAppStore = create<AppState>()(
           exerciseAnswers: {
             correct: state.exerciseAnswers.correct + (correct ? 1 : 0),
             incorrect: state.exerciseAnswers.incorrect + (correct ? 0 : 1),
+            missedWordIds: !correct && wordId && trackMiss && !state.exerciseAnswers.missedWordIds.includes(wordId)
+              ? [...state.exerciseAnswers.missedWordIds, wordId]
+              : state.exerciseAnswers.missedWordIds,
           },
           currentExerciseIndex: state.currentExerciseIndex + 1,
           user: user && wordId
@@ -271,7 +278,8 @@ export const useAppStore = create<AppState>()(
         const user = state.user
         const lessonId = state.currentLesson.id
         const multiplier = getActiveXpMultiplier(user)
-        const xpEarned = Math.round(state.currentLesson.xpReward * multiplier)
+        const rawXpEarned = Math.max(0, state.currentLesson.xpReward - state.exerciseAnswers.incorrect)
+        const xpEarned = Math.round(rawXpEarned * multiplier)
         const featherEarned = state.currentLesson.featherReward ?? 5
         const newCompletedLessons = user.completedLessons.includes(lessonId)
           ? user.completedLessons
@@ -588,7 +596,7 @@ export const useAppStore = create<AppState>()(
 
       resetExercise: () => set({
         currentExerciseIndex: 0,
-        exerciseAnswers: { correct: 0, incorrect: 0 },
+        exerciseAnswers: { correct: 0, incorrect: 0, missedWordIds: [] },
       }),
 
       addXpPopup: (amount, type, label) =>

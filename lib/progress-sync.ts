@@ -6,13 +6,17 @@ export function buildProgressSnapshot(params: {
   dailyChallenges: DailyChallenge[]
   currentLessonId: string | null
   currentExerciseIndex: number
-  exerciseAnswers: { correct: number; incorrect: number }
+  exerciseAnswers: { correct: number; incorrect: number; missedWordIds?: string[] }
 }): CloudProgressSnapshot {
   return {
     ...params,
     user: {
       ...params.user,
       learningPath: 'uz-en',
+    },
+    exerciseAnswers: {
+      ...params.exerciseAnswers,
+      missedWordIds: params.exerciseAnswers.missedWordIds ?? [],
     },
     updatedAt: new Date().toISOString(),
   }

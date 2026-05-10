@@ -40,6 +40,9 @@ export function ExerciseScreen() {
   const [showVocabulary, setShowVocabulary] = useState(true)
   const [showCelebration, setShowCelebration] = useState(false)
   const [isSpeaking, setIsSpeaking] = useState(false)
+  const [isCorrectionMode, setIsCorrectionMode] = useState(false)
+  const [correctionIndex, setCorrectionIndex] = useState(0)
+  const [missedWordIds, setMissedWordIds] = useState<string[]>([])
 
   // Generate exercises from lesson words
   const exercises = useMemo(() => {
@@ -47,9 +50,16 @@ export function ExerciseScreen() {
     return buildLessonExercises(currentLesson, user?.learningPath, user?.wordReviews)
   }, [currentLesson, user?.learningPath, user?.wordReviews])
 
-  const currentExercise = exercises[currentExerciseIndex]
-  const totalExercises = exercises.length
-  const progressPercent = ((currentExerciseIndex) / totalExercises) * 100
+  const correctionExercises = useMemo(() => {
+    return missedWordIds
+      .map((wordId) => exercises.find((exercise) => exercise.word.id === wordId && exercise.type !== 'vocabulary'))
+      .filter((exercise): exercise is NonNullable<typeof exercise> => Boolean(exercise))
+  }, [exercises, missedWordIds])
+
+  const currentExercise = isCorrectionMode ? correctionExercises[correctionIndex] : exercises[currentExerciseIndex]
+  const totalExercises = isCorrectionMode ? correctionExercises.length : exercises.length
+  const displayedExerciseIndex = isCorrectionMode ? correctionIndex : currentExerciseIndex
+  const progressPercent = totalExercises > 0 ? (displayedExerciseIndex / totalExercises) * 100 : 0
   const isUzToEn = true
 
   const speakText = useCallback((text: string, lang = 'uz-UZ') => {
@@ -82,6 +92,12 @@ export function ExerciseScreen() {
   }, [showBackButton, hideBackButton, setScreen])
 
   useEffect(() => {
+    setIsCorrectionMode(false)
+    setCorrectionIndex(0)
+    setMissedWordIds([])
+  }, [currentLesson?.id])
+
+  useEffect(() => {
     if (!currentExercise) return
     if (currentExercise.type !== 'vocabulary' || !showVocabulary) return
     const timer = window.setTimeout(() => speakNewWord(currentExercise.word, isUzToEn), 350)
@@ -106,6 +122,9 @@ export function ExerciseScreen() {
     
     const correct = answer === currentExercise?.correctAnswer
     setIsCorrect(correct)
+    if (!correct && !isCorrectionMode && currentExercise?.word.id) {
+      setMissedWordIds((ids) => ids.includes(currentExercise.word.id) ? ids : [...ids, currentExercise.word.id])
+    }
     
     if (correct) {
       hapticFeedback('success')
@@ -116,13 +135,31 @@ export function ExerciseScreen() {
       hapticFeedback('error')
     }
     if (isSoundEnabled) playAnswerSound(correct)
-  }, [isAnswered, currentExercise, hapticFeedback, isSoundEnabled, addXpPopup])
+  }, [isAnswered, isCorrectionMode, currentExercise, hapticFeedback, isSoundEnabled, addXpPopup])
 
   const handleContinue = useCallback(() => {
     hapticFeedback('light')
-    
-    // Record the answer
-    completeExercise(isCorrect, currentExercise?.word.id)
+
+    if (isCorrectionMode) {
+      setSelectedAnswer(null)
+      setIsAnswered(false)
+      setIsCorrect(false)
+      setShowCelebration(false)
+      setIsSpeaking(false)
+
+      if (correctionIndex + 1 >= correctionExercises.length) {
+        completeLesson()
+      } else {
+        setCorrectionIndex((index) => index + 1)
+      }
+      return
+    }
+
+    const nextMissedWordIds = !isCorrect && currentExercise?.word.id && !missedWordIds.includes(currentExercise.word.id)
+      ? [...missedWordIds, currentExercise.word.id]
+      : missedWordIds
+
+    completeExercise(isCorrect, currentExercise?.word.id, true)
     
     // Reset state
     setSelectedAnswer(null)
@@ -134,9 +171,15 @@ export function ExerciseScreen() {
     
     // Check if lesson is complete
     if (currentExerciseIndex + 1 >= totalExercises) {
-      completeLesson()
+      if (nextMissedWordIds.length > 0) {
+        setMissedWordIds(nextMissedWordIds)
+        setIsCorrectionMode(true)
+        setCorrectionIndex(0)
+      } else {
+        completeLesson()
+      }
     }
-  }, [hapticFeedback, completeExercise, isCorrect, currentExercise, currentExerciseIndex, totalExercises, completeLesson])
+  }, [hapticFeedback, isCorrectionMode, correctionIndex, correctionExercises.length, completeLesson, isCorrect, currentExercise, missedWordIds, completeExercise, currentExerciseIndex, totalExercises])
 
   const handleVocabContinue = useCallback(() => {
     hapticFeedback('light')
@@ -196,7 +239,7 @@ export function ExerciseScreen() {
           </button>
           <Progress value={progressPercent} className="tilio-progress h-3 flex-1" />
           <span className="pr-2 text-sm font-black text-muted-foreground">
-            {currentExerciseIndex + 1}/{totalExercises}
+            {displayedExerciseIndex + 1}/{totalExercises}
           </span>
         </div>
         </div>
@@ -204,6 +247,11 @@ export function ExerciseScreen() {
 
       {/* Exercise Content */}
       <main className="tilio-container flex flex-1 flex-col px-5 py-4">
+        {isCorrectionMode && (
+          <div className="mb-4 rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm font-bold text-amber-900">
+            Let's correct what you couldn't answer.
+          </div>
+        )}
         {/* Vocabulary Introduction */}
         {currentExercise.type === 'vocabulary' && showVocabulary && (
           <VocabularyCard 

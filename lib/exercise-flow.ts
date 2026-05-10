@@ -25,6 +25,7 @@ export interface LessonExercise {
 }
 
 const MAX_LESSON_EXERCISES = 15
+const MAX_REVIEW_EXERCISES = 20
 const PRACTICE_ROUND_TYPES: LessonExerciseType[] = ['translation', 'listening', 'grammar', 'sentence-builder', 'pronunciation']
 
 function scoreFor(seed: string) {
@@ -95,12 +96,16 @@ function buildPracticeRounds(
   words: Word[],
   seed: string,
 ) {
-  return PRACTICE_ROUND_TYPES.flatMap((type, roundIndex) => {
-    const roundExercises = words
-      .map((word) => allExercises.find((exercise) => exercise.type === type && exercise.word.id === word.id))
+  return PRACTICE_ROUND_TYPES.flatMap((_, roundIndex) => {
+    const shuffledWords = seededSort(words, `${seed}-words-${roundIndex}`)
+    const roundExercises = shuffledWords
+      .map((word, wordIndex) => {
+        const type = PRACTICE_ROUND_TYPES[(roundIndex + wordIndex) % PRACTICE_ROUND_TYPES.length]
+        return allExercises.find((exercise) => exercise.type === type && exercise.word.id === word.id)
+      })
       .filter((exercise): exercise is LessonExercise => Boolean(exercise))
 
-    return seededSort(roundExercises, `${seed}-${type}-${roundIndex}`)
+    return seededSort(roundExercises, `${seed}-round-${roundIndex}`)
   })
 }
 
@@ -138,6 +143,7 @@ export function buildLessonExercises(
 ): LessonExercise[] {
   const words = lesson.words
   const isUzToEn = true
+  const maxExercises = lesson.isReview ? MAX_REVIEW_EXERCISES : MAX_LESSON_EXERCISES
   const today = new Date().toISOString().split('T')[0]
   const reviewSortedWords = seededSort(words, `lesson-${lesson.id}-${isUzToEn ? 'uz-en' : 'en-uz'}`).sort((a, b) => {
     const aReview = wordReviews[a.id]
@@ -212,7 +218,9 @@ export function buildLessonExercises(
   })
 
   const allExercises = [...uniqueExercises.values()]
-  const vocabularyCards = reviewSortedWords
+  const vocabularyCards = lesson.isReview
+    ? []
+    : reviewSortedWords
     .map((word) => allExercises.find((exercise) => exercise.type === 'vocabulary' && exercise.word.id === word.id))
     .filter((exercise): exercise is LessonExercise => Boolean(exercise))
   const practiceExercises = avoidImmediateDuplicateWords(
@@ -234,5 +242,5 @@ export function buildLessonExercises(
     }
   }
 
-  return [...vocabularyCards, ...practiceExercises].slice(0, MAX_LESSON_EXERCISES)
+  return [...vocabularyCards, ...practiceExercises].slice(0, maxExercises)
 }

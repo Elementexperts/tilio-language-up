@@ -32,7 +32,7 @@ export function ResultScreen() {
   const { correct, incorrect } = exerciseAnswers
   const total = correct + incorrect
   const accuracy = total > 0 ? Math.round((correct / total) * 100) : 0
-  const xpEarned = currentLesson?.xpReward || 0
+  const xpEarned = Math.max(0, (currentLesson?.xpReward || 0) - incorrect)
   
   const isPerfect = accuracy === 100
   const isGood = accuracy >= 80

@@ -75,6 +75,8 @@ export interface Lesson {
   order: number
   isLocked: boolean
   requiredLessonId?: string
+  isReview?: boolean
+  skillFocus?: 'reading' | 'writing' | 'listening' | 'speaking' | 'grammar' | 'mixed'
 }
 
 // Exercise types
@@ -200,7 +202,7 @@ export interface CloudProgressSnapshot {
   dailyChallenges: DailyChallenge[]
   currentLessonId: string | null
   currentExerciseIndex: number
-  exerciseAnswers: { correct: number; incorrect: number }
+  exerciseAnswers: { correct: number; incorrect: number; missedWordIds?: string[] }
   updatedAt: string
 }
 
@@ -210,7 +212,7 @@ export interface AppState {
   currentScreen: AppScreen
   currentLesson: Lesson | null
   currentExerciseIndex: number
-  exerciseAnswers: { correct: number; incorrect: number }
+  exerciseAnswers: { correct: number; incorrect: number; missedWordIds: string[] }
   dailyChallenges: DailyChallenge[]
   isLoading: boolean
   isSoundEnabled: boolean
@@ -231,7 +233,7 @@ export interface AppState {
   setSyncStatus: (status: SyncStatus, error?: string | null) => void
   setScreen: (screen: AppScreen) => void
   startLesson: (lesson: Lesson) => void
-  completeExercise: (correct: boolean, wordId?: string) => void
+  completeExercise: (correct: boolean, wordId?: string, trackMiss?: boolean) => void
   completeLesson: () => void
   addXp: (amount: number) => void
   addFeathers: (amount: number) => void

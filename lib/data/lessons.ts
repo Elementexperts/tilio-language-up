@@ -693,11 +693,18 @@ export function getNextLesson(completedLessons: string[]): Lesson | undefined {
 }
 
 export const storeItemsData: StoreItem[] = [
-  { id: 'theme-forest', name: 'Forest Theme', description: 'A calm green profile theme.', type: 'theme', price: 90, icon: '🌿' },
-  { id: 'theme-sunrise', name: 'Sunrise Theme', description: 'Warm and motivating palette.', type: 'theme', price: 120, icon: '🌅' },
-  { id: 'frame-gold', name: 'Gold Frame', description: 'Shiny profile frame.', type: 'frame', price: 140, icon: '🟨' },
-  { id: 'frame-emerald', name: 'Emerald Frame', description: 'Premium green frame.', type: 'frame', price: 160, icon: '💚' },
-  { id: 'outfit-explorer', name: 'Explorer Outfit', description: 'Sparrow adventure style.', type: 'outfit', price: 180, icon: '🧢' },
-  { id: 'color-mint', name: 'Mint App Style', description: 'Soft mint app accents.', type: 'color', price: 130, icon: '🪴' },
-  { id: 'pack-bonus', name: 'Bonus Lesson Pack', description: 'Placeholder for bonus content.', type: 'lesson_pack', price: 220, icon: '📦' },
+  { id: 'frame-gold', name: 'Gold Frame', description: 'A bright profile frame for strong streak days.', type: 'frame', price: 140, icon: 'gold' },
+  { id: 'frame-emerald', name: 'Emerald Frame', description: 'A clean green frame for daily learners.', type: 'frame', price: 160, icon: 'emerald' },
+  { id: 'frame-sky', name: 'Sky Frame', description: 'A calm blue frame for focused practice.', type: 'frame', price: 170, icon: 'sky' },
+  { id: 'frame-silk', name: 'Silk Road Frame', description: 'A warm frame inspired by travel and discovery.', type: 'frame', price: 210, icon: 'silk' },
+  { id: 'outfit-explorer', name: 'Explorer Outfit', description: 'Sparrow adventure style for travel lessons.', type: 'outfit', price: 180, icon: 'explorer' },
+  { id: 'outfit-scholar', name: 'Scholar Outfit', description: 'A focused study look for grammar days.', type: 'outfit', price: 190, icon: 'scholar' },
+  { id: 'outfit-samarkand', name: 'Samarkand Outfit', description: 'A festive outfit with Uzbek-inspired colors.', type: 'outfit', price: 240, icon: 'samarkand' },
+  { id: 'color-mint', name: 'Mint Accent', description: 'Soft mint accents for a fresh app feel.', type: 'color', price: 130, icon: 'mint' },
+  { id: 'color-sunrise', name: 'Sunrise Accent', description: 'Warm motivating accents for morning study.', type: 'color', price: 150, icon: 'sunrise' },
+  { id: 'color-sky', name: 'Sky Accent', description: 'Cool blue accents for calm reading lessons.', type: 'color', price: 150, icon: 'sky' },
+  { id: 'color-rose', name: 'Rose Accent', description: 'Gentle rose accents for a softer look.', type: 'color', price: 165, icon: 'rose' },
+  { id: 'badge-perfect', name: 'Perfect Lesson Badge', description: 'A cosmetic badge for your profile card.', type: 'theme', price: 110, icon: 'perfect' },
+  { id: 'badge-streak', name: 'Streak Badge', description: 'Show off consistent practice energy.', type: 'theme', price: 125, icon: 'streak' },
+  { id: 'badge-speaker', name: 'Speaker Badge', description: 'A badge for speaking practice confidence.', type: 'theme', price: 135, icon: 'speaker' },
 ]

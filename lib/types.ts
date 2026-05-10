@@ -18,6 +18,7 @@ export interface User {
   completedLessons: string[]
   achievements: string[]
   referralCount: number
+  claimedReferralMilestones?: number[]
   joinedAt: string
   lastChestClaim: string | null
   userLevel: number
@@ -243,6 +244,9 @@ export interface AppState {
   canClaimChest: () => boolean
   purchaseItem: (itemId: string, price: number) => boolean
   claimReferralReward: (count?: number) => { xp: number; feathers: number } | null
+  claimReferralMilestone: (friends: number, xp: number, feathers: number) => boolean
+  buyXpBoost: (price: number, multiplier: number, hours: number) => boolean
+  buyFeatherBundle: (price: number, amount: number) => boolean
   toggleSound: () => void
   resetExercise: () => void
   addXpPopup: (amount: number, type: XpPopup['type'], label?: string) => void

@@ -136,6 +136,7 @@ export function OnboardingScreen() {
       completedLessons: [],
       achievements: [],
       referralCount: 0,
+      claimedReferralMilestones: [],
       joinedAt: new Date().toISOString(),
       lastChestClaim: null,
       userLevel: getLevel(0),

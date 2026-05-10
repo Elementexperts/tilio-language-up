@@ -120,7 +120,7 @@ export function useTelegram() {
   const shareReferral = useCallback((referralCode: string) => {
     if (!webApp) return
     
-    const shareUrl = `https://t.me/TilioBot?start=${referralCode}`
+    const shareUrl = `https://t.me/tilio_app_bot?start=${referralCode}`
     const shareText = `Learn Uzbek and English with Tilio! Join me and get bonus XP!`
     
     if (isTelegramEnv) {

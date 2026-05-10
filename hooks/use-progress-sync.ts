@@ -59,6 +59,7 @@ export function useProgressSync() {
         completedLessons: user.completedLessons,
         achievements: user.achievements,
         referralCount: user.referralCount,
+        claimedReferralMilestones: user.claimedReferralMilestones ?? [],
         joinedAt: user.joinedAt,
         lastChestClaim: user.lastChestClaim,
         userLevel: user.userLevel,

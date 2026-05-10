@@ -183,6 +183,7 @@ export const useAppStore = create<AppState>()(
                 cloudUserId: user.cloudUserId,
                 telegramId: user.telegramId,
                 learningPath: 'uz-en',
+                claimedReferralMilestones: user.claimedReferralMilestones ?? [],
                 lastSyncedAt: user.lastSyncedAt ?? null,
               }
             : null,
@@ -572,6 +573,7 @@ export const useAppStore = create<AppState>()(
           user: {
             ...state.user,
             referralCount: nextReferralCount,
+            claimedReferralMilestones: state.user.claimedReferralMilestones ?? [],
             xp: finalXp,
             feathers: finalFeathers,
             userLevel: finalLevel,
@@ -590,6 +592,58 @@ export const useAppStore = create<AppState>()(
           xp: xpGain + achievementRewards.xp,
           feathers: featherGain + achievementRewards.feathers,
         }
+      },
+
+      claimReferralMilestone: (friends, xp, feathers) => {
+        const state = get()
+        if (!state.user) return false
+        const claimed = state.user.claimedReferralMilestones ?? []
+        if (state.user.referralCount < friends || claimed.includes(friends)) return false
+
+        const nextXp = state.user.xp + xp
+        const nextLevel = getLevel(nextXp)
+        set({
+          user: {
+            ...state.user,
+            xp: nextXp,
+            feathers: state.user.feathers + feathers,
+            userLevel: nextLevel,
+            claimedReferralMilestones: [...claimed, friends],
+          },
+          showLevelUpModal: nextLevel > state.user.userLevel,
+          newLevel: nextLevel,
+        })
+        get().addXpPopup(xp, 'xp', 'Referral milestone')
+        get().addXpPopup(feathers, 'feathers', 'Referral milestone')
+        return true
+      },
+
+      buyXpBoost: (price, multiplier, hours) => {
+        const state = get()
+        if (!state.user || state.user.feathers < price) return false
+        set({
+          user: {
+            ...state.user,
+            feathers: state.user.feathers - price,
+            xpMultiplier: Math.max(state.user.xpMultiplier ?? 1, multiplier),
+            xpMultiplierExpiresAt: new Date(Date.now() + hours * 60 * 60 * 1000).toISOString(),
+          },
+        })
+        get().addXpPopup(multiplier, 'multiplier', `${hours}h XP Boost`)
+        return true
+      },
+
+      buyFeatherBundle: (price, amount) => {
+        const state = get()
+        if (!state.user || state.user.feathers < price) return false
+        set({
+          user: {
+            ...state.user,
+            feathers: state.user.feathers - price + amount,
+          },
+        })
+        get().addXpPopup(amount, 'feathers', 'Bonus bundle')
+        return true
       },
 
       toggleSound: () => set((state) => ({ isSoundEnabled: !state.isSoundEnabled })),

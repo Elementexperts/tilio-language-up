@@ -53,6 +53,7 @@ export async function saveCloudProgress(session: CloudAuthSession, snapshot: Clo
         learningPath: 'uz-en',
         level: snapshot.user.level,
         dailyGoal: snapshot.user.dailyGoal,
+        claimedReferralMilestones: snapshot.user.claimedReferralMilestones ?? [],
         avatarStyle: snapshot.user.avatarStyle,
         equippedTheme: snapshot.user.equippedTheme,
         equippedFrame: snapshot.user.equippedFrame,

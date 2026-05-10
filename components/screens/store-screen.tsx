@@ -9,7 +9,7 @@ import { useAppStore } from '@/lib/store'
 import { useTelegram } from '@/hooks/use-telegram'
 import { storeItemsData } from '@/lib/data/lessons'
 import { cn } from '@/lib/utils'
-import { ArrowLeft, BadgeCheck, Check, Cloud, Feather, Landmark, Leaf, Map, Palette, Shield, ShoppingBag, Snowflake, Sparkles, Wand2 } from 'lucide-react'
+import { ArrowLeft, BadgeCheck, Check, Cloud, Feather, Landmark, Leaf, Map, Palette, Shield, ShoppingBag, Snowflake, Sparkles, Wand2, Zap } from 'lucide-react'
 import type { StoreItem } from '@/lib/types'
 
 const wallpaperItems: StoreItem[] = [
@@ -98,6 +98,7 @@ export function StoreScreen() {
   const setScreen = useAppStore((state) => state.setScreen)
   const purchaseItem = useAppStore((state) => state.purchaseItem)
   const useStreakFreeze = useAppStore((state) => state.useStreakFreeze)
+  const buyXpBoost = useAppStore((state) => state.buyXpBoost)
   const updateUser = useAppStore((state) => state.updateUser)
   const { hapticFeedback, showBackButton, hideBackButton } = useTelegram()
 
@@ -112,7 +113,8 @@ export function StoreScreen() {
   if (!user) return null
 
   const ownedItemIds = new Set([...user.purchasedItems, 'classic-green'])
-  const cosmeticItems = storeItemsData.filter((item) => item.type !== 'theme' && item.type !== 'color')
+  const frameItems = storeItemsData.filter((item) => item.type === 'frame')
+  const styleItems = storeItemsData.filter((item) => item.type !== 'frame')
 
   const handleBuy = (item: StoreItem) => {
     hapticFeedback('light')
@@ -132,6 +134,8 @@ export function StoreScreen() {
     hapticFeedback('medium')
     useStreakFreeze()
   }
+
+  const boostActive = user.xpMultiplierExpiresAt && new Date(user.xpMultiplierExpiresAt).getTime() > Date.now()
 
   return (
     <div className="tilio-shell flex flex-col">
@@ -244,6 +248,63 @@ export function StoreScreen() {
 
         <section className="mb-5">
           <div className="mb-3">
+            <p className="text-xs font-extrabold uppercase tracking-[0.16em] text-primary">Study boosts</p>
+            <h2 className="text-lg font-black">Spend feathers on momentum</h2>
+          </div>
+          <div className="grid grid-cols-1 gap-3">
+            <Card className="tilio-card rounded-[1.75rem] border-amber-100 p-4">
+              <div className="flex items-center gap-4">
+                <div className="flex size-16 shrink-0 items-center justify-center rounded-[1.35rem] bg-gradient-to-br from-amber-100 to-lime-100 text-amber-700 shadow-inner">
+                  <Sparkles className="size-8" />
+                </div>
+                <div className="min-w-0 flex-1">
+                  <p className="font-black">2x XP Boost</p>
+                  <p className="mt-1 text-xs font-semibold text-muted-foreground">Double lesson XP for the next 24 hours.</p>
+                  {boostActive && <p className="mt-2 text-xs font-black text-amber-700">Boost active</p>}
+                </div>
+                <Button
+                  size="sm"
+                  className="h-10 rounded-xl px-3 font-black"
+                  disabled={user.feathers < 120}
+                  onClick={() => {
+                    hapticFeedback('success')
+                    buyXpBoost(120, 2, 24)
+                  }}
+                >
+                  <Feather className="size-4" />
+                  120
+                </Button>
+              </div>
+            </Card>
+
+            <Card className="tilio-card rounded-[1.75rem] border-emerald-100 p-4">
+              <div className="flex items-center gap-4">
+                <div className="flex size-16 shrink-0 items-center justify-center rounded-[1.35rem] bg-gradient-to-br from-emerald-100 to-white text-emerald-700 shadow-inner">
+                  <Zap className="size-8" />
+                </div>
+                <div className="min-w-0 flex-1">
+                  <p className="font-black">Focus Sprint</p>
+                  <p className="mt-1 text-xs font-semibold text-muted-foreground">A smaller 1.5x XP boost for the next 8 hours.</p>
+                </div>
+                <Button
+                  size="sm"
+                  className="h-10 rounded-xl px-3 font-black"
+                  disabled={user.feathers < 60}
+                  onClick={() => {
+                    hapticFeedback('success')
+                    buyXpBoost(60, 1.5, 8)
+                  }}
+                >
+                  <Feather className="size-4" />
+                  60
+                </Button>
+              </div>
+            </Card>
+          </div>
+        </section>
+
+        <section className="mb-5">
+          <div className="mb-3">
             <p className="text-xs font-extrabold uppercase tracking-[0.16em] text-primary">Streak protection</p>
             <h2 className="text-lg font-black">Keep your streak safe</h2>
           </div>
@@ -276,14 +337,62 @@ export function StoreScreen() {
             <h2 className="text-lg font-black">Frames and extras</h2>
           </div>
           <div className="grid grid-cols-2 gap-3">
-            {cosmeticItems.map((item) => {
+            {frameItems.map((item) => {
               const purchased = user.purchasedItems.includes(item.id)
+              const equipped = user.equippedFrame === item.id
               const Icon = itemIcons[item.type] || ShoppingBag
               const canBuy = user.feathers >= item.price
 
               return (
                 <Card key={item.id} className="tilio-pressed gap-0 rounded-[1.55rem] border-white/70 bg-white/82 p-4 shadow-xl shadow-emerald-950/5">
                   <div className={cn('mb-3 flex aspect-square items-center justify-center rounded-[1.35rem]', item.type === 'frame' ? 'bg-gradient-to-br from-amber-200 to-yellow-100' : 'bg-gradient-to-br from-white to-emerald-100')}>
+                    <Icon className="size-9 text-emerald-800" />
+                  </div>
+                  <p className="font-black leading-tight">{item.name}</p>
+                  <p className="mt-1 min-h-10 text-xs font-semibold leading-4 text-muted-foreground">{item.description}</p>
+                  <div className="mt-3 flex items-center justify-between gap-2">
+                    <span className="inline-flex items-center gap-1 text-sm font-black text-emerald-700">
+                      <Feather className="size-3.5" />
+                      {item.price}
+                    </span>
+                    <Button
+                      size="sm"
+                      className="h-9 rounded-xl px-3 font-black"
+                      variant={purchased ? 'outline' : 'default'}
+                      disabled={equipped || (!purchased && !canBuy)}
+                      onClick={() => {
+                        hapticFeedback('light')
+                        if (purchased) {
+                          updateUser({ equippedFrame: item.id })
+                        } else if (purchaseItem(item.id, item.price)) {
+                          updateUser({ equippedFrame: item.id })
+                        }
+                      }}
+                    >
+                      {equipped ? <Check className="size-4" /> : <ShoppingBag className="size-4" />}
+                      {equipped ? 'On' : purchased ? 'Use' : 'Buy'}
+                    </Button>
+                  </div>
+                </Card>
+              )
+            })}
+          </div>
+        </section>
+
+        <section className="mt-5">
+          <div className="mb-3">
+            <p className="text-xs font-extrabold uppercase tracking-[0.16em] text-primary">Style extras</p>
+            <h2 className="text-lg font-black">Outfits, accents, and badges</h2>
+          </div>
+          <div className="grid grid-cols-2 gap-3">
+            {styleItems.map((item) => {
+              const purchased = user.purchasedItems.includes(item.id)
+              const Icon = itemIcons[item.type] || Sparkles
+              const canBuy = user.feathers >= item.price
+
+              return (
+                <Card key={item.id} className="tilio-pressed gap-0 rounded-[1.55rem] border-white/70 bg-white/82 p-4 shadow-xl shadow-emerald-950/5">
+                  <div className="mb-3 flex aspect-square items-center justify-center rounded-[1.35rem] bg-gradient-to-br from-white to-emerald-100">
                     <Icon className="size-9 text-emerald-800" />
                   </div>
                   <p className="font-black leading-tight">{item.name}</p>

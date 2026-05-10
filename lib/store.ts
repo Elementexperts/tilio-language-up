@@ -182,6 +182,7 @@ export const useAppStore = create<AppState>()(
                 wordReviews: user.wordReviews ?? {},
                 cloudUserId: user.cloudUserId,
                 telegramId: user.telegramId,
+                learningPath: 'uz-en',
                 lastSyncedAt: user.lastSyncedAt ?? null,
               }
             : null,
@@ -195,6 +196,7 @@ export const useAppStore = create<AppState>()(
         set((state) => ({
           user: {
             ...snapshot.user,
+            learningPath: 'uz-en',
             wordReviews: snapshot.user.wordReviews ?? {},
             lastSyncedAt: snapshot.updatedAt,
           },

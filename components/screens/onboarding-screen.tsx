@@ -20,7 +20,7 @@ interface AvatarOption {
 }
 
 interface PathOption {
-  id: 'uz-en' | 'en-uz'
+  id: 'uz-en'
   title: string
   description: string
   flag1: string
@@ -58,17 +58,10 @@ const avatarOptions: AvatarOption[] = [
 const pathOptions: PathOption[] = [
   {
     id: 'uz-en',
-    title: 'O‘zbekchadan inglizchaga',
-    description: 'Men o‘zbek tilida gaplashaman va ingliz tilini o‘rganmoqchiman',
+    title: "O'zbekchadan inglizchaga",
+    description: "O'zbek tilida tushuntirishlar, inglizcha yangi so'zlar",
     flag1: 'UZ',
     flag2: 'EN',
-  },
-  {
-    id: 'en-uz',
-    title: 'Inglizchadan o‘zbekchaga',
-    description: 'I speak English and want to learn Uzbek',
-    flag1: 'EN',
-    flag2: 'UZ',
   },
 ]
 
@@ -95,7 +88,7 @@ const goalOptions: GoalOption[] = [
 export function OnboardingScreen() {
   const [step, setStep] = useState<OnboardingStep>('welcome')
   const [selectedAvatar, setSelectedAvatar] = useState<'boy' | 'girl'>('boy')
-  const [selectedPath, setSelectedPath] = useState<'uz-en' | 'en-uz' | null>(null)
+  const [selectedPath, setSelectedPath] = useState<'uz-en'>('uz-en')
   const [selectedLevel, setSelectedLevel] = useState<'beginner' | 'intermediate' | null>(null)
   const [selectedGoal, setSelectedGoal] = useState<5 | 10 | 15 | 20 | null>(null)
 
@@ -111,7 +104,7 @@ export function OnboardingScreen() {
       setStep('avatar')
     } else if (step === 'avatar') {
       setStep('path')
-    } else if (step === 'path' && selectedPath) {
+    } else if (step === 'path') {
       setStep('level')
     } else if (step === 'level' && selectedLevel) {
       setStep('goal')
@@ -131,7 +124,7 @@ export function OnboardingScreen() {
       photoUrl: telegramUser?.photo_url,
       telegramId: telegramUser?.id?.toString(),
       avatarStyle: selectedAvatar,
-      learningPath: selectedPath!,
+      learningPath: 'uz-en',
       level: selectedLevel!,
       dailyGoal: selectedGoal!,
       xp: 0,
@@ -167,7 +160,7 @@ export function OnboardingScreen() {
       case 'avatar':
         return true
       case 'path':
-        return selectedPath !== null
+        return true
       case 'level':
         return selectedLevel !== null
       case 'goal':
@@ -298,7 +291,7 @@ export function OnboardingScreen() {
               <p className="mt-2 text-muted-foreground">Qaysi tilda mashq qilmoqchisiz?</p>
             </div>
             <div className="flex flex-col gap-4">
-              {pathOptions.map((option) => (
+              {pathOptions.filter((option) => option.id === 'uz-en').map((option) => (
                 <Card
                   key={option.id}
                   className={cn(
@@ -306,7 +299,7 @@ export function OnboardingScreen() {
                     selectedPath === option.id ? 'border-primary bg-primary/5 shadow-lg' : 'border-border hover:border-primary/50',
                   )}
                   onClick={() => {
-                    setSelectedPath(option.id)
+                    setSelectedPath('uz-en')
                     hapticFeedback('light')
                   }}
                 >

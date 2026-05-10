@@ -41,7 +41,6 @@ export default function TilioApp() {
   const newLevel = useAppStore((state) => state.newLevel)
   const closeLevelUpModal = useAppStore((state) => state.closeLevelUpModal)
   const isSoundEnabled = useAppStore((state) => state.isSoundEnabled)
-  const learningPath = useAppStore((state) => state.user?.learningPath ?? 'uz-en')
   const previousPopupCountRef = useRef(0)
   const previousAchievementCountRef = useRef(0)
 
@@ -202,9 +201,7 @@ export default function TilioApp() {
             <p className="text-xs text-primary font-extrabold tracking-[0.18em]">LEVEL UP</p>
             <h3 className="text-3xl font-black mt-1">Level {newLevel}</h3>
             <p className="text-sm text-muted-foreground mt-2">
-              {learningPath === 'uz-en'
-                ? 'Izchilligingiz natija bermoqda. Ko‘proq mukofotlarni ochish uchun har kuni o‘rganishda davom eting.'
-                : 'Your consistency is paying off. Keep learning daily to unlock more rewards.'}
+              Izchilligingiz natija bermoqda. Koproq mukofotlarni ochish uchun har kuni organishda davom eting.
             </p>
             <div className="mt-5 flex justify-center gap-2 text-accent">
               <Sparkles className="size-5 animate-bounce" />

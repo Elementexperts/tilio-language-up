@@ -10,6 +10,10 @@ export function buildProgressSnapshot(params: {
 }): CloudProgressSnapshot {
   return {
     ...params,
+    user: {
+      ...params.user,
+      learningPath: 'uz-en',
+    },
     updatedAt: new Date().toISOString(),
   }
 }
@@ -42,7 +46,7 @@ export async function saveCloudProgress(session: CloudAuthSession, snapshot: Clo
       achievements: snapshot.user.achievements,
       last_chest_claim: snapshot.user.lastChestClaim,
       settings: {
-        learningPath: snapshot.user.learningPath,
+        learningPath: 'uz-en',
         level: snapshot.user.level,
         dailyGoal: snapshot.user.dailyGoal,
         avatarStyle: snapshot.user.avatarStyle,

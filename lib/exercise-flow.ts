@@ -25,6 +25,7 @@ export interface LessonExercise {
 }
 
 const MAX_LESSON_EXERCISES = 15
+const PRACTICE_ROUND_TYPES: LessonExerciseType[] = ['translation', 'listening', 'grammar', 'sentence-builder', 'pronunciation']
 
 function scoreFor(seed: string) {
   let hash = 2166136261
@@ -89,6 +90,20 @@ function avoidImmediateDuplicateWords(exercises: LessonExercise[], seed: string)
   })
 }
 
+function buildPracticeRounds(
+  allExercises: LessonExercise[],
+  words: Word[],
+  seed: string,
+) {
+  return PRACTICE_ROUND_TYPES.flatMap((type, roundIndex) => {
+    const roundExercises = words
+      .map((word) => allExercises.find((exercise) => exercise.type === type && exercise.word.id === word.id))
+      .filter((exercise): exercise is LessonExercise => Boolean(exercise))
+
+    return seededSort(roundExercises, `${seed}-${type}-${roundIndex}`)
+  })
+}
+
 export function buildChoiceOptions(
   words: Word[],
   word: Word,
@@ -118,11 +133,11 @@ export function buildChoiceOptions(
 
 export function buildLessonExercises(
   lesson: Lesson,
-  learningPath: User['learningPath'] | undefined,
+  _learningPath: User['learningPath'] | undefined,
   wordReviews: Record<string, WordReview> = {}
 ): LessonExercise[] {
   const words = lesson.words
-  const isUzToEn = learningPath === 'uz-en'
+  const isUzToEn = true
   const today = new Date().toISOString().split('T')[0]
   const reviewSortedWords = seededSort(words, `lesson-${lesson.id}-${isUzToEn ? 'uz-en' : 'en-uz'}`).sort((a, b) => {
     const aReview = wordReviews[a.id]
@@ -201,8 +216,9 @@ export function buildLessonExercises(
     .map((word) => allExercises.find((exercise) => exercise.type === 'vocabulary' && exercise.word.id === word.id))
     .filter((exercise): exercise is LessonExercise => Boolean(exercise))
   const practiceExercises = avoidImmediateDuplicateWords(
-    seededSort(
-      allExercises.filter((exercise) => exercise.type !== 'vocabulary'),
+    buildPracticeRounds(
+      allExercises,
+      reviewSortedWords,
       `session-${lesson.id}-${isUzToEn ? 'uz-en' : 'en-uz'}`
     ),
     lesson.id

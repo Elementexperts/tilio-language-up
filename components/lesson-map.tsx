@@ -124,7 +124,7 @@ export function LessonMap() {
 
                       <div className="min-w-0 flex-1">
                         <h4 className={cn('truncate font-black', unlocked ? 'text-foreground' : 'text-muted-foreground')}>
-                          {user?.learningPath === 'uz-en' ? lesson.title : lesson.titleUz}
+                          {lesson.title}
                         </h4>
                         <p className="text-xs font-semibold text-muted-foreground">{lesson.words.length} words / +{lesson.xpReward} XP</p>
                       </div>

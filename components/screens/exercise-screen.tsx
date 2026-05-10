@@ -50,7 +50,7 @@ export function ExerciseScreen() {
   const currentExercise = exercises[currentExerciseIndex]
   const totalExercises = exercises.length
   const progressPercent = ((currentExerciseIndex) / totalExercises) * 100
-  const isUzToEn = user?.learningPath === 'uz-en'
+  const isUzToEn = true
 
   const speakText = useCallback((text: string, lang = 'uz-UZ') => {
     if (typeof window === 'undefined' || !('speechSynthesis' in window) || !text.trim()) return

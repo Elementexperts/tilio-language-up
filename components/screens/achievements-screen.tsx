@@ -117,8 +117,8 @@ export function AchievementsScreen() {
         <div className="grid grid-cols-2 gap-3">
           {achievements.map((achievement) => {
             const IconComponent = iconMap[achievement.icon] || Star
-            const title = user.learningPath === 'uz-en' ? achievement.title : achievement.titleUz
-            const description = user.learningPath === 'uz-en' ? achievement.description : achievement.descriptionUz
+            const title = achievement.title
+            const description = achievement.description
 
             return (
               <Card

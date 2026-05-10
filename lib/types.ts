@@ -24,6 +24,8 @@ export interface User {
   equippedTheme: string
   equippedFrame: string
   purchasedItems: string[]
+  xpMultiplier: number
+  xpMultiplierExpiresAt: string | null
 }
 
 // XP Level calculation
@@ -120,7 +122,7 @@ export interface Achievement {
 
 // Daily Chest types
 export interface ChestReward {
-  type: 'xp' | 'feathers' | 'streak_freeze'
+  type: 'xp' | 'feathers' | 'streak_freeze' | 'bonus_multiplier'
   amount: number
   label: string
 }
@@ -155,7 +157,16 @@ export type AppScreen =
 export interface XpPopup {
   id: string
   amount: number
-  type: 'xp' | 'feathers'
+  type: 'xp' | 'feathers' | 'freeze' | 'multiplier' | 'streak_saved'
+  label?: string
+  timestamp: number
+}
+
+export interface AchievementPopup {
+  id: string
+  title: string
+  description: string
+  icon: string
   timestamp: number
 }
 
@@ -170,6 +181,8 @@ export interface AppState {
   isLoading: boolean
   isSoundEnabled: boolean
   xpPopups: XpPopup[]
+  achievementPopups: AchievementPopup[]
+  showStreakSavedModal: boolean
   showLevelUpModal: boolean
   newLevel: number
   
@@ -190,7 +203,9 @@ export interface AppState {
   claimReferralReward: (count?: number) => { xp: number; feathers: number } | null
   toggleSound: () => void
   resetExercise: () => void
-  addXpPopup: (amount: number, type: 'xp' | 'feathers') => void
+  addXpPopup: (amount: number, type: XpPopup['type'], label?: string) => void
   removeXpPopup: (id: string) => void
+  removeAchievementPopup: (id: string) => void
+  closeStreakSavedModal: () => void
   closeLevelUpModal: () => void
 }

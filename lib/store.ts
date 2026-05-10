@@ -7,6 +7,7 @@ import {
   type DailyChallenge,
   type ChestReward,
   type User,
+  type AchievementPopup,
 } from './types'
 
 const getToday = () => new Date().toISOString().split('T')[0]
@@ -48,6 +49,7 @@ const generateDailyChallenges = (): DailyChallenge[] => {
 }
 
 const FEATHERS_FOR_STREAK_FREEZE = 50
+const MAX_STREAK_FREEZES = 2
 const REFERRAL_XP_REWARD = 35
 const REFERRAL_FEATHER_REWARD = 20
 
@@ -88,7 +90,24 @@ const claimableAchievementRewards = (user: User) => {
 const randomFromRange = (min: number, max: number) =>
   Math.floor(Math.random() * (max - min + 1)) + min
 
-const randomChestRewards = (): ChestReward[] => {
+const getActiveXpMultiplier = (user: User) => {
+  if (!user.xpMultiplierExpiresAt) return 1
+  return new Date(user.xpMultiplierExpiresAt).getTime() > Date.now() ? user.xpMultiplier : 1
+}
+
+const buildAchievementPopups = (ids: string[]): AchievementPopup[] =>
+  ids
+    .map((id) => achievementsData.find((achievement) => achievement.id === id))
+    .filter((achievement): achievement is NonNullable<typeof achievement> => Boolean(achievement))
+    .map((achievement) => ({
+      id: `${achievement.id}-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
+      title: achievement.titleUz || achievement.title,
+      description: achievement.descriptionUz || achievement.description,
+      icon: achievement.icon,
+      timestamp: Date.now(),
+    }))
+
+const randomChestRewards = (user: User): ChestReward[] => {
   const rewards: ChestReward[] = [
     {
       type: 'xp',
@@ -102,11 +121,19 @@ const randomChestRewards = (): ChestReward[] => {
     },
   ]
 
-  if (Math.random() > 0.6) {
+  if (user.streakFreezes < MAX_STREAK_FREEZES && Math.random() > 0.58) {
     rewards.push({
       type: 'streak_freeze',
       amount: 1,
       label: 'Streak Freeze',
+    })
+  }
+
+  if (Math.random() > 0.72) {
+    rewards.push({
+      type: 'bonus_multiplier',
+      amount: 2,
+      label: '24h XP Multiplier',
     })
   }
 
@@ -125,6 +152,8 @@ export const useAppStore = create<AppState>()(
       isLoading: false,
       isSoundEnabled: true,
       xpPopups: [],
+      achievementPopups: [],
+      showStreakSavedModal: false,
       showLevelUpModal: false,
       newLevel: 1,
 
@@ -142,6 +171,8 @@ export const useAppStore = create<AppState>()(
                 equippedTheme: user.equippedTheme ?? 'classic-green',
                 equippedFrame: user.equippedFrame ?? 'default',
                 purchasedItems: user.purchasedItems ?? [],
+                xpMultiplier: user.xpMultiplier ?? 1,
+                xpMultiplierExpiresAt: user.xpMultiplierExpiresAt ?? null,
               }
             : null,
         }),
@@ -173,7 +204,8 @@ export const useAppStore = create<AppState>()(
 
         const user = state.user
         const lessonId = state.currentLesson.id
-        const xpEarned = state.currentLesson.xpReward
+        const multiplier = getActiveXpMultiplier(user)
+        const xpEarned = Math.round(state.currentLesson.xpReward * multiplier)
         const featherEarned = state.currentLesson.featherReward ?? 5
         const newCompletedLessons = user.completedLessons.includes(lessonId)
           ? user.completedLessons
@@ -244,14 +276,20 @@ export const useAppStore = create<AppState>()(
             achievements: [...user.achievements, ...achievementRewards.unlockedIds],
             completedLessons: newCompletedLessons,
             lastActiveDate: today,
+            xpMultiplier: multiplier,
+            xpMultiplierExpiresAt: multiplier > 1 ? user.xpMultiplierExpiresAt : null,
           },
           dailyChallenges: challenges,
           currentScreen: 'result',
           showLevelUpModal: finalLevel > user.userLevel,
           newLevel: finalLevel,
+          achievementPopups: [
+            ...state.achievementPopups,
+            ...buildAchievementPopups(achievementRewards.unlockedIds),
+          ],
         })
 
-        get().addXpPopup(xpEarned + challengeBonusXp + achievementRewards.xp, 'xp')
+        get().addXpPopup(xpEarned + challengeBonusXp + achievementRewards.xp, 'xp', multiplier > 1 ? `${multiplier}x XP active` : undefined)
         get().addXpPopup(featherEarned + challengeBonusFeathers + achievementRewards.feathers, 'feathers')
       },
 
@@ -291,11 +329,13 @@ export const useAppStore = create<AppState>()(
 
         let newStreak = currentStreak
         let remainingFreezes = state.user.streakFreezes
+        let streakWasSaved = false
         if (lastActive === yesterdayStr) {
           newStreak += 1
         } else {
           if (currentStreak > 0 && state.user.streakFreezes > 0) {
-            remainingFreezes -= 1
+            remainingFreezes = Math.max(0, remainingFreezes - 1)
+            streakWasSaved = true
           } else {
             newStreak = 1
           }
@@ -333,7 +373,15 @@ export const useAppStore = create<AppState>()(
           },
           showLevelUpModal: finalLevel > state.user.userLevel,
           newLevel: finalLevel,
+          showStreakSavedModal: streakWasSaved,
+          achievementPopups: [
+            ...state.achievementPopups,
+            ...buildAchievementPopups(achievementRewards.unlockedIds),
+          ],
         })
+        if (streakWasSaved) {
+          get().addXpPopup(1, 'streak_saved', 'Streak saved')
+        }
         if (streakXpBonus + achievementRewards.xp > 0) {
           get().addXpPopup(streakXpBonus + achievementRewards.xp, 'xp')
         }
@@ -345,13 +393,15 @@ export const useAppStore = create<AppState>()(
       useStreakFreeze: () => {
         const state = get()
         if (!state.user || state.user.feathers < FEATHERS_FOR_STREAK_FREEZE) return false
+        if (state.user.streakFreezes >= MAX_STREAK_FREEZES) return false
         set({
           user: {
             ...state.user,
             feathers: state.user.feathers - FEATHERS_FOR_STREAK_FREEZE,
-            streakFreezes: state.user.streakFreezes + 1,
+            streakFreezes: Math.min(MAX_STREAK_FREEZES, state.user.streakFreezes + 1),
           },
         })
+        get().addXpPopup(1, 'freeze', 'Streak Freeze')
         return true
       },
 
@@ -361,19 +411,25 @@ export const useAppStore = create<AppState>()(
         const today = getToday()
         if (state.user.lastChestClaim === today) return []
 
-        const rewards = randomChestRewards()
+        const rewards = randomChestRewards(state.user)
         let xpGain = 0
         let featherGain = 0
         let freezeGain = 0
+        let multiplierReward = 1
 
         rewards.forEach((reward) => {
           if (reward.type === 'xp') xpGain += reward.amount
           if (reward.type === 'feathers') featherGain += reward.amount
           if (reward.type === 'streak_freeze') freezeGain += reward.amount
+          if (reward.type === 'bonus_multiplier') multiplierReward = Math.max(multiplierReward, reward.amount)
         })
 
         const nextXp = state.user.xp + xpGain
         const nextLevel = getLevel(nextXp)
+        const nextFreezeCount = Math.min(MAX_STREAK_FREEZES, state.user.streakFreezes + freezeGain)
+        const multiplierExpiresAt = multiplierReward > 1
+          ? new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString()
+          : state.user.xpMultiplierExpiresAt
 
         set({
           user: {
@@ -381,7 +437,9 @@ export const useAppStore = create<AppState>()(
             xp: nextXp,
             userLevel: nextLevel,
             feathers: state.user.feathers + featherGain,
-            streakFreezes: state.user.streakFreezes + freezeGain,
+            streakFreezes: nextFreezeCount,
+            xpMultiplier: multiplierReward > 1 ? multiplierReward : getActiveXpMultiplier(state.user),
+            xpMultiplierExpiresAt: multiplierExpiresAt,
             lastChestClaim: today,
           },
           showLevelUpModal: nextLevel > state.user.userLevel,
@@ -389,6 +447,8 @@ export const useAppStore = create<AppState>()(
         })
         if (xpGain > 0) get().addXpPopup(xpGain, 'xp')
         if (featherGain > 0) get().addXpPopup(featherGain, 'feathers')
+        if (nextFreezeCount > state.user.streakFreezes) get().addXpPopup(nextFreezeCount - state.user.streakFreezes, 'freeze', 'Streak Freeze')
+        if (multiplierReward > 1) get().addXpPopup(multiplierReward, 'multiplier', '24h XP Multiplier')
         return rewards
       },
 
@@ -445,6 +505,10 @@ export const useAppStore = create<AppState>()(
           },
           showLevelUpModal: finalLevel > state.user.userLevel,
           newLevel: finalLevel,
+          achievementPopups: [
+            ...state.achievementPopups,
+            ...buildAchievementPopups(achievementRewards.unlockedIds),
+          ],
         })
         get().addXpPopup(xpGain + achievementRewards.xp, 'xp')
         get().addXpPopup(featherGain + achievementRewards.feathers, 'feathers')
@@ -461,7 +525,7 @@ export const useAppStore = create<AppState>()(
         exerciseAnswers: { correct: 0, incorrect: 0 },
       }),
 
-      addXpPopup: (amount, type) =>
+      addXpPopup: (amount, type, label) =>
         set((state) => ({
           xpPopups: [
             ...state.xpPopups,
@@ -469,6 +533,7 @@ export const useAppStore = create<AppState>()(
               id: `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
               amount,
               type,
+              label,
               timestamp: Date.now(),
             },
           ],
@@ -478,6 +543,13 @@ export const useAppStore = create<AppState>()(
         set((state) => ({
           xpPopups: state.xpPopups.filter((popup) => popup.id !== id),
         })),
+
+      removeAchievementPopup: (id) =>
+        set((state) => ({
+          achievementPopups: state.achievementPopups.filter((popup) => popup.id !== id),
+        })),
+
+      closeStreakSavedModal: () => set({ showStreakSavedModal: false }),
 
       closeLevelUpModal: () => set({ showLevelUpModal: false }),
     }),

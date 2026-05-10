@@ -16,8 +16,9 @@ import { ProfileScreen } from '@/components/screens/profile-screen'
 import { ReferralScreen } from '@/components/screens/referral-screen'
 import { StoreScreen } from '@/components/screens/store-screen'
 import { DailyChestScreen } from '@/components/screens/daily-chest-screen'
-import { Feather, PartyPopper, Sparkles, Zap, X } from 'lucide-react'
-import { playRewardSound } from '@/lib/sound'
+import { Feather, Flame, PartyPopper, ShieldCheck, Snowflake, Sparkles, Zap, X } from 'lucide-react'
+import { SparrowMascot } from '@/components/sparrow-mascot'
+import { playAchievementSound, playRewardSound, playTapSound } from '@/lib/sound'
 
 export default function TilioApp() {
   const currentScreen = useAppStore((state) => state.currentScreen)
@@ -28,11 +29,17 @@ export default function TilioApp() {
   const { isReady } = useTelegram()
   const xpPopups = useAppStore((state) => state.xpPopups)
   const removeXpPopup = useAppStore((state) => state.removeXpPopup)
+  const achievementPopups = useAppStore((state) => state.achievementPopups)
+  const removeAchievementPopup = useAppStore((state) => state.removeAchievementPopup)
+  const showStreakSavedModal = useAppStore((state) => state.showStreakSavedModal)
+  const closeStreakSavedModal = useAppStore((state) => state.closeStreakSavedModal)
   const showLevelUpModal = useAppStore((state) => state.showLevelUpModal)
   const newLevel = useAppStore((state) => state.newLevel)
   const closeLevelUpModal = useAppStore((state) => state.closeLevelUpModal)
   const isSoundEnabled = useAppStore((state) => state.isSoundEnabled)
+  const learningPath = useAppStore((state) => state.user?.learningPath ?? 'uz-en')
   const previousPopupCountRef = useRef(0)
+  const previousAchievementCountRef = useRef(0)
 
   // Update streak on app load
   useEffect(() => {
@@ -54,8 +61,31 @@ export default function TilioApp() {
   }, [xpPopups.length, isSoundEnabled])
 
   useEffect(() => {
+    if (!isSoundEnabled) {
+      previousAchievementCountRef.current = achievementPopups.length
+      return
+    }
+    if (achievementPopups.length > previousAchievementCountRef.current) {
+      playAchievementSound()
+    }
+    previousAchievementCountRef.current = achievementPopups.length
+  }, [achievementPopups.length, isSoundEnabled])
+
+  useEffect(() => {
     document.documentElement.dataset.wallpaper = equippedTheme
   }, [equippedTheme])
+
+  useEffect(() => {
+    if (!isSoundEnabled) return
+    const handleTap = (event: PointerEvent) => {
+      const target = event.target as HTMLElement | null
+      if (target?.closest('button, a, [role="button"]')) {
+        playTapSound()
+      }
+    }
+    window.addEventListener('pointerdown', handleTap, { passive: true })
+    return () => window.removeEventListener('pointerdown', handleTap)
+  }, [isSoundEnabled])
 
   // Render current screen
   const renderScreen = () => {
@@ -94,16 +124,65 @@ export default function TilioApp() {
         {xpPopups.map((popup) => (
           <div
             key={popup.id}
-            className="animate-float-up bg-white/95 border border-primary/15 shadow-xl rounded-2xl px-4 py-2.5 text-sm font-extrabold"
+            className="animate-float-up animate-reward-glow bg-white/95 border border-primary/15 shadow-xl rounded-2xl px-4 py-2.5 text-sm font-extrabold"
             onAnimationEnd={() => removeXpPopup(popup.id)}
           >
             <span className="inline-flex items-center gap-1">
-              {popup.type === 'xp' ? <Zap className="w-4 h-4 text-primary" /> : <Feather className="w-4 h-4 text-emerald-600" />}
-              +{popup.amount} {popup.type === 'xp' ? 'XP' : 'Feathers'}
+              {popup.type === 'xp' && <Zap className="w-4 h-4 text-primary" />}
+              {popup.type === 'feathers' && <Feather className="w-4 h-4 text-emerald-600" />}
+              {popup.type === 'freeze' && <Snowflake className="w-4 h-4 text-sky-500" />}
+              {popup.type === 'multiplier' && <Sparkles className="w-4 h-4 text-amber-500" />}
+              {popup.type === 'streak_saved' && <ShieldCheck className="w-4 h-4 text-sky-600" />}
+              {popup.type === 'streak_saved'
+                ? popup.label
+                : popup.type === 'multiplier'
+                  ? `${popup.amount}x ${popup.label ?? 'Multiplier'}`
+                  : `+${popup.amount} ${popup.label ?? (popup.type === 'xp' ? 'XP' : popup.type === 'feathers' ? 'Feathers' : 'Freeze')}`}
             </span>
           </div>
         ))}
       </div>
+      {achievementPopups.length > 0 && (
+        <div className="fixed inset-x-4 top-28 z-50 mx-auto max-w-sm pointer-events-none">
+          {achievementPopups.slice(0, 1).map((popup) => (
+            <div
+              key={popup.id}
+              className="animate-soft-pop rounded-[1.75rem] border border-amber-200/80 bg-white/95 p-4 shadow-2xl shadow-emerald-950/12"
+              onAnimationEnd={() => window.setTimeout(() => removeAchievementPopup(popup.id), 1800)}
+            >
+              <div className="flex items-center gap-3">
+                <div className="flex size-14 shrink-0 items-center justify-center rounded-2xl bg-gradient-to-br from-amber-200 to-lime-200 text-2xl shadow-lg">
+                  {popup.icon}
+                </div>
+                <div className="min-w-0 flex-1">
+                  <p className="text-xs font-extrabold uppercase tracking-[0.16em] text-primary">Nishon ochildi</p>
+                  <h3 className="text-lg font-black leading-tight">{popup.title}</h3>
+                  <p className="line-clamp-2 text-xs font-semibold text-muted-foreground">{popup.description}</p>
+                </div>
+                <SparrowMascot branded size="sm" mood="celebrating" />
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+      {showStreakSavedModal && (
+        <div className="fixed inset-0 z-50 bg-emerald-950/20 backdrop-blur-sm flex items-center justify-center px-4">
+          <div className="w-full max-w-sm rounded-[2rem] border border-sky-200 bg-gradient-to-br from-white to-sky-50 p-6 text-center shadow-2xl animate-soft-pop">
+            <button className="ml-auto flex size-9 items-center justify-center rounded-full bg-white/80 text-muted-foreground shadow-sm" onClick={closeStreakSavedModal}>
+              <X className="w-4 h-4" />
+            </button>
+            <div className="mx-auto -mt-2 mb-3 flex size-20 items-center justify-center rounded-[1.75rem] bg-sky-100 text-sky-700 shadow-lg shadow-sky-900/10">
+              <ShieldCheck className="size-9" />
+            </div>
+            <SparrowMascot branded size="sm" mood="celebrating" className="mx-auto -mb-1" />
+            <p className="text-xs text-sky-700 font-extrabold tracking-[0.18em]">STREAK SAVED</p>
+            <h3 className="text-3xl font-black mt-1">Your freeze worked</h3>
+            <p className="text-sm text-muted-foreground mt-2">
+              One Streak Freeze was used automatically, so your learning streak stayed alive.
+            </p>
+          </div>
+        </div>
+      )}
       {showLevelUpModal && (
         <div className="fixed inset-0 z-50 bg-emerald-950/20 backdrop-blur-sm flex items-center justify-center px-4">
           <div className="w-full max-w-sm rounded-[2rem] border border-primary/20 bg-gradient-to-br from-white to-emerald-50 p-6 text-center shadow-2xl animate-soft-pop">
@@ -116,7 +195,9 @@ export default function TilioApp() {
             <p className="text-xs text-primary font-extrabold tracking-[0.18em]">LEVEL UP</p>
             <h3 className="text-3xl font-black mt-1">Level {newLevel}</h3>
             <p className="text-sm text-muted-foreground mt-2">
-              Your consistency is paying off. Keep learning daily to unlock more rewards.
+              {learningPath === 'uz-en'
+                ? 'Izchilligingiz natija bermoqda. Ko‘proq mukofotlarni ochish uchun har kuni o‘rganishda davom eting.'
+                : 'Your consistency is paying off. Keep learning daily to unlock more rewards.'}
             </p>
             <div className="mt-5 flex justify-center gap-2 text-accent">
               <Sparkles className="size-5 animate-bounce" />

@@ -29,6 +29,7 @@ export function ExerciseScreen() {
   const completeExercise = useAppStore((state) => state.completeExercise)
   const completeLesson = useAppStore((state) => state.completeLesson)
   const setScreen = useAppStore((state) => state.setScreen)
+  const addXpPopup = useAppStore((state) => state.addXpPopup)
   const user = useAppStore((state) => state.user)
   const isSoundEnabled = useAppStore((state) => state.isSoundEnabled)
   const { hapticFeedback, showBackButton, hideBackButton } = useTelegram()
@@ -109,12 +110,13 @@ export function ExerciseScreen() {
     if (correct) {
       hapticFeedback('success')
       setShowCelebration(true)
+      addXpPopup(currentExercise?.xpReward ?? 5, 'xp')
       window.setTimeout(() => setShowCelebration(false), 900)
     } else {
       hapticFeedback('error')
     }
     if (isSoundEnabled) playAnswerSound(correct)
-  }, [isAnswered, currentExercise, hapticFeedback, isSoundEnabled])
+  }, [isAnswered, currentExercise, hapticFeedback, isSoundEnabled, addXpPopup])
 
   const handleContinue = useCallback(() => {
     hapticFeedback('light')

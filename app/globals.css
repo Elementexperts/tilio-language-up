@@ -220,6 +220,23 @@ body {
   50% { transform: scale(1.1) rotate(3deg); }
 }
 
+@keyframes counter-pop {
+  0% { transform: scale(0.92); }
+  45% { transform: scale(1.12); }
+  100% { transform: scale(1); }
+}
+
+@keyframes reward-glow {
+  0%, 100% { box-shadow: 0 14px 34px oklch(0.68 0.15 92 / 0.18); }
+  50% { box-shadow: 0 18px 42px oklch(0.65 0.2 145 / 0.28), 0 0 24px oklch(0.86 0.17 88 / 0.36); }
+}
+
+@keyframes chest-shake {
+  0%, 100% { transform: translateX(-50%) rotate(0deg); }
+  30% { transform: translateX(-50%) rotate(-2deg) translateY(-2px); }
+  60% { transform: translateX(-50%) rotate(2deg) translateY(1px); }
+}
+
 .animate-bounce-in {
   animation: bounce-in 0.5s cubic-bezier(0.68, -0.55, 0.265, 1.55);
 }
@@ -254,6 +271,22 @@ body {
 
 .animate-streak-flame {
   animation: streak-flame 0.5s ease-in-out infinite;
+}
+
+.animate-counter-pop {
+  animation: counter-pop 0.32s cubic-bezier(0.2, 0.9, 0.25, 1.25);
+}
+
+.animate-reward-glow {
+  animation: float-up 1.15s ease-out forwards, reward-glow 1.15s ease-in-out forwards;
+}
+
+.animate-chest-shake {
+  animation: chest-shake 1.8s ease-in-out infinite;
+}
+
+.animate-chest-shake.animate-pulse-glow {
+  animation: chest-shake 1.8s ease-in-out infinite, pulse-glow 2s ease-in-out infinite;
 }
 
 /* Telegram Mini App optimizations */

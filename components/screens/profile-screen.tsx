@@ -138,15 +138,15 @@ export function ProfileScreen() {
           <div className="mt-4 grid grid-cols-3 gap-2">
             <div className="rounded-2xl bg-white/80 p-2">
               <p className="text-xs font-bold text-muted-foreground">Daraja</p>
-              <p className="text-xl font-black text-primary">{user.userLevel}</p>
+              <p key={user.userLevel} className="animate-counter-pop text-xl font-black text-primary">{user.userLevel}</p>
             </div>
             <div className="rounded-2xl bg-white/80 p-2">
               <p className="text-xs font-bold text-muted-foreground">Patlar</p>
-              <p className="inline-flex items-center justify-center gap-1 text-xl font-black text-emerald-700"><Feather className="size-4" />{user.feathers}</p>
+              <p key={user.feathers} className="animate-counter-pop inline-flex items-center justify-center gap-1 text-xl font-black text-emerald-700"><Feather className="size-4" />{user.feathers}</p>
             </div>
             <div className="rounded-2xl bg-white/80 p-2">
               <p className="text-xs font-bold text-muted-foreground">Himoya</p>
-              <p className="text-xl font-black text-sky-600">{user.streakFreezes}</p>
+              <p key={user.streakFreezes} className="animate-counter-pop text-xl font-black text-sky-600">{user.streakFreezes}/2</p>
             </div>
           </div>
         </div>
@@ -155,7 +155,7 @@ export function ProfileScreen() {
         <div className="grid grid-cols-2 gap-4 mb-6">
           <Card className="tilio-card rounded-[1.5rem] p-4 text-center">
             <Zap className="w-6 h-6 text-primary mx-auto mb-2" />
-            <p className="text-2xl font-black text-foreground">{user.xp}</p>
+            <p key={user.xp} className="animate-counter-pop text-2xl font-black text-foreground">{user.xp}</p>
             <p className="text-sm text-muted-foreground">Jami XP</p>
           </Card>
           <Card className="tilio-card rounded-[1.5rem] p-4 text-center">

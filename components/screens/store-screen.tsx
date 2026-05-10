@@ -9,7 +9,7 @@ import { useAppStore } from '@/lib/store'
 import { useTelegram } from '@/hooks/use-telegram'
 import { storeItemsData } from '@/lib/data/lessons'
 import { cn } from '@/lib/utils'
-import { ArrowLeft, BadgeCheck, Check, Cloud, Feather, Landmark, Leaf, Map, Palette, Shield, ShoppingBag, Sparkles, Wand2 } from 'lucide-react'
+import { ArrowLeft, BadgeCheck, Check, Cloud, Feather, Landmark, Leaf, Map, Palette, Shield, ShoppingBag, Snowflake, Sparkles, Wand2 } from 'lucide-react'
 import type { StoreItem } from '@/lib/types'
 
 const wallpaperItems: StoreItem[] = [
@@ -33,7 +33,7 @@ const wallpaperItems: StoreItem[] = [
   },
   {
     id: 'wallpaper-silk-road',
-    name: 'Silk Road Glow',
+    name: 'Silk Road Path',
     description: 'Soft golden path with airy Uzbek patterns.',
     type: 'wallpaper',
     price: 120,
@@ -42,7 +42,7 @@ const wallpaperItems: StoreItem[] = [
   },
   {
     id: 'wallpaper-orchard',
-    name: 'Garden Orchard',
+    name: 'Orchard Garden',
     description: 'Fresh green garden with gentle premium depth.',
     type: 'wallpaper',
     price: 140,
@@ -97,6 +97,7 @@ export function StoreScreen() {
   const user = useAppStore((state) => state.user)
   const setScreen = useAppStore((state) => state.setScreen)
   const purchaseItem = useAppStore((state) => state.purchaseItem)
+  const useStreakFreeze = useAppStore((state) => state.useStreakFreeze)
   const updateUser = useAppStore((state) => state.updateUser)
   const { hapticFeedback, showBackButton, hideBackButton } = useTelegram()
 
@@ -125,6 +126,11 @@ export function StoreScreen() {
   const handleApplyWallpaper = (itemId: string) => {
     hapticFeedback('success')
     updateUser({ equippedTheme: itemId })
+  }
+
+  const handleBuyFreeze = () => {
+    hapticFeedback('medium')
+    useStreakFreeze()
   }
 
   return (
@@ -234,6 +240,34 @@ export function StoreScreen() {
               )
             })}
           </div>
+        </section>
+
+        <section className="mb-5">
+          <div className="mb-3">
+            <p className="text-xs font-extrabold uppercase tracking-[0.16em] text-primary">Streak protection</p>
+            <h2 className="text-lg font-black">Keep your streak safe</h2>
+          </div>
+          <Card className="tilio-card rounded-[1.75rem] border-sky-100 p-4">
+            <div className="flex items-center gap-4">
+              <div className="flex size-16 shrink-0 items-center justify-center rounded-[1.35rem] bg-gradient-to-br from-sky-100 to-emerald-100 text-sky-700 shadow-inner">
+                <Snowflake className="size-8" />
+              </div>
+              <div className="min-w-0 flex-1">
+                <p className="font-black">Streak Freeze</p>
+                <p className="mt-1 text-xs font-semibold text-muted-foreground">Automatically protects your streak if you miss one day.</p>
+                <p className="mt-2 text-xs font-black text-sky-700">Owned: {user.streakFreezes}/2</p>
+              </div>
+              <Button
+                size="sm"
+                className="h-10 rounded-xl px-3 font-black"
+                disabled={user.streakFreezes >= 2 || user.feathers < 50}
+                onClick={handleBuyFreeze}
+              >
+                <Feather className="size-4" />
+                {user.streakFreezes >= 2 ? 'Max' : '50'}
+              </Button>
+            </div>
+          </Card>
         </section>
 
         <section>

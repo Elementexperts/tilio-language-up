@@ -171,15 +171,15 @@ export function DailyChallengesScreen() {
               <p className="text-xs text-muted-foreground">
                 Use 50 Feathers to protect your streak when you miss a day.
               </p>
-              <p className="text-xs text-orange-600 mt-1">Owned: {user.streakFreezes}</p>
+              <p className="text-xs text-orange-600 mt-1">Owned: {user.streakFreezes}/2</p>
             </div>
             <Button
               variant="outline"
               className="rounded-xl shrink-0"
-              disabled={user.feathers < 50}
+              disabled={user.feathers < 50 || user.streakFreezes >= 2}
               onClick={handleBuyFreeze}
             >
-              Buy (50 🪶)
+              {user.streakFreezes >= 2 ? 'Max' : 'Buy (50 feathers)'}
             </Button>
           </div>
         </Card>

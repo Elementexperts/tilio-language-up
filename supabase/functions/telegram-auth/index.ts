@@ -55,9 +55,11 @@ function requireAnyEnv(names: string[]) {
 
 async function hmacSha256(key: Uint8Array | string, data: string) {
   const rawKey = typeof key === 'string' ? textEncoder.encode(key) : key
+  const keyData = new ArrayBuffer(rawKey.byteLength)
+  new Uint8Array(keyData).set(rawKey)
   const cryptoKey = await crypto.subtle.importKey(
     'raw',
-    rawKey,
+    keyData,
     { name: 'HMAC', hash: 'SHA-256' },
     false,
     ['sign'],

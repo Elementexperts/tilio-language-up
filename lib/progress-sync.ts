@@ -57,6 +57,13 @@ export async function saveCloudProgress(session: CloudAuthSession, snapshot: Clo
 
 export function chooseNewestProgress(localUser: User | null, cloud: CloudProgressSnapshot | null) {
   if (!cloud) return null
-  if (!localUser?.lastSyncedAt) return cloud
+  if (!localUser?.lastSyncedAt) {
+    const localProgressScore =
+      (localUser?.completedLessons.length ?? 0) + (localUser?.xp ?? 0) + (localUser?.achievements.length ?? 0)
+    const cloudProgressScore =
+      cloud.user.completedLessons.length + cloud.user.xp + cloud.user.achievements.length
+
+    return cloudProgressScore > localProgressScore ? cloud : null
+  }
   return new Date(cloud.updatedAt).getTime() >= new Date(localUser.lastSyncedAt).getTime() ? cloud : null
 }

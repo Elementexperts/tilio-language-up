@@ -7,15 +7,28 @@ export interface TelegramAuthResult {
 }
 
 const SESSION_CACHE_KEY = 'tilio-cloud-session'
+const SESSION_REFRESH_BUFFER_SECONDS = 60
 
 export function getCachedCloudSession(): CloudAuthSession | null {
   if (typeof window === 'undefined') return null
   try {
     const raw = window.localStorage.getItem(SESSION_CACHE_KEY)
-    return raw ? JSON.parse(raw) as CloudAuthSession : null
+    const session = raw ? JSON.parse(raw) as CloudAuthSession : null
+    if (session && !isCloudSessionFresh(session)) {
+      cacheCloudSession(null)
+      return null
+    }
+    return session
   } catch {
     return null
   }
+}
+
+export function isCloudSessionFresh(session: CloudAuthSession | null) {
+  if (!session?.accessToken || !session.userId) return false
+  if (!session.expiresAt) return true
+
+  return session.expiresAt - SESSION_REFRESH_BUFFER_SECONDS > Math.floor(Date.now() / 1000)
 }
 
 export function cacheCloudSession(session: CloudAuthSession | null) {

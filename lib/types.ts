@@ -24,8 +24,9 @@ export interface User {
   equippedTheme: string
   equippedFrame: string
   purchasedItems: string[]
-  xpMultiplier: number
-  xpMultiplierExpiresAt: string | null
+  xpMultiplier?: number
+  xpMultiplierExpiresAt?: string | null
+  wordReviews?: Record<string, WordReview>
 }
 
 // XP Level calculation
@@ -46,6 +47,15 @@ export interface Word {
     english: string
   }
   category: string
+}
+
+export interface WordReview {
+  wordId: string
+  correctCount: number
+  incorrectCount: number
+  intervalDays: number
+  nextReviewAt: string
+  lastReviewedAt: string
 }
 
 export interface Lesson {
@@ -71,6 +81,8 @@ export type ExerciseType =
   | 'sentence-building'
   | 'listening'
   | 'translation'
+  | 'pronunciation'
+  | 'grammar'
 
 export interface Exercise {
   id: string
@@ -191,7 +203,7 @@ export interface AppState {
   updateUser: (updates: Partial<User>) => void
   setScreen: (screen: AppScreen) => void
   startLesson: (lesson: Lesson) => void
-  completeExercise: (correct: boolean) => void
+  completeExercise: (correct: boolean, wordId?: string) => void
   completeLesson: () => void
   addXp: (amount: number) => void
   addFeathers: (amount: number) => void

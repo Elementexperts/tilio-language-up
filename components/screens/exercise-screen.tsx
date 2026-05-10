@@ -10,7 +10,7 @@ import { useTelegram } from '@/hooks/use-telegram'
 import { cn } from '@/lib/utils'
 import { playAnswerSound } from '@/lib/sound'
 import { buildLessonExercises, seededSort } from '@/lib/exercise-flow'
-import { X, Check, ArrowRight, Sparkles, Zap, Volume2 } from 'lucide-react'
+import { X, Check, ArrowRight, Sparkles, Zap, Volume2, Mic } from 'lucide-react'
 import type { Word } from '@/lib/types'
 
 function getPreferredVoice(lang: string) {
@@ -44,8 +44,8 @@ export function ExerciseScreen() {
   // Generate exercises from lesson words
   const exercises = useMemo(() => {
     if (!currentLesson) return []
-    return buildLessonExercises(currentLesson, user?.learningPath)
-  }, [currentLesson, user?.learningPath])
+    return buildLessonExercises(currentLesson, user?.learningPath, user?.wordReviews)
+  }, [currentLesson, user?.learningPath, user?.wordReviews])
 
   const currentExercise = exercises[currentExerciseIndex]
   const totalExercises = exercises.length
@@ -122,7 +122,7 @@ export function ExerciseScreen() {
     hapticFeedback('light')
     
     // Record the answer
-    completeExercise(isCorrect)
+    completeExercise(isCorrect, currentExercise?.word.id)
     
     // Reset state
     setSelectedAnswer(null)
@@ -136,7 +136,7 @@ export function ExerciseScreen() {
     if (currentExerciseIndex + 1 >= totalExercises) {
       completeLesson()
     }
-  }, [hapticFeedback, completeExercise, isCorrect, currentExerciseIndex, totalExercises, completeLesson])
+  }, [hapticFeedback, completeExercise, isCorrect, currentExercise, currentExerciseIndex, totalExercises, completeLesson])
 
   const handleVocabContinue = useCallback(() => {
     setShowVocabulary(false)
@@ -208,6 +208,7 @@ export function ExerciseScreen() {
         {(currentExercise.type === 'translation' || 
           currentExercise.type === 'listening' ||
           currentExercise.type === 'sentence' ||
+          currentExercise.type === 'grammar' ||
           (currentExercise.type === 'vocabulary' && !showVocabulary)) && (
           <TranslationExercise
             type={currentExercise.type === 'vocabulary' ? 'translation' : currentExercise.type}
@@ -219,10 +220,40 @@ export function ExerciseScreen() {
             isCorrect={isCorrect}
             isUzToEn={isUzToEn}
             prompt={currentExercise.prompt}
+            grammarRule={currentExercise.grammarRule}
             questionText={currentExercise.questionText}
             isSpeaking={isSpeaking}
             onReplay={() => speakText(currentExercise.speakText ?? (isUzToEn ? currentExercise.word.english : currentExercise.word.uzbek), isUzToEn ? 'en-US' : 'uz-UZ')}
             onAnswer={handleAnswer}
+          />
+        )}
+
+        {currentExercise.type === 'sentence-builder' && (
+          <SentenceBuilderExercise
+            target={currentExercise.sentenceTarget ?? currentExercise.correctAnswer}
+            tiles={currentExercise.sentenceTiles ?? []}
+            prompt={currentExercise.prompt}
+            onComplete={(correct) => {
+              setIsAnswered(true)
+              setIsCorrect(correct)
+              correct ? hapticFeedback('success') : hapticFeedback('error')
+              if (isSoundEnabled) playAnswerSound(correct)
+            }}
+            isAnswered={isAnswered}
+          />
+        )}
+
+        {currentExercise.type === 'pronunciation' && (
+          <PronunciationExercise
+            text={currentExercise.speakText ?? currentExercise.correctAnswer}
+            isUzToEn={isUzToEn}
+            onSpeak={() => speakText(currentExercise.speakText ?? currentExercise.correctAnswer, isUzToEn ? 'en-US' : 'uz-UZ')}
+            onComplete={(correct) => {
+              setIsAnswered(true)
+              setIsCorrect(correct)
+              correct ? hapticFeedback('success') : hapticFeedback('warning')
+              if (isSoundEnabled) playAnswerSound(correct)
+            }}
           />
         )}
 
@@ -369,7 +400,7 @@ function VocabularyCard({ word, isUzToEn, onContinue, isSpeaking, onSpeak }: Voc
 
 // Translation Exercise Component
 interface TranslationExerciseProps {
-  type: 'translation' | 'listening' | 'sentence'
+  type: 'translation' | 'listening' | 'sentence' | 'grammar'
   word: Word
   options: string[]
   correctAnswer: string
@@ -378,6 +409,7 @@ interface TranslationExerciseProps {
   isCorrect: boolean
   isUzToEn: boolean
   prompt?: string
+  grammarRule?: string
   questionText?: string
   isSpeaking: boolean
   onReplay: () => void
@@ -393,6 +425,7 @@ function TranslationExercise({
   isAnswered,
   isUzToEn,
   prompt,
+  grammarRule,
   questionText,
   isSpeaking,
   onReplay,
@@ -401,10 +434,12 @@ function TranslationExercise({
   const title =
     type === 'listening'
       ? 'What did you hear?'
+      : type === 'grammar'
+        ? 'Mini lesson'
       : type === 'sentence'
         ? 'Complete the phrase'
         : 'Choose the meaning'
-  const eyebrow = type === 'listening' ? 'Listening' : type === 'sentence' ? 'Sentence' : 'Translate'
+  const eyebrow = type === 'listening' ? 'Listening' : type === 'grammar' ? 'Grammar' : type === 'sentence' ? 'Sentence' : 'Translate'
   const displayText = questionText ?? (isUzToEn ? word.english : word.uzbek)
 
   return (
@@ -436,6 +471,11 @@ function TranslationExercise({
           </div>
         )}
         {prompt && <p className="mt-4 text-center text-sm font-semibold text-muted-foreground">{prompt}</p>}
+        {grammarRule && (
+          <div className="mt-4 rounded-2xl bg-emerald-50/80 p-3 text-sm font-semibold text-emerald-900">
+            {grammarRule}
+          </div>
+        )}
       </Card>
 
       <div className="space-y-3">
@@ -470,6 +510,156 @@ function TranslationExercise({
           )
         })}
       </div>
+    </div>
+  )
+}
+
+interface SentenceBuilderExerciseProps {
+  target: string
+  tiles: string[]
+  prompt?: string
+  onComplete: (correct: boolean) => void
+  isAnswered: boolean
+}
+
+function SentenceBuilderExercise({ target, tiles, prompt, onComplete, isAnswered }: SentenceBuilderExerciseProps) {
+  const [selectedTiles, setSelectedTiles] = useState<string[]>([])
+  const [availableTiles, setAvailableTiles] = useState(tiles)
+
+  useEffect(() => {
+    setSelectedTiles([])
+    setAvailableTiles(tiles)
+  }, [tiles, target])
+
+  const chooseTile = (tile: string, index: number) => {
+    if (isAnswered) return
+    setSelectedTiles((current) => [...current, tile])
+    setAvailableTiles((current) => current.filter((_, tileIndex) => tileIndex !== index))
+  }
+
+  const removeTile = (tile: string, index: number) => {
+    if (isAnswered) return
+    setSelectedTiles((current) => current.filter((_, tileIndex) => tileIndex !== index))
+    setAvailableTiles((current) => [...current, tile])
+  }
+
+  const checkAnswer = () => {
+    const normalized = (value: string) => value.toLowerCase().replace(/[^\p{L}\p{N}\s']/gu, '').trim().replace(/\s+/g, ' ')
+    onComplete(normalized(selectedTiles.join(' ')) === normalized(target))
+  }
+
+  return (
+    <div className="flex flex-1 flex-col animate-soft-pop">
+      <div className="mb-4 flex items-center justify-between">
+        <div>
+          <p className="text-xs font-extrabold uppercase tracking-[0.16em] text-primary">Sentence builder</p>
+          <h1 className="text-2xl font-black">Build the sentence</h1>
+        </div>
+        <SparrowMascot size="sm" mood="thinking" branded />
+      </div>
+
+      <Card className="tilio-card mb-5 rounded-[2rem] p-5">
+        <p className="mb-3 text-sm font-semibold text-muted-foreground">{prompt ?? 'Tap words in the correct order.'}</p>
+        <div className="min-h-24 rounded-[1.35rem] border-2 border-dashed border-emerald-200 bg-white/70 p-3">
+          <div className="flex flex-wrap gap-2">
+            {selectedTiles.map((tile, index) => (
+              <button key={`${tile}-${index}`} type="button" onClick={() => removeTile(tile, index)} className="tilio-pressed rounded-xl bg-primary px-3 py-2 text-sm font-black text-primary-foreground">
+                {tile}
+              </button>
+            ))}
+          </div>
+        </div>
+      </Card>
+
+      <div className="mb-5 flex flex-wrap gap-2">
+        {availableTiles.map((tile, index) => (
+          <button key={`${tile}-${index}`} type="button" onClick={() => chooseTile(tile, index)} className="tilio-pressed rounded-xl border border-emerald-100 bg-white/90 px-3 py-2 text-sm font-black shadow-sm">
+            {tile}
+          </button>
+        ))}
+      </div>
+
+      <Button className="tilio-button mt-auto h-14 rounded-2xl text-lg font-black" disabled={selectedTiles.length === 0 || isAnswered} onClick={checkAnswer}>
+        Check sentence
+      </Button>
+    </div>
+  )
+}
+
+interface PronunciationExerciseProps {
+  text: string
+  isUzToEn: boolean
+  onSpeak: () => void
+  onComplete: (correct: boolean) => void
+}
+
+function PronunciationExercise({ text, isUzToEn, onSpeak, onComplete }: PronunciationExerciseProps) {
+  const [isListening, setIsListening] = useState(false)
+  const [transcript, setTranscript] = useState('')
+  const [score, setScore] = useState<number | null>(null)
+
+  const startListening = () => {
+    if (typeof window === 'undefined') return
+    const SpeechRecognition = (window as typeof window & {
+      SpeechRecognition?: new () => any
+      webkitSpeechRecognition?: new () => any
+    }).SpeechRecognition ?? (window as typeof window & {
+      webkitSpeechRecognition?: new () => any
+    }).webkitSpeechRecognition
+
+    if (!SpeechRecognition) {
+      setTranscript('Speech recognition is not available on this device.')
+      setScore(0)
+      onComplete(false)
+      return
+    }
+
+    const recognition = new SpeechRecognition()
+    recognition.lang = isUzToEn ? 'en-US' : 'uz-UZ'
+    recognition.interimResults = false
+    recognition.maxAlternatives = 1
+    setIsListening(true)
+    recognition.onresult = (event: any) => {
+      const spoken = event.results[0]?.[0]?.transcript ?? ''
+      const normalized = (value: string) => value.toLowerCase().replace(/[^\p{L}\p{N}\s']/gu, '').trim()
+      const targetWords = normalized(text).split(/\s+/).filter(Boolean)
+      const spokenWords = normalized(spoken).split(/\s+/).filter(Boolean)
+      const matches = targetWords.filter((word) => spokenWords.includes(word)).length
+      const nextScore = targetWords.length ? Math.round((matches / targetWords.length) * 100) : 0
+      setTranscript(spoken)
+      setScore(nextScore)
+      setIsListening(false)
+      onComplete(nextScore >= 70)
+    }
+    recognition.onerror = () => {
+      setIsListening(false)
+      setScore(0)
+      onComplete(false)
+    }
+    recognition.onend = () => setIsListening(false)
+    recognition.start()
+  }
+
+  return (
+    <div className="flex flex-1 flex-col items-center justify-center animate-soft-pop">
+      <p className="mb-3 text-xs font-extrabold uppercase tracking-[0.16em] text-primary">Pronunciation</p>
+      <h1 className="mb-2 text-center text-2xl font-black">Say this out loud</h1>
+      <Card className="tilio-card w-full max-w-sm rounded-[2rem] p-7 text-center">
+        <button type="button" onClick={onSpeak} className="tilio-pressed mx-auto mb-5 flex size-16 items-center justify-center rounded-2xl bg-emerald-50 text-primary">
+          <Volume2 className="size-7" />
+        </button>
+        <p className="text-4xl font-black text-emerald-950">{text}</p>
+        <button type="button" onClick={startListening} className={cn('tilio-pressed mx-auto mt-8 flex size-24 items-center justify-center rounded-full border-4 border-primary bg-white text-primary shadow-xl', isListening && 'animate-pulse-glow')}>
+          <Mic className="size-10" />
+        </button>
+        <p className="mt-3 text-sm font-semibold text-muted-foreground">{isListening ? 'Listening...' : 'Tap and speak'}</p>
+        {score !== null && (
+          <div className="mt-4 rounded-2xl bg-emerald-50 p-3">
+            <p className="text-sm font-black text-primary">Pronunciation score: {score}%</p>
+            {transcript && <p className="mt-1 text-xs font-semibold text-muted-foreground">Heard: {transcript}</p>}
+          </div>
+        )}
+      </Card>
     </div>
   )
 }

@@ -1,6 +1,14 @@
-import type { Lesson, User, Word } from '@/lib/types'
+import type { Lesson, User, Word, WordReview } from '@/lib/types'
 
-export type LessonExerciseType = 'vocabulary' | 'matching' | 'translation' | 'listening' | 'sentence'
+export type LessonExerciseType =
+  | 'vocabulary'
+  | 'matching'
+  | 'translation'
+  | 'listening'
+  | 'sentence'
+  | 'sentence-builder'
+  | 'pronunciation'
+  | 'grammar'
 
 export interface LessonExercise {
   type: LessonExerciseType
@@ -10,6 +18,10 @@ export interface LessonExercise {
   prompt?: string
   questionText?: string
   speakText?: string
+  grammarRule?: string
+  sentenceTiles?: string[]
+  sentenceTarget?: string
+  xpReward?: number
 }
 
 function scoreFor(seed: string) {
@@ -104,17 +116,26 @@ export function buildChoiceOptions(
 
 export function buildLessonExercises(
   lesson: Lesson,
-  learningPath: User['learningPath'] | undefined
+  learningPath: User['learningPath'] | undefined,
+  wordReviews: Record<string, WordReview> = {}
 ): LessonExercise[] {
   const words = lesson.words
   const isUzToEn = learningPath === 'uz-en'
-  const shuffledWords = seededSort(words, `lesson-${lesson.id}-${isUzToEn ? 'uz-en' : 'en-uz'}`)
-  const exerciseTypes: LessonExerciseType[] = ['vocabulary', 'translation', 'listening', 'sentence']
+  const today = new Date().toISOString().split('T')[0]
+  const reviewSortedWords = seededSort(words, `lesson-${lesson.id}-${isUzToEn ? 'uz-en' : 'en-uz'}`).sort((a, b) => {
+    const aReview = wordReviews[a.id]
+    const bReview = wordReviews[b.id]
+    const aDue = !aReview || aReview.nextReviewAt <= today
+    const bDue = !bReview || bReview.nextReviewAt <= today
+    if (aDue === bDue) return (bReview?.incorrectCount ?? 0) - (aReview?.incorrectCount ?? 0)
+    return aDue ? -1 : 1
+  })
+  const exerciseTypes: LessonExerciseType[] = ['vocabulary', 'grammar', 'translation', 'listening', 'sentence-builder', 'pronunciation']
   const exerciseList: LessonExercise[] = []
 
   exerciseTypes.forEach((type, roundIndex) => {
     const roundWords = seededSort(
-      shuffledWords,
+      reviewSortedWords,
       `lesson-${lesson.id}-${type}-${roundIndex}-${isUzToEn ? 'uz-en' : 'en-uz'}`
     )
 
@@ -124,25 +145,38 @@ export function buildLessonExercises(
       const sourceText = isUzToEn ? word.english : word.uzbek
       const example = isUzToEn ? word.example?.english : word.example?.uzbek
       const translatedExample = isUzToEn ? word.example?.uzbek : word.example?.english
+      const sentenceTarget = example ?? sourceText
+      const sentenceTiles = seededSort(sentenceTarget.split(' ').filter(Boolean), `tiles-${word.id}-${isUzToEn ? 'uz-en' : 'en-uz'}`)
+      const grammarRule = isUzToEn
+        ? `In English, place the key word where it naturally completes the sentence. "${sourceText}" means "${correctAnswer}".`
+        : `O'zbek tilida ma'no ko'pincha qo'shimchalar va so'z tartibi orqali aniqlanadi. "${sourceText}" = "${correctAnswer}".`
 
       exerciseList.push({
         type,
         word,
-        options,
-        correctAnswer,
+        options: type === 'pronunciation' || type === 'sentence-builder' ? undefined : options,
+        correctAnswer: type === 'sentence-builder' || type === 'pronunciation' ? sentenceTarget : correctAnswer,
         speakText: sourceText,
+        xpReward: type === 'pronunciation' || type === 'sentence-builder' ? 8 : 5,
+        sentenceTarget,
+        sentenceTiles,
+        grammarRule,
         questionText:
-          type === 'sentence' && example
+          type === 'sentence-builder' && example
             ? example.replace(sourceText, '_____')
             : sourceText,
         prompt:
           type === 'vocabulary'
             ? `New word: ${sourceText}`
+            : type === 'grammar'
+              ? 'Mini grammar'
             : type === 'listening'
               ? 'Listen and choose the meaning'
-              : type === 'sentence'
-                ? translatedExample ?? 'Complete the phrase'
-                : 'Choose the meaning',
+              : type === 'sentence-builder'
+                ? translatedExample ?? 'Build the phrase'
+                : type === 'pronunciation'
+                  ? 'Say it out loud'
+                  : 'Choose the meaning',
       })
     })
   })
@@ -150,7 +184,7 @@ export function buildLessonExercises(
   if (words.length >= 4) {
     exerciseList.push({
       type: 'matching',
-      word: shuffledWords[0],
+      word: reviewSortedWords[0],
       correctAnswer: 'matching',
     })
   }

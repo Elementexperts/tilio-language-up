@@ -92,7 +92,7 @@ const randomFromRange = (min: number, max: number) =>
 
 const getActiveXpMultiplier = (user: User) => {
   if (!user.xpMultiplierExpiresAt) return 1
-  return new Date(user.xpMultiplierExpiresAt).getTime() > Date.now() ? user.xpMultiplier : 1
+  return new Date(user.xpMultiplierExpiresAt).getTime() > Date.now() ? user.xpMultiplier ?? 1 : 1
 }
 
 const buildAchievementPopups = (ids: string[]): AchievementPopup[] =>
@@ -173,6 +173,7 @@ export const useAppStore = create<AppState>()(
                 purchasedItems: user.purchasedItems ?? [],
                 xpMultiplier: user.xpMultiplier ?? 1,
                 xpMultiplierExpiresAt: user.xpMultiplierExpiresAt ?? null,
+                wordReviews: user.wordReviews ?? {},
               }
             : null,
         }),
@@ -190,13 +191,48 @@ export const useAppStore = create<AppState>()(
         currentScreen: 'exercise',
       }),
 
-      completeExercise: (correct) => set((state) => ({
-        exerciseAnswers: {
-          correct: state.exerciseAnswers.correct + (correct ? 1 : 0),
-          incorrect: state.exerciseAnswers.incorrect + (correct ? 0 : 1),
-        },
-        currentExerciseIndex: state.currentExerciseIndex + 1,
-      })),
+      completeExercise: (correct, wordId) => set((state) => {
+        const user = state.user
+        const today = getToday()
+        const wordReviews = user?.wordReviews ?? {}
+        const existingReview = user && wordId ? wordReviews[wordId] : null
+        const currentInterval = existingReview?.intervalDays ?? 0
+        const nextInterval = correct
+          ? currentInterval === 0
+            ? 1
+            : currentInterval === 1
+              ? 3
+              : currentInterval === 3
+                ? 7
+                : Math.min(currentInterval * 2, 30)
+          : 1
+        const nextReviewDate = new Date()
+        nextReviewDate.setDate(nextReviewDate.getDate() + nextInterval)
+
+        return {
+          exerciseAnswers: {
+            correct: state.exerciseAnswers.correct + (correct ? 1 : 0),
+            incorrect: state.exerciseAnswers.incorrect + (correct ? 0 : 1),
+          },
+          currentExerciseIndex: state.currentExerciseIndex + 1,
+          user: user && wordId
+            ? {
+                ...user,
+                wordReviews: {
+                  ...wordReviews,
+                  [wordId]: {
+                    wordId,
+                    correctCount: (existingReview?.correctCount ?? 0) + (correct ? 1 : 0),
+                    incorrectCount: (existingReview?.incorrectCount ?? 0) + (correct ? 0 : 1),
+                    intervalDays: nextInterval,
+                    nextReviewAt: nextReviewDate.toISOString().split('T')[0],
+                    lastReviewedAt: today,
+                  },
+                },
+              }
+            : user,
+        }
+      }),
 
       completeLesson: () => {
         const state = get()

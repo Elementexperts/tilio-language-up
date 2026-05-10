@@ -162,6 +162,7 @@ export function useTelegram() {
   return {
     webApp,
     user,
+    initData: webApp?.initData || '',
     isReady,
     isTelegramEnv,
     colorScheme: webApp?.colorScheme || 'light',

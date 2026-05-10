@@ -7,10 +7,10 @@ import { SparrowMascot } from '@/components/sparrow-mascot'
 import { useAppStore } from '@/lib/store'
 import { useTelegram } from '@/hooks/use-telegram'
 import { cn } from '@/lib/utils'
-import { ArrowRight, Check, Target, Zap } from 'lucide-react'
+import { ArrowRight, Check, Cloud, ShieldCheck, Target, Zap } from 'lucide-react'
 import { getLevel, type User } from '@/lib/types'
 
-type OnboardingStep = 'welcome' | 'avatar' | 'path' | 'level' | 'goal'
+type OnboardingStep = 'welcome' | 'account' | 'avatar' | 'path' | 'level' | 'goal'
 
 interface AvatarOption {
   id: 'boy' | 'girl'
@@ -106,6 +106,8 @@ export function OnboardingScreen() {
     hapticFeedback('light')
 
     if (step === 'welcome') {
+      setStep('account')
+    } else if (step === 'account') {
       setStep('avatar')
     } else if (step === 'avatar') {
       setStep('path')
@@ -127,6 +129,7 @@ export function OnboardingScreen() {
       firstName: telegramUser?.first_name || (selectedAvatar === 'girl' ? 'Aziza' : 'Azizbek'),
       lastName: telegramUser?.last_name,
       photoUrl: telegramUser?.photo_url,
+      telegramId: telegramUser?.id?.toString(),
       avatarStyle: selectedAvatar,
       learningPath: selectedPath!,
       level: selectedLevel!,
@@ -146,6 +149,10 @@ export function OnboardingScreen() {
       equippedTheme: 'classic-green',
       equippedFrame: 'default',
       purchasedItems: [],
+      xpMultiplier: 1,
+      xpMultiplierExpiresAt: null,
+      wordReviews: {},
+      lastSyncedAt: null,
     }
 
     setUser(newUser)
@@ -156,6 +163,7 @@ export function OnboardingScreen() {
   const canProceed = () => {
     switch (step) {
       case 'welcome':
+      case 'account':
       case 'avatar':
         return true
       case 'path':
@@ -170,13 +178,15 @@ export function OnboardingScreen() {
   const getProgressWidth = () => {
     switch (step) {
       case 'welcome':
-        return '20%'
+        return '16%'
+      case 'account':
+        return '32%'
       case 'avatar':
-        return '40%'
+        return '48%'
       case 'path':
-        return '60%'
+        return '64%'
       case 'level':
-        return '80%'
+        return '82%'
       case 'goal':
         return '100%'
     }
@@ -207,6 +217,39 @@ export function OnboardingScreen() {
                 <Target className="h-4 w-4 text-primary" />
                 <span>Ketma-ketlikni saqlang</span>
               </div>
+            </div>
+          </div>
+        )}
+
+        {step === 'account' && (
+          <div className="flex flex-1 flex-col items-center justify-center text-center animate-bounce-in">
+            <div className="mb-5 flex size-24 items-center justify-center rounded-[2rem] bg-gradient-to-br from-emerald-100 to-lime-100 text-primary shadow-xl shadow-emerald-950/10">
+              <Cloud className="size-11" />
+            </div>
+            <SparrowMascot size="md" mood="celebrating" branded />
+            <h2 className="mt-5 text-2xl font-black text-foreground">Progressingiz saqlanadi</h2>
+            <p className="mt-3 max-w-xs text-muted-foreground">
+              Telegram akkauntingiz orqali XP, streak, patlar, darslar va nishonlar bulutda saqlanadi.
+            </p>
+            <div className="mt-6 grid w-full gap-3">
+              <Card className="rounded-[1.35rem] border-emerald-100 bg-white/85 p-4 text-left shadow-sm">
+                <div className="flex items-center gap-3">
+                  <ShieldCheck className="size-5 text-primary" />
+                  <div>
+                    <p className="font-black">Secure Telegram sign-in</p>
+                    <p className="text-xs font-semibold text-muted-foreground">No password needed inside the Mini App.</p>
+                  </div>
+                </div>
+              </Card>
+              <Card className="rounded-[1.35rem] border-emerald-100 bg-white/85 p-4 text-left shadow-sm">
+                <div className="flex items-center gap-3">
+                  <Cloud className="size-5 text-primary" />
+                  <div>
+                    <p className="font-black">Continue anywhere</p>
+                    <p className="text-xs font-semibold text-muted-foreground">Ready for future Android and iOS apps.</p>
+                  </div>
+                </div>
+              </Card>
             </div>
           </div>
         )}

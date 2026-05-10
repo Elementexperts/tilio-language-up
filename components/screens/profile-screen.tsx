@@ -22,7 +22,8 @@ import {
   LogOut,
   Feather,
   Sparkles,
-  Languages
+  Languages,
+  Cloud,
 } from 'lucide-react'
 
 export function ProfileScreen() {
@@ -307,6 +308,22 @@ export function ProfileScreen() {
                 isSoundEnabled ? 'translate-x-6' : 'translate-x-1'
               )} />
             </div>
+          </button>
+
+          <div className="border-t border-border" />
+
+          <button
+            onClick={() => {
+              hapticFeedback('light')
+              setScreen('account')
+            }}
+            className="w-full flex items-center justify-between p-4 hover:bg-muted/50 transition-colors"
+          >
+            <div className="flex items-center gap-3">
+              <Cloud className="w-5 h-5 text-muted-foreground" />
+              <span className="font-medium text-foreground">Cloud account</span>
+            </div>
+            <ChevronRight className="w-5 h-5 text-muted-foreground" />
           </button>
 
           <div className="border-t border-border" />

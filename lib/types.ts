@@ -27,6 +27,9 @@ export interface User {
   xpMultiplier?: number
   xpMultiplierExpiresAt?: string | null
   wordReviews?: Record<string, WordReview>
+  cloudUserId?: string
+  telegramId?: string
+  lastSyncedAt?: string | null
 }
 
 // XP Level calculation
@@ -154,6 +157,7 @@ export interface StoreItem {
 export type AppScreen = 
   | 'splash'
   | 'onboarding'
+  | 'account'
   | 'home'
   | 'lesson'
   | 'exercise'
@@ -182,6 +186,24 @@ export interface AchievementPopup {
   timestamp: number
 }
 
+export type SyncStatus = 'idle' | 'loading' | 'saving' | 'synced' | 'offline' | 'error'
+
+export interface CloudAuthSession {
+  accessToken: string
+  refreshToken?: string
+  expiresAt?: number
+  userId: string
+}
+
+export interface CloudProgressSnapshot {
+  user: User
+  dailyChallenges: DailyChallenge[]
+  currentLessonId: string | null
+  currentExerciseIndex: number
+  exerciseAnswers: { correct: number; incorrect: number }
+  updatedAt: string
+}
+
 // Store types
 export interface AppState {
   user: User | null
@@ -192,6 +214,9 @@ export interface AppState {
   dailyChallenges: DailyChallenge[]
   isLoading: boolean
   isSoundEnabled: boolean
+  syncStatus: SyncStatus
+  syncError: string | null
+  cloudSession: CloudAuthSession | null
   xpPopups: XpPopup[]
   achievementPopups: AchievementPopup[]
   showStreakSavedModal: boolean
@@ -201,6 +226,9 @@ export interface AppState {
   // Actions
   setUser: (user: User | null) => void
   updateUser: (updates: Partial<User>) => void
+  hydrateCloudProgress: (snapshot: CloudProgressSnapshot) => void
+  setCloudSession: (session: CloudAuthSession | null) => void
+  setSyncStatus: (status: SyncStatus, error?: string | null) => void
   setScreen: (screen: AppScreen) => void
   startLesson: (lesson: Lesson) => void
   completeExercise: (correct: boolean, wordId?: string) => void

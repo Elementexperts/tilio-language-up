@@ -16,11 +16,15 @@ import { ProfileScreen } from '@/components/screens/profile-screen'
 import { ReferralScreen } from '@/components/screens/referral-screen'
 import { StoreScreen } from '@/components/screens/store-screen'
 import { DailyChestScreen } from '@/components/screens/daily-chest-screen'
+import { AccountScreen } from '@/components/screens/account-screen'
 import { Feather, Flame, PartyPopper, ShieldCheck, Snowflake, Sparkles, Zap, X } from 'lucide-react'
 import { SparrowMascot } from '@/components/sparrow-mascot'
 import { playAchievementSound, playRewardSound, playTapSound } from '@/lib/sound'
+import { useProgressSync } from '@/hooks/use-progress-sync'
+import { CloudSyncIndicator } from '@/components/cloud-sync-indicator'
 
 export default function TilioApp() {
+  useProgressSync()
   const currentScreen = useAppStore((state) => state.currentScreen)
   const updateStreak = useAppStore((state) => state.updateStreak)
   const hasUser = useAppStore((state) => Boolean(state.user))
@@ -112,6 +116,8 @@ export default function TilioApp() {
         return <StoreScreen />
       case 'daily-chest':
         return <DailyChestScreen />
+      case 'account':
+        return <AccountScreen />
       default:
         return <SplashScreen />
     }
@@ -119,6 +125,7 @@ export default function TilioApp() {
 
   return (
     <div className="min-h-screen bg-background relative overflow-hidden">
+      <CloudSyncIndicator />
       {renderScreen()}
       <div className="fixed right-4 top-20 z-50 space-y-2 pointer-events-none">
         {xpPopups.map((popup) => (

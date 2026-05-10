@@ -1,6 +1,6 @@
 import { create } from 'zustand'
 import { persist } from 'zustand/middleware'
-import { achievementsData } from './data/lessons'
+import { achievementsData, getLessonById } from './data/lessons'
 import {
   getLevel,
   type AppState,
@@ -8,6 +8,9 @@ import {
   type ChestReward,
   type User,
   type AchievementPopup,
+  type CloudProgressSnapshot,
+  type CloudAuthSession,
+  type SyncStatus,
 } from './types'
 
 const getToday = () => new Date().toISOString().split('T')[0]
@@ -151,6 +154,9 @@ export const useAppStore = create<AppState>()(
       dailyChallenges: [],
       isLoading: false,
       isSoundEnabled: true,
+      syncStatus: 'idle',
+      syncError: null,
+      cloudSession: null,
       xpPopups: [],
       achievementPopups: [],
       showStreakSavedModal: false,
@@ -174,6 +180,9 @@ export const useAppStore = create<AppState>()(
                 xpMultiplier: user.xpMultiplier ?? 1,
                 xpMultiplierExpiresAt: user.xpMultiplierExpiresAt ?? null,
                 wordReviews: user.wordReviews ?? {},
+                cloudUserId: user.cloudUserId,
+                telegramId: user.telegramId,
+                lastSyncedAt: user.lastSyncedAt ?? null,
               }
             : null,
         }),
@@ -181,6 +190,25 @@ export const useAppStore = create<AppState>()(
       updateUser: (updates) => set((state) => ({
         user: state.user ? { ...state.user, ...updates } : null,
       })),
+
+      hydrateCloudProgress: (snapshot: CloudProgressSnapshot) =>
+        set((state) => ({
+          user: {
+            ...snapshot.user,
+            wordReviews: snapshot.user.wordReviews ?? {},
+            lastSyncedAt: snapshot.updatedAt,
+          },
+          dailyChallenges: snapshot.dailyChallenges ?? state.dailyChallenges,
+          currentLesson: snapshot.currentLessonId ? getLessonById(snapshot.currentLessonId) ?? state.currentLesson : state.currentLesson,
+          currentExerciseIndex: snapshot.currentExerciseIndex ?? state.currentExerciseIndex,
+          exerciseAnswers: snapshot.exerciseAnswers ?? state.exerciseAnswers,
+          syncStatus: 'synced',
+          syncError: null,
+        })),
+
+      setCloudSession: (session: CloudAuthSession | null) => set({ cloudSession: session }),
+
+      setSyncStatus: (status: SyncStatus, error = null) => set({ syncStatus: status, syncError: error }),
 
       setScreen: (screen) => set({ currentScreen: screen }),
 
@@ -595,6 +623,9 @@ export const useAppStore = create<AppState>()(
         user: state.user,
         dailyChallenges: state.dailyChallenges,
         isSoundEnabled: state.isSoundEnabled,
+        cloudSession: state.cloudSession,
+        syncStatus: state.syncStatus,
+        syncError: state.syncError,
       }),
     }
   )

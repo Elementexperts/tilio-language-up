@@ -24,7 +24,7 @@ export interface LessonExercise {
   xpReward?: number
 }
 
-const MAX_LESSON_EXERCISES = 18
+const MAX_LESSON_EXERCISES = 15
 
 function scoreFor(seed: string) {
   let hash = 2166136261
@@ -197,21 +197,18 @@ export function buildLessonExercises(
   })
 
   const allExercises = [...uniqueExercises.values()]
-  const warmupExercises = reviewSortedWords
-    .flatMap((word) => [
-      allExercises.find((exercise) => exercise.type === 'vocabulary' && exercise.word.id === word.id),
-      allExercises.find((exercise) => exercise.type === 'translation' && exercise.word.id === word.id),
-    ])
+  const vocabularyCards = reviewSortedWords
+    .map((word) => allExercises.find((exercise) => exercise.type === 'vocabulary' && exercise.word.id === word.id))
     .filter((exercise): exercise is LessonExercise => Boolean(exercise))
   const practiceExercises = avoidImmediateDuplicateWords(
     seededSort(
-      allExercises.filter((exercise) => exercise.type !== 'vocabulary' && exercise.type !== 'translation'),
+      allExercises.filter((exercise) => exercise.type !== 'vocabulary'),
       `session-${lesson.id}-${isUzToEn ? 'uz-en' : 'en-uz'}`
     ),
     lesson.id
   )
 
-  const lastIntroWordId = warmupExercises[warmupExercises.length - 1]?.word.id
+  const lastIntroWordId = vocabularyCards[vocabularyCards.length - 1]?.word.id
   if (lastIntroWordId && practiceExercises[0]?.word.id === lastIntroWordId) {
     const swapIndex = practiceExercises.findIndex((exercise) => exercise.word.id !== lastIntroWordId)
     if (swapIndex > 0) {
@@ -221,5 +218,5 @@ export function buildLessonExercises(
     }
   }
 
-  return [...warmupExercises, ...practiceExercises].slice(0, MAX_LESSON_EXERCISES)
+  return [...vocabularyCards, ...practiceExercises].slice(0, MAX_LESSON_EXERCISES)
 }

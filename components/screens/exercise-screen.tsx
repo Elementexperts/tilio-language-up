@@ -139,9 +139,20 @@ export function ExerciseScreen() {
   }, [hapticFeedback, completeExercise, isCorrect, currentExercise, currentExerciseIndex, totalExercises, completeLesson])
 
   const handleVocabContinue = useCallback(() => {
-    setShowVocabulary(false)
     hapticFeedback('light')
-  }, [hapticFeedback])
+
+    completeExercise(true)
+    setSelectedAnswer(null)
+    setIsAnswered(false)
+    setIsCorrect(false)
+    setShowVocabulary(true)
+    setShowCelebration(false)
+    setIsSpeaking(false)
+
+    if (currentExerciseIndex + 1 >= totalExercises) {
+      completeLesson()
+    }
+  }, [hapticFeedback, completeExercise, currentExerciseIndex, totalExercises, completeLesson])
 
   const handleExit = useCallback(() => {
     hapticFeedback('light')

@@ -311,6 +311,8 @@ export function ExerciseScreen() {
             target={currentExercise.sentenceTarget ?? currentExercise.correctAnswer}
             tiles={currentExercise.sentenceTiles ?? []}
             prompt={currentExercise.prompt}
+            isSoundEnabled={isSoundEnabled}
+            onSpeakTile={(tile) => speakText(tile, targetSpeechLang)}
             onComplete={(correct) => {
               setIsAnswered(true)
               setIsCorrect(correct)
@@ -439,12 +441,13 @@ function VocabularyCard({ word, isUzToEn, onContinue, isSpeaking, isKoreanCourse
             type="button"
             onClick={onSpeak}
             className={cn(
-              'tilio-pressed flex size-12 items-center justify-center rounded-2xl bg-primary text-primary-foreground shadow-lg shadow-primary/20',
+              'tilio-pressed flex h-12 min-w-12 items-center justify-center gap-2 rounded-2xl bg-primary px-3 text-primary-foreground shadow-lg shadow-primary/20',
               isSpeaking && 'animate-pulse-glow'
             )}
             aria-label="Play pronunciation"
           >
             <Volume2 className="size-5" />
+            <span className="text-sm font-black">{isKoreanCourse ? 'Eshitish' : 'Listen'}</span>
           </button>
         </div>
 
@@ -611,11 +614,13 @@ interface SentenceBuilderExerciseProps {
   target: string
   tiles: string[]
   prompt?: string
+  isSoundEnabled: boolean
+  onSpeakTile: (tile: string) => void
   onComplete: (correct: boolean) => void
   isAnswered: boolean
 }
 
-function SentenceBuilderExercise({ target, tiles, prompt, onComplete, isAnswered }: SentenceBuilderExerciseProps) {
+function SentenceBuilderExercise({ target, tiles, prompt, isSoundEnabled, onSpeakTile, onComplete, isAnswered }: SentenceBuilderExerciseProps) {
   const [selectedTiles, setSelectedTiles] = useState<string[]>([])
   const [availableTiles, setAvailableTiles] = useState(tiles)
 
@@ -626,6 +631,7 @@ function SentenceBuilderExercise({ target, tiles, prompt, onComplete, isAnswered
 
   const chooseTile = (tile: string, index: number) => {
     if (isAnswered) return
+    if (isSoundEnabled) onSpeakTile(tile)
     setSelectedTiles((current) => [...current, tile])
     setAvailableTiles((current) => current.filter((_, tileIndex) => tileIndex !== index))
   }
@@ -656,8 +662,9 @@ function SentenceBuilderExercise({ target, tiles, prompt, onComplete, isAnswered
         <div className="min-h-24 rounded-[1.35rem] border-2 border-dashed border-emerald-200 bg-white/70 p-3">
           <div className="flex flex-wrap gap-2">
             {selectedTiles.map((tile, index) => (
-              <button key={`${tile}-${index}`} type="button" onClick={() => removeTile(tile, index)} className="tilio-pressed rounded-xl bg-primary px-3 py-2 text-sm font-black text-primary-foreground">
+              <button key={`${tile}-${index}`} type="button" onClick={() => removeTile(tile, index)} className="tilio-pressed inline-flex items-center gap-1.5 rounded-xl bg-primary px-3 py-2 text-sm font-black text-primary-foreground">
                 {tile}
+                <Volume2 className="size-3.5 opacity-80" />
               </button>
             ))}
           </div>
@@ -666,7 +673,8 @@ function SentenceBuilderExercise({ target, tiles, prompt, onComplete, isAnswered
 
       <div className="mb-5 flex flex-wrap gap-2">
         {availableTiles.map((tile, index) => (
-          <button key={`${tile}-${index}`} type="button" onClick={() => chooseTile(tile, index)} className="tilio-pressed rounded-xl border border-emerald-100 bg-white/90 px-3 py-2 text-sm font-black shadow-sm">
+          <button key={`${tile}-${index}`} type="button" onClick={() => chooseTile(tile, index)} className="tilio-pressed inline-flex items-center gap-1.5 rounded-xl border border-emerald-100 bg-white/90 px-3 py-2 text-sm font-black shadow-sm">
+            <Volume2 className="size-3.5 text-primary" />
             {tile}
           </button>
         ))}

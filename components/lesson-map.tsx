@@ -2,10 +2,10 @@
 
 import { useCallback } from 'react'
 import { useAppStore } from '@/lib/store'
-import { lessonsData, isLessonUnlocked } from '@/lib/data/lessons'
+import { getLessonsForCourse, isLessonUnlocked } from '@/lib/data/lessons'
 import { useTelegram } from '@/hooks/use-telegram'
 import { cn } from '@/lib/utils'
-import { BookOpen, Check, Clock, Footprints, Hash, Heart, Home, Lock, MessageCircle, Palette, Play, Star, Sun, Utensils } from 'lucide-react'
+import { BookOpen, Check, Clock, Footprints, GraduationCap, Hash, Heart, Home, Languages, Lock, MessageCircle, Palette, Play, Star, Sun, Utensils } from 'lucide-react'
 import type { Lesson } from '@/lib/types'
 
 const categoryIcons: Record<string, React.ElementType> = {
@@ -19,6 +19,14 @@ const categoryIcons: Record<string, React.ElementType> = {
   actions: Footprints,
   phrases: MessageCircle,
   weather: Sun,
+  'ko-basics': Languages,
+  'ko-numbers': Hash,
+  'ko-people': Heart,
+  'ko-food': Utensils,
+  'ko-daily': Home,
+  'ko-feelings': MessageCircle,
+  'ko-grammar': GraduationCap,
+  'ko-review': Star,
 }
 
 const categoryColors: Record<string, string> = {
@@ -32,6 +40,14 @@ const categoryColors: Record<string, string> = {
   actions: 'bg-lime-600',
   phrases: 'bg-indigo-500',
   weather: 'bg-yellow-400',
+  'ko-basics': 'bg-rose-500',
+  'ko-numbers': 'bg-sky-500',
+  'ko-people': 'bg-fuchsia-500',
+  'ko-food': 'bg-orange-500',
+  'ko-daily': 'bg-teal-600',
+  'ko-feelings': 'bg-pink-500',
+  'ko-grammar': 'bg-indigo-500',
+  'ko-review': 'bg-amber-500',
 }
 
 export function LessonMap() {
@@ -39,7 +55,9 @@ export function LessonMap() {
   const startLesson = useAppStore((state) => state.startLesson)
   const { hapticFeedback } = useTelegram()
 
-  const completedLessons = user?.completedLessons || []
+  const selectedCourse = user?.selectedCourse ?? user?.learningPath ?? 'uz-en'
+  const lessons = getLessonsForCourse(selectedCourse)
+  const completedLessons = user?.courseProgress?.[selectedCourse]?.completedLessons ?? user?.completedLessons ?? []
 
   const handleLessonClick = useCallback(
     (lesson: Lesson) => {
@@ -55,7 +73,7 @@ export function LessonMap() {
     [completedLessons, hapticFeedback, startLesson],
   )
 
-  const groupedLessons = lessonsData.reduce((acc, lesson) => {
+  const groupedLessons = lessons.reduce((acc, lesson) => {
     if (!acc[lesson.category]) acc[lesson.category] = []
     acc[lesson.category].push(lesson)
     return acc
@@ -139,7 +157,7 @@ export function LessonMap() {
         )
       })}
 
-      {completedLessons.length === lessonsData.length && (
+      {completedLessons.length === lessons.length && (
         <div className="py-8 text-center">
           <Star className="mx-auto mb-4 size-12 fill-accent text-accent" />
           <h3 className="text-xl font-black text-foreground">Congratulations!</h3>

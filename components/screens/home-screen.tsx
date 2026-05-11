@@ -8,7 +8,7 @@ import { LessonMap } from '@/components/lesson-map'
 import { useAppStore } from '@/lib/store'
 import { useTelegram } from '@/hooks/use-telegram'
 import { useHasMounted } from '@/hooks/use-has-mounted'
-import { lessonsData, getNextLesson } from '@/lib/data/lessons'
+import { getCourseOption, getLessonsForCourse, getNextLesson } from '@/lib/data/lessons'
 import { getXpProgress, getXpToNextLevel } from '@/lib/types'
 import { cn } from '@/lib/utils'
 import { BookOpen, ChevronRight, Flame, Feather, Gift, Home, Medal, Play, ShoppingBag, Sparkles, Target, Trophy, UserRound, Users, Zap } from 'lucide-react'
@@ -21,8 +21,12 @@ export function HomeScreen() {
   const { hapticFeedback } = useTelegram()
   const hasMounted = useHasMounted()
 
-  const completedCount = user?.completedLessons.length || 0
-  const totalLessons = lessonsData.length
+  const selectedCourse = user?.selectedCourse ?? user?.learningPath ?? 'uz-en'
+  const activeCourse = getCourseOption(selectedCourse)
+  const courseLessons = getLessonsForCourse(selectedCourse)
+  const courseCompletedLessons = user?.courseProgress?.[selectedCourse]?.completedLessons ?? user?.completedLessons ?? []
+  const completedCount = courseCompletedLessons.length
+  const totalLessons = courseLessons.length
   const progressPercent = (completedCount / totalLessons) * 100
 
   const activeChallenge = useMemo(() => {
@@ -33,8 +37,8 @@ export function HomeScreen() {
 
   const nextLesson = useMemo(() => {
     if (!user) return null
-    return getNextLesson(user.completedLessons) ?? lessonsData[0]
-  }, [user])
+    return getNextLesson(courseCompletedLessons, selectedCourse) ?? courseLessons[0]
+  }, [courseCompletedLessons, courseLessons, selectedCourse, user])
 
   const motivationalMessage = useMemo(() => {
     if (!user) return ''
@@ -90,10 +94,10 @@ export function HomeScreen() {
             <div className="min-w-0 flex-1">
               <div className="mb-3 inline-flex items-center gap-1.5 rounded-full bg-white/75 px-3 py-1 text-xs font-extrabold text-emerald-800 shadow-sm">
                 <Sparkles className="size-3.5 text-accent" />
-                Tilio Daily
+                {activeCourse.fromFlag} → {activeCourse.toFlag} {activeCourse.badge}
               </div>
               <h1 className="text-3xl font-black leading-[1.02] tracking-normal text-emerald-950">
-                O&apos;rgan. Mashq qil. So&apos;zla.
+                {selectedCourse === 'uz-ko' ? 'Koreyscha tingla. O‘qi. So‘zla.' : 'O‘rgan. Mashq qil. So‘zla.'}
               </h1>
               <p className="mt-3 text-sm font-medium leading-5 text-emerald-900/75">{motivationalMessage}</p>
             </div>
@@ -220,7 +224,7 @@ export function HomeScreen() {
           <div className="mb-4 flex items-center justify-between">
             <div>
               <p className="text-xs font-extrabold uppercase tracking-[0.16em] text-primary">Path</p>
-              <h2 className="text-xl font-black">Your Learning Journey</h2>
+              <h2 className="text-xl font-black">{activeCourse.titleUz}</h2>
             </div>
             <Medal className="size-6 text-accent" />
           </div>

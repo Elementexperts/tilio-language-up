@@ -170,7 +170,9 @@ export function buildLessonExercises(
       const translatedExample = isUzToEn ? word.example?.uzbek : word.example?.english
       const sentenceTarget = example ?? sourceText
       const sentenceTiles = seededSort(sentenceTarget.split(' ').filter(Boolean), `tiles-${word.id}-${isUzToEn ? 'uz-en' : 'en-uz'}`)
-      const grammarRule = isUzToEn
+      const grammarRule = lesson.courseId === 'uz-ko'
+        ? `"${sourceText}" koreyscha shakl bo‘lib, o‘zbekcha ma’nosi "${correctAnswer}". Romanizatsiya: ${word.romanization ?? sourceText}.`
+        : isUzToEn
         ? `In English, place the key word where it naturally completes the sentence. "${sourceText}" means "${correctAnswer}".`
         : `O'zbek tilida ma'no ko'pincha qo'shimchalar va so'z tartibi orqali aniqlanadi. "${sourceText}" = "${correctAnswer}".`
 

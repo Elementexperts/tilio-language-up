@@ -61,6 +61,8 @@ export function ExerciseScreen() {
   const displayedExerciseIndex = isCorrectionMode ? correctionIndex : currentExerciseIndex
   const progressPercent = totalExercises > 0 ? (displayedExerciseIndex / totalExercises) * 100 : 0
   const isUzToEn = true
+  const isKoreanCourse = currentLesson?.courseId === 'uz-ko'
+  const targetSpeechLang = isKoreanCourse ? 'ko-KR' : 'en-US'
 
   const speakText = useCallback((text: string, lang = 'uz-UZ') => {
     if (typeof window === 'undefined' || !('speechSynthesis' in window) || !text.trim()) return
@@ -79,8 +81,8 @@ export function ExerciseScreen() {
   }, [])
 
   const speakNewWord = useCallback((word: Word, pathIsUzToEn: boolean) => {
-    speakText(pathIsUzToEn ? word.english : word.uzbek, pathIsUzToEn ? 'en-US' : 'uz-UZ')
-  }, [speakText])
+    speakText(pathIsUzToEn ? word.english : word.uzbek, pathIsUzToEn ? targetSpeechLang : 'uz-UZ')
+  }, [speakText, targetSpeechLang])
 
   // Setup back button
   useEffect(() => {
@@ -110,9 +112,9 @@ export function ExerciseScreen() {
 
   useEffect(() => {
     if (!currentExercise || currentExercise.type !== 'listening' || isAnswered) return
-    const timer = window.setTimeout(() => speakText(currentExercise.speakText ?? (isUzToEn ? currentExercise.word.english : currentExercise.word.uzbek), isUzToEn ? 'en-US' : 'uz-UZ'), 300)
+    const timer = window.setTimeout(() => speakText(currentExercise.speakText ?? (isUzToEn ? currentExercise.word.english : currentExercise.word.uzbek), isUzToEn ? targetSpeechLang : 'uz-UZ'), 300)
     return () => window.clearTimeout(timer)
-  }, [currentExercise, isAnswered, isUzToEn, speakText])
+  }, [currentExercise, isAnswered, isUzToEn, speakText, targetSpeechLang])
 
   const handleAnswer = useCallback((answer: string) => {
     if (isAnswered) return
@@ -259,6 +261,7 @@ export function ExerciseScreen() {
             isUzToEn={isUzToEn}
             onContinue={handleVocabContinue}
             isSpeaking={isSpeaking}
+            isKoreanCourse={isKoreanCourse}
             onSpeak={() => speakNewWord(currentExercise.word, isUzToEn)}
           />
         )}
@@ -282,7 +285,7 @@ export function ExerciseScreen() {
             grammarRule={currentExercise.grammarRule}
             questionText={currentExercise.questionText}
             isSpeaking={isSpeaking}
-            onReplay={() => speakText(currentExercise.speakText ?? (isUzToEn ? currentExercise.word.english : currentExercise.word.uzbek), isUzToEn ? 'en-US' : 'uz-UZ')}
+            onReplay={() => speakText(currentExercise.speakText ?? (isUzToEn ? currentExercise.word.english : currentExercise.word.uzbek), isUzToEn ? targetSpeechLang : 'uz-UZ')}
             onAnswer={handleAnswer}
           />
         )}
@@ -306,7 +309,8 @@ export function ExerciseScreen() {
           <PronunciationExercise
             text={currentExercise.speakText ?? currentExercise.correctAnswer}
             isUzToEn={isUzToEn}
-            onSpeak={() => speakText(currentExercise.speakText ?? currentExercise.correctAnswer, isUzToEn ? 'en-US' : 'uz-UZ')}
+            speechLang={targetSpeechLang}
+            onSpeak={() => speakText(currentExercise.speakText ?? currentExercise.correctAnswer, isUzToEn ? targetSpeechLang : 'uz-UZ')}
             onComplete={(correct) => {
               setIsAnswered(true)
               setIsCorrect(correct)
@@ -392,10 +396,11 @@ interface VocabularyCardProps {
   isUzToEn: boolean
   onContinue: () => void
   isSpeaking: boolean
+  isKoreanCourse: boolean
   onSpeak: () => void
 }
 
-function VocabularyCard({ word, isUzToEn, onContinue, isSpeaking, onSpeak }: VocabularyCardProps) {
+function VocabularyCard({ word, isUzToEn, onContinue, isSpeaking, isKoreanCourse, onSpeak }: VocabularyCardProps) {
   const newWord = isUzToEn ? word.english : word.uzbek
   const meaning = isUzToEn ? word.uzbek : word.english
   const example = isUzToEn ? word.example?.english : word.example?.uzbek
@@ -405,13 +410,13 @@ function VocabularyCard({ word, isUzToEn, onContinue, isSpeaking, onSpeak }: Voc
     <div className="flex flex-1 flex-col items-center justify-center animate-soft-pop">
       <div className="mb-4 flex items-center gap-2 rounded-full bg-white/80 px-3 py-1 text-xs font-extrabold uppercase tracking-[0.16em] text-primary shadow-sm">
         <Sparkles className="size-3.5" />
-        {isUzToEn ? 'English New Word' : 'Yangi o‘zbekcha so‘z'}
+        {isKoreanCourse ? 'Korean New Word' : isUzToEn ? 'English New Word' : 'Yangi o‘zbekcha so‘z'}
       </div>
       
       <Card className="tilio-card w-full max-w-sm rounded-[2rem] p-7 text-center">
         <SparrowMascot size="sm" mood="thinking" branded className="mx-auto mb-4" />
         <div className="mb-4 flex items-center justify-center gap-3">
-          <div className="text-5xl font-black leading-none text-emerald-950">
+          <div className={cn('font-black leading-none text-emerald-950', isKoreanCourse ? 'text-4xl' : 'text-5xl')}>
             {newWord}
           </div>
           <button
@@ -426,6 +431,10 @@ function VocabularyCard({ word, isUzToEn, onContinue, isSpeaking, onSpeak }: Voc
             <Volume2 className="size-5" />
           </button>
         </div>
+
+        {isKoreanCourse && word.romanization && (
+          <p className="mb-3 text-lg font-black text-emerald-700">{word.romanization}</p>
+        )}
         
         <div className="mb-4 flex items-center justify-center gap-2 text-xl font-black text-muted-foreground">
           <span>=</span>
@@ -444,13 +453,19 @@ function VocabularyCard({ word, isUzToEn, onContinue, isSpeaking, onSpeak }: Voc
             </p>
           </div>
         )}
+
+        {isKoreanCourse && word.uzbekExplanation && (
+          <div className="mt-4 rounded-2xl bg-amber-50/90 p-4 text-left">
+            <p className="text-sm font-semibold leading-5 text-amber-950">{word.uzbekExplanation}</p>
+          </div>
+        )}
       </Card>
 
       <Button
         onClick={onContinue}
         className="tilio-button mt-8 h-14 rounded-2xl px-12 text-lg font-black"
       >
-        Got it!
+        {isKoreanCourse ? 'Tushundim!' : 'Got it!'}
         <ArrowRight className="w-5 h-5 ml-2" />
       </Button>
     </div>
@@ -648,11 +663,12 @@ function SentenceBuilderExercise({ target, tiles, prompt, onComplete, isAnswered
 interface PronunciationExerciseProps {
   text: string
   isUzToEn: boolean
+  speechLang: string
   onSpeak: () => void
   onComplete: (correct: boolean) => void
 }
 
-function PronunciationExercise({ text, isUzToEn, onSpeak, onComplete }: PronunciationExerciseProps) {
+function PronunciationExercise({ text, isUzToEn, speechLang, onSpeak, onComplete }: PronunciationExerciseProps) {
   const [isListening, setIsListening] = useState(false)
   const [transcript, setTranscript] = useState('')
   const [score, setScore] = useState<number | null>(null)
@@ -674,7 +690,7 @@ function PronunciationExercise({ text, isUzToEn, onSpeak, onComplete }: Pronunci
     }
 
     const recognition = new SpeechRecognition()
-    recognition.lang = isUzToEn ? 'en-US' : 'uz-UZ'
+    recognition.lang = isUzToEn ? speechLang : 'uz-UZ'
     recognition.interimResults = false
     recognition.maxAlternatives = 1
     setIsListening(true)

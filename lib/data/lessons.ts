@@ -1,4 +1,36 @@
-import type { Lesson, Word, Achievement, StoreItem } from '@/lib/types'
+import type { CourseId, Lesson, Word, Achievement, StoreItem } from '@/lib/types'
+
+export const courseOptions: Array<{
+  id: CourseId
+  title: string
+  titleUz: string
+  descriptionUz: string
+  fromFlag: string
+  toFlag: string
+  badge: string
+}> = [
+  {
+    id: 'uz-en',
+    title: 'Uzbek to English',
+    titleUz: "O'zbekcha -> Inglizcha",
+    descriptionUz: "Ingliz tilini kundalik so'zlar, iboralar va mashqlar orqali o'rganing.",
+    fromFlag: '🇺🇿',
+    toFlag: '🇬🇧',
+    badge: 'EN',
+  },
+  {
+    id: 'uz-ko',
+    title: 'Uzbek to Korean',
+    titleUz: "O'zbekcha -> Koreyscha",
+    descriptionUz: "Koreys tilini o'zbekcha tushuntirishlar, talaffuz va qisqa darslar orqali o'rganing.",
+    fromFlag: '🇺🇿',
+    toFlag: '🇰🇷',
+    badge: 'KO',
+  },
+]
+
+export const getCourseOption = (courseId: CourseId = 'uz-en') =>
+  courseOptions.find((course) => course.id === courseId) ?? courseOptions[0]
 
 // Vocabulary words organized by category
 export const vocabularyData: Word[] = [
@@ -570,6 +602,213 @@ export const lessonsData: Lesson[] = [
   ...generatedCourse.lessons,
 ]
 
+const koWord = (
+  id: string,
+  uzbek: string,
+  korean: string,
+  romanization: string,
+  category: string,
+  exampleKorean: string,
+  exampleUzbek: string,
+  explanation: string,
+): Word => ({
+  id,
+  uzbek,
+  english: korean,
+  korean,
+  romanization,
+  category,
+  pronunciation: romanization,
+  example: {
+    uzbek: exampleUzbek,
+    english: exampleKorean,
+  },
+  uzbekExplanation: explanation,
+})
+
+export const koreanVocabularyData: Word[] = [
+  koWord('ko-w1', 'salom', '안녕하세요', 'annyeonghaseyo', 'ko-basics', '안녕하세요, 저는 학생입니다.', 'Salom, men o‘quvchiman.', '"안녕하세요" hurmatli salomlashuv bo‘lib, kundalik suhbatlarda ishlatiladi.'),
+  koWord('ko-w2', 'rahmat', '감사합니다', 'gamsahamnida', 'ko-basics', '감사합니다, 선생님.', 'Rahmat, ustoz.', '"감사합니다" rasmiy va odobli minnatdorchilik ifodasidir.'),
+  koWord('ko-w3', 'ha', '네', 'ne', 'ko-basics', '네, 맞아요.', 'Ha, to‘g‘ri.', '"네" suhbatda tasdiqlash uchun ishlatiladi.'),
+  koWord('ko-w4', "yo'q", '아니요', 'aniyo', 'ko-basics', '아니요, 괜찮아요.', 'Yo‘q, hammasi yaxshi.', '"아니요" muloyim rad javobidir.'),
+  koWord('ko-w5', 'xayr', '안녕히 가세요', 'annyeonghi gaseyo', 'ko-basics', '안녕히 가세요, 또 만나요.', 'Xayr, yana ko‘rishamiz.', 'Ketayotgan odamga hurmat bilan xayrlashishda ishlatiladi.'),
+  koWord('ko-w6', 'bir', '하나', 'hana', 'ko-numbers', '하나 주세요.', 'Bitta bering.', '"하나" sanashda ishlatiladigan koreyscha son.'),
+  koWord('ko-w7', 'ikki', '둘', 'dul', 'ko-numbers', '둘 있어요.', 'Ikkita bor.', '"둘" kundalik sanashda ishlatiladi.'),
+  koWord('ko-w8', 'uch', '셋', 'set', 'ko-numbers', '셋을 배워요.', 'Uchtasini o‘rganamiz.', '"셋" odam yoki narsa sanaganda ishlatiladi.'),
+  koWord('ko-w9', "o'n", '열', 'yeol', 'ko-numbers', '열 번 말해요.', 'O‘n marta ayting.', '"열" koreyscha o‘n soni.'),
+  koWord('ko-w10', 'qancha?', '얼마예요?', 'eolmayeyo', 'ko-numbers', '이거 얼마예요?', 'Bu qancha?', 'Do‘konda narx so‘rash uchun juda foydali ibora.'),
+  koWord('ko-w11', 'men', '저', 'jeo', 'ko-people', '저는 학생입니다.', 'Men o‘quvchiman.', '"저" o‘zingizni hurmat bilan aytish uchun ishlatiladi.'),
+  koWord('ko-w12', 'siz', '당신', 'dangsin', 'ko-people', '당신은 친절해요.', 'Siz mehribonsiz.', '"당신" so‘zi ehtiyotkorlik bilan ishlatiladi; ko‘pincha ism yoki unvon afzal.'),
+  koWord('ko-w13', 'do‘st', '친구', 'chingu', 'ko-people', '친구가 왔어요.', 'Do‘st keldi.', '"친구" yaqin do‘st yoki tengdoshni bildiradi.'),
+  koWord('ko-w14', 'oila', '가족', 'gajok', 'ko-people', '가족이 좋아요.', 'Oila yaxshi.', '"가족" oila a’zolari haqida gapirganda ishlatiladi.'),
+  koWord('ko-w15', 'ustoz', '선생님', 'seonsaengnim', 'ko-people', '선생님이 말해요.', 'Ustoz gapiryapti.', '"선생님" o‘qituvchi yoki hurmatli mutaxassisga aytiladi.'),
+  koWord('ko-w16', 'suv', '물', 'mul', 'ko-food', '물 주세요.', 'Suv bering.', '"물" qisqa va juda ko‘p ishlatiladigan so‘z.'),
+  koWord('ko-w17', 'choy', '차', 'cha', 'ko-food', '차가 따뜻해요.', 'Choy iliq.', '"차" choy yoki ba’zan mashina ma’nosida ham keladi; kontekst muhim.'),
+  koWord('ko-w18', 'ovqat', '음식', 'eumsik', 'ko-food', '음식이 맛있어요.', 'Ovqat mazali.', '"음식" umumiy ovqat ma’nosini beradi.'),
+  koWord('ko-w19', 'guruch', '밥', 'bap', 'ko-food', '밥을 먹어요.', 'Guruchli ovqat yeyman.', '"밥" pishgan guruch yoki ovqatlanish ma’nosida ishlatiladi.'),
+  koWord('ko-w20', 'mazali', '맛있어요', 'masisseoyo', 'ko-food', '정말 맛있어요.', 'Juda mazali.', 'Ovqat yoqqanini odobli aytish uchun ishlatiladi.'),
+  koWord('ko-w21', 'uy', '집', 'jip', 'ko-daily', '집에 가요.', 'Uyga boraman.', '"집" uy yoki xonadon ma’nosida ishlatiladi.'),
+  koWord('ko-w22', 'maktab', '학교', 'hakgyo', 'ko-daily', '학교에 가요.', 'Maktabga boraman.', '"학교" o‘qish joyini bildiradi.'),
+  koWord('ko-w23', 'ish', '일', 'il', 'ko-daily', '일이 많아요.', 'Ish ko‘p.', '"일" ish, vazifa yoki kun ma’nosida kelishi mumkin.'),
+  koWord('ko-w24', 'boraman', '가요', 'gayo', 'ko-daily', '저는 집에 가요.', 'Men uyga boraman.', '"가요" muloyim hozirgi zamon fe’li: boraman/boradi.'),
+  koWord('ko-w25', 'kelaman', '와요', 'wayo', 'ko-daily', '친구가 와요.', 'Do‘st keladi.', '"와요" kelmoq fe’lining muloyim shakli.'),
+  koWord('ko-w26', 'yaxshi', '좋아요', 'joayo', 'ko-feelings', '기분이 좋아요.', 'Kayfiyat yaxshi.', '"좋아요" yaxshi yoki yoqadi ma’nosida ishlatiladi.'),
+  koWord('ko-w27', 'yomon emas', '괜찮아요', 'gwaenchanayo', 'ko-feelings', '저는 괜찮아요.', 'Men yaxshiman.', '"괜찮아요" hammasi joyida, mayli degan muloyim ifoda.'),
+  koWord('ko-w28', 'charchadim', '피곤해요', 'pigonhaeyo', 'ko-feelings', '오늘 피곤해요.', 'Bugun charchadim.', 'Holatingizni odobli aytish uchun ishlatiladi.'),
+  koWord('ko-w29', 'xursandman', '기뻐요', 'gippeoyo', 'ko-feelings', '만나서 기뻐요.', 'Tanishganimdan xursandman.', '"기뻐요" quvonch hissini bildiradi.'),
+  koWord('ko-w30', 'kechirasiz', '죄송합니다', 'joesonghamnida', 'ko-feelings', '죄송합니다, 늦었어요.', 'Kechirasiz, kech qoldim.', 'Rasmiy uzr so‘rashda ishlatiladi.'),
+  koWord('ko-w31', 'men o‘quvchiman', '저는 학생입니다', 'jeoneun haksaengimnida', 'ko-grammar', '저는 학생입니다.', 'Men o‘quvchiman.', '"저는 ...입니다" o‘zingizni rasmiy tanishtirish qolipi.'),
+  koWord('ko-w32', 'bu kitob', '이것은 책입니다', 'igeoseun chaegimnida', 'ko-grammar', '이것은 책입니다.', 'Bu kitob.', '"이것은 ...입니다" narsa tanishtirish uchun ishlatiladi.'),
+  koWord('ko-w33', 'hozir boraman', '지금 가요', 'jigeum gayo', 'ko-grammar', '지금 학교에 가요.', 'Hozir maktabga boraman.', '"지금" hozir degani, fe’l oldida vaqtni bildiradi.'),
+  koWord('ko-w34', 'kecha bordim', '어제 갔어요', 'eoje gasseoyo', 'ko-grammar', '어제 시장에 갔어요.', 'Kecha bozorga bordim.', '"-았/었어요" o‘tgan zamon muloyim shaklida ishlatiladi.'),
+  koWord('ko-w35', 'ertaga boraman', '내일 갈 거예요', 'naeil gal geoyeyo', 'ko-grammar', '내일 학교에 갈 거예요.', 'Ertaga maktabga boraman.', '"갈 거예요" kelasi reja yoki niyatni bildiradi.'),
+]
+
+export const koreanLessonsData: Lesson[] = [
+  {
+    id: 'ko-l1',
+    courseId: 'uz-ko',
+    title: 'Korean Greetings',
+    titleUz: 'Koreyscha salomlashuv',
+    description: 'Say hello, thanks, yes, no, and goodbye',
+    descriptionUz: 'Salom, rahmat, ha, yo‘q va xayrni koreyscha ayting',
+    category: 'ko-basics',
+    level: 'beginner',
+    words: koreanVocabularyData.filter((word) => ['ko-w1', 'ko-w2', 'ko-w3', 'ko-w4', 'ko-w5'].includes(word.id)),
+    xpReward: 12,
+    featherReward: 6,
+    order: 1,
+    isLocked: false,
+    skillFocus: 'speaking',
+  },
+  {
+    id: 'ko-l2',
+    courseId: 'uz-ko',
+    title: 'Korean Numbers',
+    titleUz: 'Koreyscha sonlar',
+    description: 'Use small numbers and ask prices',
+    descriptionUz: 'Kichik sonlar va narx so‘rashni mashq qiling',
+    category: 'ko-numbers',
+    level: 'beginner',
+    words: koreanVocabularyData.filter((word) => ['ko-w6', 'ko-w7', 'ko-w8', 'ko-w9', 'ko-w10'].includes(word.id)),
+    xpReward: 12,
+    featherReward: 6,
+    order: 2,
+    isLocked: true,
+    requiredLessonId: 'ko-l1',
+    skillFocus: 'listening',
+  },
+  {
+    id: 'ko-l3',
+    courseId: 'uz-ko',
+    title: 'People and Family',
+    titleUz: 'Odamlar va oila',
+    description: 'Name people around you',
+    descriptionUz: 'Atrofingizdagi odamlarni koreyscha nomlang',
+    category: 'ko-people',
+    level: 'beginner',
+    words: koreanVocabularyData.filter((word) => ['ko-w11', 'ko-w12', 'ko-w13', 'ko-w14', 'ko-w15'].includes(word.id)),
+    xpReward: 14,
+    featherReward: 7,
+    order: 3,
+    isLocked: true,
+    requiredLessonId: 'ko-l2',
+    skillFocus: 'reading',
+  },
+  {
+    id: 'ko-l4',
+    courseId: 'uz-ko',
+    title: 'Food Basics',
+    titleUz: 'Ovqat so‘zlari',
+    description: 'Order simple food and drinks',
+    descriptionUz: 'Oddiy ovqat va ichimliklarni so‘rang',
+    category: 'ko-food',
+    level: 'beginner',
+    words: koreanVocabularyData.filter((word) => ['ko-w16', 'ko-w17', 'ko-w18', 'ko-w19', 'ko-w20'].includes(word.id)),
+    xpReward: 14,
+    featherReward: 7,
+    order: 4,
+    isLocked: true,
+    requiredLessonId: 'ko-l3',
+    skillFocus: 'speaking',
+  },
+  {
+    id: 'ko-l5',
+    courseId: 'uz-ko',
+    title: 'Daily Places and Verbs',
+    titleUz: 'Kundalik joy va fe’llar',
+    description: 'Talk about home, school, work, going, and coming',
+    descriptionUz: 'Uy, maktab, ish, borish va kelishni mashq qiling',
+    category: 'ko-daily',
+    level: 'beginner',
+    words: koreanVocabularyData.filter((word) => ['ko-w21', 'ko-w22', 'ko-w23', 'ko-w24', 'ko-w25'].includes(word.id)),
+    xpReward: 16,
+    featherReward: 8,
+    order: 5,
+    isLocked: true,
+    requiredLessonId: 'ko-l4',
+    skillFocus: 'mixed',
+  },
+  {
+    id: 'ko-l6',
+    courseId: 'uz-ko',
+    title: 'Feelings and Politeness',
+    titleUz: 'Hislar va odob',
+    description: 'Say how you feel politely',
+    descriptionUz: 'Kayfiyat va uzrni muloyim ayting',
+    category: 'ko-feelings',
+    level: 'beginner',
+    words: koreanVocabularyData.filter((word) => ['ko-w26', 'ko-w27', 'ko-w28', 'ko-w29', 'ko-w30'].includes(word.id)),
+    xpReward: 16,
+    featherReward: 8,
+    order: 6,
+    isLocked: true,
+    requiredLessonId: 'ko-l5',
+    skillFocus: 'speaking',
+  },
+  {
+    id: 'ko-l7',
+    courseId: 'uz-ko',
+    title: 'Grammar Starter',
+    titleUz: 'Grammatika boshlanishi',
+    description: 'Practice to be, now, past, and future',
+    descriptionUz: 'To be, hozirgi, o‘tgan va kelasi zamonni boshlang',
+    category: 'ko-grammar',
+    level: 'beginner',
+    words: koreanVocabularyData.filter((word) => ['ko-w31', 'ko-w32', 'ko-w33', 'ko-w34', 'ko-w35'].includes(word.id)),
+    xpReward: 18,
+    featherReward: 9,
+    order: 7,
+    isLocked: true,
+    requiredLessonId: 'ko-l6',
+    skillFocus: 'grammar',
+  },
+  {
+    id: 'ko-l8',
+    courseId: 'uz-ko',
+    title: 'Beginner Korean Review',
+    titleUz: 'Boshlang‘ich koreyscha takrorlash',
+    description: 'Review greetings, numbers, food, daily phrases, and grammar',
+    descriptionUz: 'Salomlashuv, sonlar, ovqat, kundalik ibora va grammatikani takrorlang',
+    category: 'ko-review',
+    level: 'beginner',
+    words: koreanVocabularyData.slice(0, 20),
+    xpReward: 24,
+    featherReward: 12,
+    order: 8,
+    isLocked: true,
+    requiredLessonId: 'ko-l7',
+    isReview: true,
+    skillFocus: 'mixed',
+  },
+]
+
+export const allLessonsData: Lesson[] = [...lessonsData, ...koreanLessonsData]
+
+export function getLessonsForCourse(courseId: CourseId = 'uz-en'): Lesson[] {
+  return courseId === 'uz-ko' ? koreanLessonsData : lessonsData
+}
+
 // Achievements
 export const achievementsData: Achievement[] = [
   {
@@ -585,6 +824,7 @@ export const achievementsData: Achievement[] = [
   },
   {
     id: 'word-collector',
+    courseId: 'uz-en',
     title: 'Word Collector',
     titleUz: 'So\'z to\'plovchi',
     description: 'Complete 10 lessons',
@@ -662,6 +902,7 @@ export const achievementsData: Achievement[] = [
   },
   {
     id: 'course-complete',
+    courseId: 'uz-en',
     title: 'Course Complete',
     titleUz: 'Kurs yakunlandi',
     description: 'Complete all 70 lessons',
@@ -671,11 +912,47 @@ export const achievementsData: Achievement[] = [
     xpReward: 200,
     featherReward: 150,
   },
+  {
+    id: 'ko-first-hello',
+    courseId: 'uz-ko',
+    title: 'First Korean Hello',
+    titleUz: 'Birinchi koreyscha salom',
+    description: 'Complete your first Korean lesson',
+    descriptionUz: 'Birinchi koreyscha darsni yakunlang',
+    icon: 'star',
+    requirement: { type: 'lessons', value: 1 },
+    xpReward: 25,
+    featherReward: 12,
+  },
+  {
+    id: 'ko-word-collector',
+    courseId: 'uz-ko',
+    title: 'Korean Word Collector',
+    titleUz: 'Koreyscha so‘z to‘plovchi',
+    description: 'Complete 5 Korean lessons',
+    descriptionUz: '5 ta koreyscha darsni yakunlang',
+    icon: 'book',
+    requirement: { type: 'lessons', value: 5 },
+    xpReward: 60,
+    featherReward: 30,
+  },
+  {
+    id: 'ko-grammar-starter',
+    courseId: 'uz-ko',
+    title: 'Korean Grammar Starter',
+    titleUz: 'Koreys grammatikasi boshlovi',
+    description: 'Complete the Korean grammar starter lesson',
+    descriptionUz: 'Koreys grammatikasi darsini yakunlang',
+    icon: 'graduation-cap',
+    requirement: { type: 'lessons', value: 7 },
+    xpReward: 80,
+    featherReward: 40,
+  },
 ]
 
 // Helper function to get lesson by ID
 export function getLessonById(id: string): Lesson | undefined {
-  return lessonsData.find(lesson => lesson.id === id)
+  return allLessonsData.find(lesson => lesson.id === id)
 }
 
 // Helper function to check if lesson is unlocked
@@ -688,8 +965,12 @@ export function isLessonUnlocked(lessonId: string, completedLessons: string[]): 
 }
 
 // Helper function to get next lesson
-export function getNextLesson(completedLessons: string[]): Lesson | undefined {
-  return lessonsData.find(lesson => !completedLessons.includes(lesson.id) && isLessonUnlocked(lesson.id, completedLessons))
+export function getNextLesson(completedLessons: string[], courseId: CourseId = 'uz-en'): Lesson | undefined {
+  return getLessonsForCourse(courseId).find(lesson => !completedLessons.includes(lesson.id) && isLessonUnlocked(lesson.id, completedLessons))
+}
+
+export function getAchievementsForCourse(courseId: CourseId = 'uz-en'): Achievement[] {
+  return achievementsData.filter((achievement) => !achievement.courseId || achievement.courseId === courseId)
 }
 
 export const storeItemsData: StoreItem[] = [

@@ -8,7 +8,8 @@ import { useAppStore } from '@/lib/store'
 import { useTelegram } from '@/hooks/use-telegram'
 import { cn } from '@/lib/utils'
 import { ArrowRight, Check, Cloud, ShieldCheck, Target, Zap } from 'lucide-react'
-import { getLevel, type User } from '@/lib/types'
+import { getLevel, type CourseId, type User } from '@/lib/types'
+import { courseOptions } from '@/lib/data/lessons'
 
 type OnboardingStep = 'welcome' | 'account' | 'avatar' | 'path' | 'level' | 'goal'
 
@@ -20,7 +21,7 @@ interface AvatarOption {
 }
 
 interface PathOption {
-  id: 'uz-en'
+  id: CourseId
   title: string
   description: string
   flag1: string
@@ -56,13 +57,13 @@ const avatarOptions: AvatarOption[] = [
 ]
 
 const pathOptions: PathOption[] = [
-  {
-    id: 'uz-en',
-    title: "O'zbekchadan inglizchaga",
-    description: "O'zbek tilida tushuntirishlar, inglizcha yangi so'zlar",
-    flag1: 'UZ',
-    flag2: 'EN',
-  },
+  ...courseOptions.map((course) => ({
+    id: course.id,
+    title: course.titleUz,
+    description: course.descriptionUz,
+    flag1: course.fromFlag,
+    flag2: course.toFlag,
+  })),
 ]
 
 const levelOptions: LevelOption[] = [
@@ -88,7 +89,7 @@ const goalOptions: GoalOption[] = [
 export function OnboardingScreen() {
   const [step, setStep] = useState<OnboardingStep>('welcome')
   const [selectedAvatar, setSelectedAvatar] = useState<'boy' | 'girl'>('boy')
-  const [selectedPath, setSelectedPath] = useState<'uz-en'>('uz-en')
+  const [selectedPath, setSelectedPath] = useState<CourseId>('uz-en')
   const [selectedLevel, setSelectedLevel] = useState<'beginner' | 'intermediate' | null>(null)
   const [selectedGoal, setSelectedGoal] = useState<5 | 10 | 15 | 20 | null>(null)
 
@@ -124,7 +125,8 @@ export function OnboardingScreen() {
       photoUrl: telegramUser?.photo_url,
       telegramId: telegramUser?.id?.toString(),
       avatarStyle: selectedAvatar,
-      learningPath: 'uz-en',
+      learningPath: selectedPath,
+      selectedCourse: selectedPath,
       level: selectedLevel!,
       dailyGoal: selectedGoal!,
       xp: 0,
@@ -135,6 +137,10 @@ export function OnboardingScreen() {
       lastActiveDate: new Date().toISOString().split('T')[0],
       completedLessons: [],
       achievements: [],
+      courseProgress: {
+        'uz-en': { completedLessons: [], achievements: [] },
+        'uz-ko': { completedLessons: [], achievements: [] },
+      },
       referralCount: 0,
       claimedReferralMilestones: [],
       joinedAt: new Date().toISOString(),
@@ -292,7 +298,7 @@ export function OnboardingScreen() {
               <p className="mt-2 text-muted-foreground">Qaysi tilda mashq qilmoqchisiz?</p>
             </div>
             <div className="flex flex-col gap-4">
-              {pathOptions.filter((option) => option.id === 'uz-en').map((option) => (
+              {pathOptions.map((option) => (
                 <Card
                   key={option.id}
                   className={cn(
@@ -300,7 +306,7 @@ export function OnboardingScreen() {
                     selectedPath === option.id ? 'border-primary bg-primary/5 shadow-lg' : 'border-border hover:border-primary/50',
                   )}
                   onClick={() => {
-                    setSelectedPath('uz-en')
+                    setSelectedPath(option.id)
                     hapticFeedback('light')
                   }}
                 >

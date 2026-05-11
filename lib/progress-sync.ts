@@ -1,6 +1,8 @@
 import type { CloudAuthSession, CloudProgressSnapshot, DailyChallenge, User } from '@/lib/types'
 import { supabaseFetch } from '@/lib/supabase'
 
+const normalizeCourseId = (courseId?: string) => (courseId === 'uz-ko' ? 'uz-ko' : 'uz-en')
+
 export function buildProgressSnapshot(params: {
   user: User
   dailyChallenges: DailyChallenge[]
@@ -12,7 +14,18 @@ export function buildProgressSnapshot(params: {
     ...params,
     user: {
       ...params.user,
-      learningPath: 'uz-en',
+      learningPath: normalizeCourseId(params.user.selectedCourse ?? params.user.learningPath),
+      selectedCourse: normalizeCourseId(params.user.selectedCourse ?? params.user.learningPath),
+      courseProgress: params.user.courseProgress ?? {
+        'uz-en': {
+          completedLessons: params.user.completedLessons ?? [],
+          achievements: params.user.achievements ?? [],
+        },
+        'uz-ko': {
+          completedLessons: [],
+          achievements: [],
+        },
+      },
     },
     exerciseAnswers: {
       ...params.exerciseAnswers,
@@ -50,7 +63,9 @@ export async function saveCloudProgress(session: CloudAuthSession, snapshot: Clo
       achievements: snapshot.user.achievements,
       last_chest_claim: snapshot.user.lastChestClaim,
       settings: {
-        learningPath: 'uz-en',
+        learningPath: normalizeCourseId(snapshot.user.selectedCourse ?? snapshot.user.learningPath),
+        selectedCourse: normalizeCourseId(snapshot.user.selectedCourse ?? snapshot.user.learningPath),
+        courseProgress: snapshot.user.courseProgress ?? {},
         level: snapshot.user.level,
         dailyGoal: snapshot.user.dailyGoal,
         claimedReferralMilestones: snapshot.user.claimedReferralMilestones ?? [],
@@ -67,10 +82,18 @@ export async function saveCloudProgress(session: CloudAuthSession, snapshot: Clo
 export function chooseNewestProgress(localUser: User | null, cloud: CloudProgressSnapshot | null) {
   if (!cloud) return null
   if (!localUser?.lastSyncedAt) {
+    const localCourseProgressScore = Object.values(localUser?.courseProgress ?? {}).reduce(
+      (sum, progress) => sum + (progress?.completedLessons.length ?? 0) + (progress?.achievements.length ?? 0),
+      0,
+    )
+    const cloudCourseProgressScore = Object.values(cloud.user.courseProgress ?? {}).reduce(
+      (sum, progress) => sum + (progress?.completedLessons.length ?? 0) + (progress?.achievements.length ?? 0),
+      0,
+    )
     const localProgressScore =
-      (localUser?.completedLessons.length ?? 0) + (localUser?.xp ?? 0) + (localUser?.achievements.length ?? 0)
+      (localUser?.completedLessons.length ?? 0) + (localUser?.xp ?? 0) + (localUser?.achievements.length ?? 0) + localCourseProgressScore
     const cloudProgressScore =
-      cloud.user.completedLessons.length + cloud.user.xp + cloud.user.achievements.length
+      cloud.user.completedLessons.length + cloud.user.xp + cloud.user.achievements.length + cloudCourseProgressScore
 
     return cloudProgressScore > localProgressScore ? cloud : null
   }

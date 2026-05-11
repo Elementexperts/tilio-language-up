@@ -1,4 +1,11 @@
 // User types
+export type CourseId = 'uz-en' | 'uz-ko'
+
+export interface CourseProgress {
+  completedLessons: string[]
+  achievements: string[]
+}
+
 export interface User {
   id: string
   username: string
@@ -6,7 +13,8 @@ export interface User {
   lastName?: string
   photoUrl?: string
   avatarStyle?: 'boy' | 'girl'
-  learningPath: 'uz-en' | 'en-uz'
+  learningPath: CourseId
+  selectedCourse?: CourseId
   level: 'beginner' | 'intermediate'
   dailyGoal: 5 | 10 | 15 | 20
   xp: number
@@ -17,6 +25,7 @@ export interface User {
   lastActiveDate: string
   completedLessons: string[]
   achievements: string[]
+  courseProgress?: Partial<Record<CourseId, CourseProgress>>
   referralCount: number
   claimedReferralMilestones?: number[]
   joinedAt: string
@@ -44,6 +53,9 @@ export interface Word {
   id: string
   uzbek: string
   english: string
+  korean?: string
+  romanization?: string
+  uzbekExplanation?: string
   pronunciation?: string
   audioUrl?: string
   example?: {
@@ -64,6 +76,7 @@ export interface WordReview {
 
 export interface Lesson {
   id: string
+  courseId?: CourseId
   title: string
   titleUz: string
   description: string
@@ -125,6 +138,7 @@ export interface DailyChallenge {
 // Achievement types
 export interface Achievement {
   id: string
+  courseId?: CourseId
   title: string
   titleUz: string
   description: string
@@ -229,6 +243,7 @@ export interface AppState {
   // Actions
   setUser: (user: User | null) => void
   updateUser: (updates: Partial<User>) => void
+  setSelectedCourse: (courseId: CourseId) => void
   hydrateCloudProgress: (snapshot: CloudProgressSnapshot) => void
   setCloudSession: (session: CloudAuthSession | null) => void
   setSyncStatus: (status: SyncStatus, error?: string | null) => void

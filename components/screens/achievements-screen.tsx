@@ -5,7 +5,7 @@ import { Card } from '@/components/ui/card'
 import { Progress } from '@/components/ui/progress'
 import { useAppStore } from '@/lib/store'
 import { useTelegram } from '@/hooks/use-telegram'
-import { achievementsData } from '@/lib/data/lessons'
+import { getAchievementsForCourse } from '@/lib/data/lessons'
 import { cn } from '@/lib/utils'
 import { ArrowLeft, Book, Crown, Feather, Flame, GraduationCap, Lock, Medal, PartyPopper, Star, Trophy, Users, Zap } from 'lucide-react'
 
@@ -36,7 +36,10 @@ export function AchievementsScreen() {
 
   const achievements = useMemo(() => {
     if (!user) return []
-    return achievementsData.map((achievement) => {
+    const selectedCourse = user.selectedCourse ?? user.learningPath ?? 'uz-en'
+    const completedLessons = user.courseProgress?.[selectedCourse]?.completedLessons ?? user.completedLessons
+    const unlockedIds = user.courseProgress?.[selectedCourse]?.achievements ?? user.achievements
+    return getAchievementsForCourse(selectedCourse).map((achievement) => {
       let current = 0
       const target = achievement.requirement.value
       switch (achievement.requirement.type) {
@@ -47,7 +50,7 @@ export function AchievementsScreen() {
           current = user.streak
           break
         case 'lessons':
-          current = user.completedLessons.length
+          current = completedLessons.length
           break
         case 'referrals':
           current = user.referralCount
@@ -64,7 +67,7 @@ export function AchievementsScreen() {
         ...achievement,
         current,
         progress: Math.min((current / target) * 100, 100),
-        isUnlocked: current >= target,
+        isUnlocked: unlockedIds.includes(achievement.id) || current >= target,
       }
     })
   }, [user])

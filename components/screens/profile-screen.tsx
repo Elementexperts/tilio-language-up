@@ -6,7 +6,7 @@ import { Button } from '@/components/ui/button'
 import { Progress } from '@/components/ui/progress'
 import { useAppStore } from '@/lib/store'
 import { useTelegram } from '@/hooks/use-telegram'
-import { lessonsData, achievementsData } from '@/lib/data/lessons'
+import { courseOptions, getAchievementsForCourse, getCourseOption, getLessonsForCourse } from '@/lib/data/lessons'
 import { cn } from '@/lib/utils'
 import { 
   ArrowLeft, 
@@ -31,6 +31,7 @@ export function ProfileScreen() {
   const toggleSound = useAppStore((state) => state.toggleSound)
   const setScreen = useAppStore((state) => state.setScreen)
   const setUser = useAppStore((state) => state.setUser)
+  const setSelectedCourse = useAppStore((state) => state.setSelectedCourse)
   const { hapticFeedback, showBackButton, hideBackButton } = useTelegram()
 
   useEffect(() => {
@@ -43,21 +44,26 @@ export function ProfileScreen() {
 
   if (!user) return null
 
-  const completedLessons = user.completedLessons.length
-  const totalLessons = lessonsData.length
+  const selectedCourse = user.selectedCourse ?? user.learningPath ?? 'uz-en'
+  const activeCourse = getCourseOption(selectedCourse)
+  const courseCompletedLessons = user.courseProgress?.[selectedCourse]?.completedLessons ?? user.completedLessons
+  const courseAchievements = user.courseProgress?.[selectedCourse]?.achievements ?? user.achievements
+  const completedLessons = courseCompletedLessons.length
+  const totalLessons = getLessonsForCourse(selectedCourse).length
   const progressPercent = (completedLessons / totalLessons) * 100
   const avatarSrc = user.photoUrl ?? (user.avatarStyle === 'girl' ? '/avatars/tilio-girl-avatar.png' : '/avatars/tilio-boy-avatar.png')
 
-  const unlockedAchievements = achievementsData.filter((a) => {
+  const activeAchievements = getAchievementsForCourse(selectedCourse)
+  const unlockedAchievements = activeAchievements.filter((a) => {
     switch (a.requirement.type) {
       case 'xp': return user.xp >= a.requirement.value
       case 'streak': return user.streak >= a.requirement.value
-      case 'lessons': return user.completedLessons.length >= a.requirement.value
+      case 'lessons': return completedLessons >= a.requirement.value
       case 'referrals': return user.referralCount >= a.requirement.value
       default: return false
     }
   }).length
-  const unlockedBadges = achievementsData.filter((a) => user.achievements.includes(a.id))
+  const unlockedBadges = activeAchievements.filter((a) => courseAchievements.includes(a.id))
 
   const joinDate = (() => {
     const parsed = new Date(user.joinedAt)
@@ -163,7 +169,7 @@ export function ProfileScreen() {
           <Card className="tilio-card rounded-[1.5rem] p-4 text-center">
             <Book className="w-6 h-6 text-secondary-foreground mx-auto mb-2" />
             <p className="text-2xl font-black text-foreground">{completedLessons}</p>
-            <p className="text-sm text-muted-foreground">Darslar</p>
+            <p className="text-sm text-muted-foreground">{activeCourse.badge} darslar</p>
           </Card>
           <Card className="tilio-card rounded-[1.5rem] p-4 text-center">
             <Trophy className="w-6 h-6 text-accent mx-auto mb-2" />
@@ -221,11 +227,32 @@ export function ProfileScreen() {
         <Card className="p-4 mb-6">
           <h3 className="font-medium text-foreground mb-3">O‘rganish sozlamalari</h3>
           <div className="space-y-4">
-            <div className="flex items-center justify-between">
+            <div>
               <span className="text-sm text-muted-foreground">Yo‘nalish</span>
-              <span className="text-sm font-medium text-foreground">
-                O'zbekcha -&gt; English
-              </span>
+              <div className="mt-3 grid gap-2">
+                {courseOptions.map((course) => (
+                  <button
+                    key={course.id}
+                    type="button"
+                    onClick={() => {
+                      hapticFeedback('light')
+                      setSelectedCourse(course.id)
+                    }}
+                    className={cn(
+                      'tilio-pressed rounded-2xl border p-3 text-left transition-colors',
+                      selectedCourse === course.id ? 'border-primary bg-primary/10 text-primary' : 'border-border bg-white/70 text-foreground',
+                    )}
+                  >
+                    <div className="flex items-center gap-3">
+                      <span className="text-xl">{course.fromFlag} → {course.toFlag}</span>
+                      <div className="min-w-0 flex-1">
+                        <p className="font-black">{course.titleUz}</p>
+                        <p className="text-xs font-semibold text-muted-foreground">{course.descriptionUz}</p>
+                      </div>
+                    </div>
+                  </button>
+                ))}
+              </div>
             </div>
             <div className="flex items-center justify-between">
               <span className="text-sm text-muted-foreground">Bosqich</span>

@@ -5,7 +5,7 @@ import { useAppStore } from '@/lib/store'
 import { getLessonsForCourse, isLessonUnlocked } from '@/lib/data/lessons'
 import { useTelegram } from '@/hooks/use-telegram'
 import { cn } from '@/lib/utils'
-import { BookOpen, Check, Clock, Footprints, GraduationCap, Hash, Heart, Home, Languages, Lock, MessageCircle, Palette, Play, Star, Sun, Utensils } from 'lucide-react'
+import { BookOpen, Briefcase, Check, Clock, Footprints, GraduationCap, Hash, Heart, Home, Languages, Lock, Map, MessageCircle, Palette, PenLine, Play, Star, Sun, Utensils } from 'lucide-react'
 import type { Lesson } from '@/lib/types'
 
 const categoryIcons: Record<string, React.ElementType> = {
@@ -27,6 +27,12 @@ const categoryIcons: Record<string, React.ElementType> = {
   'ko-feelings': MessageCircle,
   'ko-grammar': GraduationCap,
   'ko-review': Star,
+  'ko-hangul': Languages,
+  'ko-dialogue': MessageCircle,
+  'ko-travel': Map,
+  'ko-work': Briefcase,
+  'ko-topik': PenLine,
+  'ko-daily-2': Clock,
 }
 
 const categoryColors: Record<string, string> = {
@@ -48,6 +54,12 @@ const categoryColors: Record<string, string> = {
   'ko-feelings': 'bg-pink-500',
   'ko-grammar': 'bg-indigo-500',
   'ko-review': 'bg-amber-500',
+  'ko-hangul': 'bg-cyan-600',
+  'ko-dialogue': 'bg-violet-500',
+  'ko-travel': 'bg-blue-600',
+  'ko-work': 'bg-slate-600',
+  'ko-topik': 'bg-emerald-700',
+  'ko-daily-2': 'bg-lime-600',
 }
 
 export function LessonMap() {

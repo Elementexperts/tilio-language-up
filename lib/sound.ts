@@ -1,15 +1,46 @@
 type Wave = OscillatorType
 
+let sharedAudioContext: AudioContext | null = null
+let audioUnlocked = false
+
 function getAudioContext() {
   if (typeof window === 'undefined') return
   const AudioCtx = window.AudioContext || (window as typeof window & { webkitAudioContext?: typeof AudioContext }).webkitAudioContext
   if (!AudioCtx) return
-  return new AudioCtx()
+  if (!sharedAudioContext || sharedAudioContext.state === 'closed') {
+    sharedAudioContext = new AudioCtx()
+  }
+  return sharedAudioContext
+}
+
+export function unlockAudio() {
+  const ctx = getAudioContext()
+  if (!ctx || audioUnlocked) return
+
+  const unlock = () => {
+    const buffer = ctx.createBuffer(1, 1, 22050)
+    const source = ctx.createBufferSource()
+    source.buffer = buffer
+    source.connect(ctx.destination)
+    source.start(0)
+    audioUnlocked = true
+  }
+
+  if (ctx.state === 'suspended') {
+    ctx.resume().then(unlock).catch(() => undefined)
+    return
+  }
+
+  unlock()
 }
 
 function playTone(frequency: number, endFrequency: number, duration: number, type: Wave = 'sine', volume = 0.06) {
   const ctx = getAudioContext()
   if (!ctx) return
+  if (ctx.state === 'suspended') {
+    ctx.resume().catch(() => undefined)
+  }
+
   const oscillator = ctx.createOscillator()
   const gain = ctx.createGain()
   oscillator.type = type

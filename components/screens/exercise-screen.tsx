@@ -43,6 +43,7 @@ export function ExerciseScreen() {
   const [isCorrectionMode, setIsCorrectionMode] = useState(false)
   const [correctionIndex, setCorrectionIndex] = useState(0)
   const [missedWordIds, setMissedWordIds] = useState<string[]>([])
+  const [speechVoicesReady, setSpeechVoicesReady] = useState(false)
 
   // Generate exercises from lesson words
   const exercises = useMemo(() => {
@@ -70,7 +71,7 @@ export function ExerciseScreen() {
     window.speechSynthesis.cancel()
     const utterance = new SpeechSynthesisUtterance(text)
     utterance.lang = lang
-    utterance.rate = lang.startsWith('uz') ? 0.86 : 0.92
+    utterance.rate = lang.startsWith('ko') ? 0.82 : lang.startsWith('uz') ? 0.86 : 0.92
     utterance.pitch = 1.05
     const voice = getPreferredVoice(lang)
     if (voice) utterance.voice = voice
@@ -100,15 +101,30 @@ export function ExerciseScreen() {
   }, [currentLesson?.id])
 
   useEffect(() => {
-    if (!currentExercise) return
-    if (currentExercise.type !== 'vocabulary' || !showVocabulary) return
-    const timer = window.setTimeout(() => speakNewWord(currentExercise.word, isUzToEn), 350)
+    if (typeof window === 'undefined' || !('speechSynthesis' in window)) return
+
+    const markReady = () => setSpeechVoicesReady(window.speechSynthesis.getVoices().length > 0)
+    markReady()
+    window.speechSynthesis.onvoiceschanged = markReady
+    const timer = window.setTimeout(markReady, 500)
+
     return () => {
       window.clearTimeout(timer)
-      if ('speechSynthesis' in window) window.speechSynthesis.cancel()
+      window.speechSynthesis.onvoiceschanged = null
+    }
+  }, [])
+
+  useEffect(() => {
+    if (!currentExercise) return
+    if (currentExercise.type !== 'vocabulary' || !showVocabulary) return
+    if (!isSoundEnabled) return
+    const timer = window.setTimeout(() => speakNewWord(currentExercise.word, isUzToEn), speechVoicesReady ? 350 : 700)
+    return () => {
+      window.clearTimeout(timer)
+      if (typeof window !== 'undefined' && 'speechSynthesis' in window) window.speechSynthesis.cancel()
       setIsSpeaking(false)
     }
-  }, [currentExercise, isUzToEn, showVocabulary, speakNewWord])
+  }, [currentExercise, isSoundEnabled, isUzToEn, showVocabulary, speakNewWord, speechVoicesReady])
 
   useEffect(() => {
     if (!currentExercise || currentExercise.type !== 'listening' || isAnswered) return
@@ -433,7 +449,10 @@ function VocabularyCard({ word, isUzToEn, onContinue, isSpeaking, isKoreanCourse
         </div>
 
         {isKoreanCourse && word.romanization && (
-          <p className="mb-3 text-lg font-black text-emerald-700">{word.romanization}</p>
+          <p className="mb-3 text-lg font-black text-emerald-700">
+            <span className="text-xs font-extrabold uppercase tracking-[0.12em] text-muted-foreground">Talaffuz </span>
+            {word.romanization}
+          </p>
         )}
         
         <div className="mb-4 flex items-center justify-center gap-2 text-xl font-black text-muted-foreground">

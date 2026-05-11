@@ -732,8 +732,9 @@ export const koreanLessonsData: Lesson[] = [
     words: koreanVocabularyData.filter((word) => ['ko-w1', 'ko-w2', 'ko-w3', 'ko-w4', 'ko-w5'].includes(word.id)),
     xpReward: 12,
     featherReward: 6,
-    order: 1,
-    isLocked: false,
+    order: 3,
+    isLocked: true,
+    requiredLessonId: 'ko-l10',
     skillFocus: 'speaking',
   },
   {
@@ -748,7 +749,7 @@ export const koreanLessonsData: Lesson[] = [
     words: koreanVocabularyData.filter((word) => ['ko-w6', 'ko-w7', 'ko-w8', 'ko-w9', 'ko-w10'].includes(word.id)),
     xpReward: 12,
     featherReward: 6,
-    order: 2,
+    order: 4,
     isLocked: true,
     requiredLessonId: 'ko-l1',
     skillFocus: 'listening',
@@ -765,7 +766,7 @@ export const koreanLessonsData: Lesson[] = [
     words: koreanVocabularyData.filter((word) => ['ko-w11', 'ko-w12', 'ko-w13', 'ko-w14', 'ko-w15'].includes(word.id)),
     xpReward: 14,
     featherReward: 7,
-    order: 3,
+    order: 5,
     isLocked: true,
     requiredLessonId: 'ko-l2',
     skillFocus: 'reading',
@@ -782,7 +783,7 @@ export const koreanLessonsData: Lesson[] = [
     words: koreanVocabularyData.filter((word) => ['ko-w16', 'ko-w17', 'ko-w18', 'ko-w19', 'ko-w20'].includes(word.id)),
     xpReward: 14,
     featherReward: 7,
-    order: 4,
+    order: 6,
     isLocked: true,
     requiredLessonId: 'ko-l3',
     skillFocus: 'speaking',
@@ -799,7 +800,7 @@ export const koreanLessonsData: Lesson[] = [
     words: koreanVocabularyData.filter((word) => ['ko-w21', 'ko-w22', 'ko-w23', 'ko-w24', 'ko-w25'].includes(word.id)),
     xpReward: 16,
     featherReward: 8,
-    order: 5,
+    order: 7,
     isLocked: true,
     requiredLessonId: 'ko-l4',
     skillFocus: 'mixed',
@@ -816,7 +817,7 @@ export const koreanLessonsData: Lesson[] = [
     words: koreanVocabularyData.filter((word) => ['ko-w26', 'ko-w27', 'ko-w28', 'ko-w29', 'ko-w30'].includes(word.id)),
     xpReward: 16,
     featherReward: 8,
-    order: 6,
+    order: 8,
     isLocked: true,
     requiredLessonId: 'ko-l5',
     skillFocus: 'speaking',
@@ -833,7 +834,7 @@ export const koreanLessonsData: Lesson[] = [
     words: koreanVocabularyData.filter((word) => ['ko-w31', 'ko-w32', 'ko-w33', 'ko-w34', 'ko-w35'].includes(word.id)),
     xpReward: 18,
     featherReward: 9,
-    order: 7,
+    order: 9,
     isLocked: true,
     requiredLessonId: 'ko-l6',
     skillFocus: 'grammar',
@@ -850,7 +851,7 @@ export const koreanLessonsData: Lesson[] = [
     words: koreanVocabularyData.slice(0, 20),
     xpReward: 24,
     featherReward: 12,
-    order: 8,
+    order: 10,
     isLocked: true,
     requiredLessonId: 'ko-l7',
     isReview: true,
@@ -868,9 +869,8 @@ export const koreanLessonsData: Lesson[] = [
     words: koreanVocabularyData.filter((word) => ['ko-w36', 'ko-w37', 'ko-w38', 'ko-w39', 'ko-w40'].includes(word.id)),
     xpReward: 14,
     featherReward: 7,
-    order: 9,
-    isLocked: true,
-    requiredLessonId: 'ko-l8',
+    order: 1,
+    isLocked: false,
     skillFocus: 'reading',
   },
   {
@@ -885,7 +885,7 @@ export const koreanLessonsData: Lesson[] = [
     words: koreanVocabularyData.filter((word) => ['ko-w41', 'ko-w42', 'ko-w43', 'ko-w44', 'ko-w45'].includes(word.id)),
     xpReward: 14,
     featherReward: 7,
-    order: 10,
+    order: 2,
     isLocked: true,
     requiredLessonId: 'ko-l9',
     skillFocus: 'reading',
@@ -904,7 +904,7 @@ export const koreanLessonsData: Lesson[] = [
     featherReward: 8,
     order: 11,
     isLocked: true,
-    requiredLessonId: 'ko-l10',
+    requiredLessonId: 'ko-l8',
     skillFocus: 'speaking',
   },
   {
@@ -1102,7 +1102,7 @@ export const koreanLessonsData: Lesson[] = [
 export const allLessonsData: Lesson[] = [...lessonsData, ...koreanLessonsData]
 
 export function getLessonsForCourse(courseId: CourseId = 'uz-en'): Lesson[] {
-  return courseId === 'uz-ko' ? koreanLessonsData : lessonsData
+  return [...(courseId === 'uz-ko' ? koreanLessonsData : lessonsData)].sort((a, b) => a.order - b.order)
 }
 
 // Achievements

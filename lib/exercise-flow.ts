@@ -136,6 +136,23 @@ export function buildChoiceOptions(
   )
 }
 
+function getKoreanGrammarNote(word: Word, sourceText: string, correctAnswer: string) {
+  const romanization = word.romanization ? `Talaffuz: ${word.romanization}. ` : ''
+  const explanation = word.uzbekExplanation ? `${word.uzbekExplanation} ` : ''
+
+  if (word.category === 'ko-hangul') {
+    return `${romanization}${explanation}Hangul bo‘g‘inlari odatda undosh va unli qo‘shilishidan tuziladi; avval shaklni tanib, keyin tovushni takrorlang.`
+  }
+  if (word.category === 'ko-grammar') {
+    return `${romanization}${explanation}"${sourceText}" iborasining o‘zbekcha ma’nosi "${correctAnswer}". Koreys tilida muloyim shakllar suhbatda juda muhim.`
+  }
+  if (word.category === 'ko-topik') {
+    return `${romanization}${explanation}TOPIK uslubida bu so‘z ko‘rsatma yoki savol matnida keladi; avval buyruqni tushunib, keyin javobni tanlang.`
+  }
+
+  return `${romanization}${explanation}"${sourceText}" koreyscha shakl bo‘lib, o‘zbekcha ma’nosi "${correctAnswer}". Avval eshiting, keyin ovoz chiqarib takrorlang.`
+}
+
 export function buildLessonExercises(
   lesson: Lesson,
   _learningPath: User['learningPath'] | undefined,
@@ -171,7 +188,7 @@ export function buildLessonExercises(
       const sentenceTarget = example ?? sourceText
       const sentenceTiles = seededSort(sentenceTarget.split(' ').filter(Boolean), `tiles-${word.id}-${isUzToEn ? 'uz-en' : 'en-uz'}`)
       const grammarRule = lesson.courseId === 'uz-ko'
-        ? `"${sourceText}" koreyscha shakl bo‘lib, o‘zbekcha ma’nosi "${correctAnswer}". Romanizatsiya: ${word.romanization ?? sourceText}.`
+        ? getKoreanGrammarNote(word, sourceText, correctAnswer)
         : isUzToEn
         ? `In English, place the key word where it naturally completes the sentence. "${sourceText}" means "${correctAnswer}".`
         : `O'zbek tilida ma'no ko'pincha qo'shimchalar va so'z tartibi orqali aniqlanadi. "${sourceText}" = "${correctAnswer}".`

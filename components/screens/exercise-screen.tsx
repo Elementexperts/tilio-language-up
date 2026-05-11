@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useMemo, useCallback, useEffect } from 'react'
+import { useState, useMemo, useCallback, useEffect, useRef } from 'react'
 import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
 import { Progress } from '@/components/ui/progress'
@@ -44,6 +44,7 @@ export function ExerciseScreen() {
   const [correctionIndex, setCorrectionIndex] = useState(0)
   const [missedWordIds, setMissedWordIds] = useState<string[]>([])
   const [speechVoicesReady, setSpeechVoicesReady] = useState(false)
+  const fallbackAudioRef = useRef<HTMLAudioElement | null>(null)
 
   // Generate exercises from lesson words
   const exercises = useMemo(() => {
@@ -65,8 +66,26 @@ export function ExerciseScreen() {
   const isKoreanCourse = currentLesson?.courseId === 'uz-ko'
   const targetSpeechLang = isKoreanCourse ? 'ko-KR' : 'en-US'
 
+  const playRemoteTts = useCallback((text: string, lang: string) => {
+    if (typeof window === 'undefined' || !text.trim()) return
+
+    fallbackAudioRef.current?.pause()
+    const audio = new Audio(
+      `https://translate.google.com/translate_tts?ie=UTF-8&client=tw-ob&tl=${encodeURIComponent(lang.split('-')[0])}&q=${encodeURIComponent(text)}`,
+    )
+    fallbackAudioRef.current = audio
+    audio.onplay = () => setIsSpeaking(true)
+    audio.onended = () => setIsSpeaking(false)
+    audio.onerror = () => setIsSpeaking(false)
+    audio.play().catch(() => setIsSpeaking(false))
+  }, [])
+
   const speakText = useCallback((text: string, lang = 'uz-UZ') => {
-    if (typeof window === 'undefined' || !('speechSynthesis' in window) || !text.trim()) return
+    if (typeof window === 'undefined' || !text.trim()) return
+    if (!('speechSynthesis' in window)) {
+      if (lang.startsWith('ko')) playRemoteTts(text, lang)
+      return
+    }
 
     window.speechSynthesis.cancel()
     const utterance = new SpeechSynthesisUtterance(text)
@@ -74,12 +93,37 @@ export function ExerciseScreen() {
     utterance.rate = lang.startsWith('ko') ? 0.82 : lang.startsWith('uz') ? 0.86 : 0.92
     utterance.pitch = 1.05
     const voice = getPreferredVoice(lang)
+    if (lang.startsWith('ko') && !voice) {
+      playRemoteTts(text, lang)
+      return
+    }
     if (voice) utterance.voice = voice
-    utterance.onstart = () => setIsSpeaking(true)
-    utterance.onend = () => setIsSpeaking(false)
-    utterance.onerror = () => setIsSpeaking(false)
+    let started = false
+    const fallbackTimer = lang.startsWith('ko')
+      ? window.setTimeout(() => {
+          if (!started) playRemoteTts(text, lang)
+        }, 650)
+      : null
+    utterance.onstart = () => {
+      started = true
+      if (fallbackTimer) window.clearTimeout(fallbackTimer)
+      setIsSpeaking(true)
+    }
+    utterance.onend = () => {
+      if (fallbackTimer) window.clearTimeout(fallbackTimer)
+      setIsSpeaking(false)
+    }
+    utterance.onerror = () => {
+      if (fallbackTimer) window.clearTimeout(fallbackTimer)
+      if (lang.startsWith('ko')) {
+        playRemoteTts(text, lang)
+        return
+      }
+      setIsSpeaking(false)
+    }
+    window.speechSynthesis.resume()
     window.speechSynthesis.speak(utterance)
-  }, [])
+  }, [playRemoteTts])
 
   const speakNewWord = useCallback((word: Word, pathIsUzToEn: boolean) => {
     speakText(pathIsUzToEn ? word.english : word.uzbek, pathIsUzToEn ? targetSpeechLang : 'uz-UZ')
@@ -111,6 +155,13 @@ export function ExerciseScreen() {
     return () => {
       window.clearTimeout(timer)
       window.speechSynthesis.onvoiceschanged = null
+    }
+  }, [])
+
+  useEffect(() => {
+    return () => {
+      fallbackAudioRef.current?.pause()
+      fallbackAudioRef.current = null
     }
   }, [])
 

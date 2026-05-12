@@ -1,7 +1,7 @@
 'use client'
 
 import { useEffect } from 'react'
-import { ArrowLeft, BarChart3, CheckCircle2, Cloud, CloudOff, LogIn, LogOut, ShieldCheck, UserPlus } from 'lucide-react'
+import { ArrowLeft, BarChart3, CheckCircle2, Cloud, CloudOff, FileText, LogIn, LogOut, ShieldCheck, UserPlus } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
 import { SparrowMascot } from '@/components/sparrow-mascot'
@@ -116,6 +116,20 @@ export function AccountScreen() {
               <p className="mt-1 text-sm font-semibold text-muted-foreground">
                 Telegram sign-in restores your account automatically. The same cloud profile can later be linked to Android, iOS, or email login.
               </p>
+            </div>
+          </div>
+        </Card>
+
+        <Card className="mt-4 rounded-[1.75rem] border-white/70 bg-white/85 p-4 shadow-xl shadow-emerald-950/5">
+          <div className="flex items-start gap-3">
+            <FileText className="mt-1 size-5 text-primary" />
+            <div>
+              <p className="font-black">Legal</p>
+              <p className="mt-1 text-sm font-semibold text-muted-foreground">Review Tilio&apos;s Privacy Policy and Terms of Service.</p>
+              <div className="mt-3 flex gap-2">
+                <a className="rounded-full bg-emerald-50 px-3 py-1.5 text-xs font-black text-primary" href="/privacy" target="_blank" rel="noreferrer">Privacy</a>
+                <a className="rounded-full bg-emerald-50 px-3 py-1.5 text-xs font-black text-primary" href="/terms" target="_blank" rel="noreferrer">Terms</a>
+              </div>
             </div>
           </div>
         </Card>

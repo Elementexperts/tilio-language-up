@@ -247,6 +247,12 @@ export function AuthScreen() {
           </Button>
           {message && <p className="mt-3 rounded-2xl bg-emerald-50 p-3 text-center text-xs font-bold text-emerald-700">{message}</p>}
           {error && <p className="mt-3 rounded-2xl bg-red-50 p-3 text-center text-xs font-bold text-red-700">{error}</p>}
+          <p className="mt-4 text-center text-xs font-semibold leading-5 text-muted-foreground">
+            By continuing, you agree to Tilio&apos;s{' '}
+            <a className="font-black text-primary" href="/terms" target="_blank" rel="noreferrer">Terms</a>
+            {' '}and{' '}
+            <a className="font-black text-primary" href="/privacy" target="_blank" rel="noreferrer">Privacy Policy</a>.
+          </p>
         </Card>
 
         <Card className="mt-4 rounded-[1.75rem] border-emerald-100 bg-emerald-50/70 p-4">

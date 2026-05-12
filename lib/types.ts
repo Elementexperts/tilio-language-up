@@ -175,6 +175,8 @@ export type AppScreen =
   | 'splash'
   | 'onboarding'
   | 'account'
+  | 'auth'
+  | 'tester-stats'
   | 'home'
   | 'lesson'
   | 'exercise'
@@ -210,6 +212,7 @@ export interface CloudAuthSession {
   refreshToken?: string
   expiresAt?: number
   userId: string
+  email?: string
 }
 
 export interface CloudProgressSnapshot {

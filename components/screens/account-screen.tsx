@@ -1,7 +1,7 @@
 'use client'
 
 import { useEffect } from 'react'
-import { ArrowLeft, CheckCircle2, Cloud, CloudOff, LogOut, ShieldCheck } from 'lucide-react'
+import { ArrowLeft, BarChart3, CheckCircle2, Cloud, CloudOff, LogIn, LogOut, ShieldCheck, UserPlus } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
 import { SparrowMascot } from '@/components/sparrow-mascot'
@@ -64,6 +64,31 @@ export function AccountScreen() {
             <p className="text-sm font-black">{user?.firstName ?? 'Learner'}</p>
             <p className="text-xs font-semibold text-muted-foreground">@{user?.username ?? 'tilio_user'}</p>
           </div>
+          {!cloudSession && (
+            <div className="mt-4 grid grid-cols-2 gap-2">
+              <Button
+                className="h-12 rounded-2xl font-black"
+                onClick={() => {
+                  hapticFeedback('medium')
+                  setScreen('auth')
+                }}
+              >
+                <UserPlus className="mr-2 size-4" />
+                Sign up
+              </Button>
+              <Button
+                variant="outline"
+                className="h-12 rounded-2xl border-primary/25 bg-white/80 font-black"
+                onClick={() => {
+                  hapticFeedback('light')
+                  setScreen('auth')
+                }}
+              >
+                <LogIn className="mr-2 size-4" />
+                Log in
+              </Button>
+            </div>
+          )}
         </Card>
 
         <Card className="mt-4 rounded-[1.75rem] border-white/70 bg-white/85 p-4 shadow-xl shadow-emerald-950/5">
@@ -90,6 +115,30 @@ export function AccountScreen() {
                 Telegram sign-in restores your account automatically. The same cloud profile can later be linked to Android, iOS, or email login.
               </p>
             </div>
+          </div>
+        </Card>
+
+        <Card className="mt-4 rounded-[1.75rem] border-white/70 bg-white/85 p-4 shadow-xl shadow-emerald-950/5">
+          <div className="flex items-center justify-between gap-3">
+            <div className="flex items-center gap-3">
+              <div className="flex size-12 items-center justify-center rounded-2xl bg-primary/10 text-primary">
+                <BarChart3 className="size-6" />
+              </div>
+              <div>
+                <p className="font-black">Tester stats</p>
+                <p className="text-sm font-semibold text-muted-foreground">See signups and active testers.</p>
+              </div>
+            </div>
+            <Button
+              variant="outline"
+              className="rounded-2xl"
+              onClick={() => {
+                hapticFeedback('light')
+                setScreen('tester-stats')
+              }}
+            >
+              Open
+            </Button>
           </div>
         </Card>
 

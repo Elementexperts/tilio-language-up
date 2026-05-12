@@ -17,6 +17,8 @@ import { ReferralScreen } from '@/components/screens/referral-screen'
 import { StoreScreen } from '@/components/screens/store-screen'
 import { DailyChestScreen } from '@/components/screens/daily-chest-screen'
 import { AccountScreen } from '@/components/screens/account-screen'
+import { AuthScreen } from '@/components/screens/auth-screen'
+import { TesterStatsScreen } from '@/components/screens/tester-stats-screen'
 import { Feather, Flame, PartyPopper, ShieldCheck, Snowflake, Sparkles, Zap, X } from 'lucide-react'
 import { SparrowMascot } from '@/components/sparrow-mascot'
 import { playAchievementSound, playNavigationSound, playRewardSound, playTapSound, unlockAudio } from '@/lib/sound'
@@ -119,6 +121,10 @@ export default function TilioApp() {
         return <DailyChestScreen />
       case 'account':
         return <AccountScreen />
+      case 'auth':
+        return <AuthScreen />
+      case 'tester-stats':
+        return <TesterStatsScreen />
       default:
         return <SplashScreen />
     }

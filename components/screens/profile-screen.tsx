@@ -23,6 +23,7 @@ import {
   Feather,
   Sparkles,
   Cloud,
+  UserPlus,
 } from 'lucide-react'
 
 export function ProfileScreen() {
@@ -271,6 +272,25 @@ export function ProfileScreen() {
 
         {/* Settings */}
         <Card className="mb-6 overflow-hidden">
+          <button
+            onClick={() => {
+              hapticFeedback('medium')
+              setScreen('auth')
+            }}
+            className="flex w-full items-center justify-between bg-emerald-50/80 p-4 text-left transition-colors hover:bg-emerald-50"
+          >
+            <div className="flex items-center gap-3">
+              <UserPlus className="h-5 w-5 text-primary" />
+              <div>
+                <span className="font-black text-foreground">Sign up or log in</span>
+                <p className="text-xs font-semibold text-muted-foreground">Help us count testers and save your progress.</p>
+              </div>
+            </div>
+            <ChevronRight className="h-5 w-5 text-muted-foreground" />
+          </button>
+
+          <div className="border-t border-border" />
+
           <button
             onClick={handleToggleSound}
             className="w-full flex items-center justify-between p-4 hover:bg-muted/50 transition-colors"

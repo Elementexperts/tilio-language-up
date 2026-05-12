@@ -7,7 +7,7 @@ import { SparrowMascot } from '@/components/sparrow-mascot'
 import { useAppStore } from '@/lib/store'
 import { useTelegram } from '@/hooks/use-telegram'
 import { cn } from '@/lib/utils'
-import { ArrowRight, Check, Cloud, ShieldCheck, Target, Zap } from 'lucide-react'
+import { ArrowRight, Check, Cloud, LogIn, ShieldCheck, Target, UserPlus, Zap } from 'lucide-react'
 import { getLevel, type CourseId, type User } from '@/lib/types'
 import { courseOptions } from '@/lib/data/lessons'
 
@@ -232,6 +232,27 @@ export function OnboardingScreen() {
               Telegram akkauntingiz orqali XP, streak, patlar, darslar va nishonlar bulutda saqlanadi.
             </p>
             <div className="mt-6 grid w-full gap-3">
+              <Button
+                className="tilio-button h-13 rounded-2xl text-base font-black"
+                onClick={() => {
+                  hapticFeedback('medium')
+                  setScreen('auth')
+                }}
+              >
+                <UserPlus className="mr-2 size-5" />
+                Sign up to save progress
+              </Button>
+              <Button
+                variant="outline"
+                className="h-13 rounded-2xl border-primary/25 bg-white/80 text-base font-black"
+                onClick={() => {
+                  hapticFeedback('light')
+                  setScreen('auth')
+                }}
+              >
+                <LogIn className="mr-2 size-5" />
+                Log in
+              </Button>
               <Card className="rounded-[1.35rem] border-emerald-100 bg-white/85 p-4 text-left shadow-sm">
                 <div className="flex items-center gap-3">
                   <ShieldCheck className="size-5 text-primary" />
@@ -405,7 +426,7 @@ export function OnboardingScreen() {
 
       <div className="tilio-container p-6 safe-area-bottom">
         <Button onClick={handleNext} disabled={!canProceed()} className="tilio-button h-14 w-full rounded-2xl text-lg font-black touch-target" size="lg">
-          {step === 'goal' ? 'Boshlaymiz!' : 'Davom etish'}
+          {step === 'goal' ? 'Boshlaymiz!' : step === 'account' ? 'Continue without account' : 'Davom etish'}
           <ArrowRight className="ml-2 h-5 w-5" />
         </Button>
       </div>

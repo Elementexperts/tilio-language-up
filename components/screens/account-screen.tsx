@@ -8,6 +8,7 @@ import { SparrowMascot } from '@/components/sparrow-mascot'
 import { useAppStore } from '@/lib/store'
 import { useTelegram } from '@/hooks/use-telegram'
 import { logoutCloudAccount } from '@/lib/auth'
+import { canViewTesterStats } from '@/lib/admin-access'
 
 export function AccountScreen() {
   const user = useAppStore((state) => state.user)
@@ -18,6 +19,7 @@ export function AccountScreen() {
   const setScreen = useAppStore((state) => state.setScreen)
   const setUser = useAppStore((state) => state.setUser)
   const { hapticFeedback, showBackButton, hideBackButton } = useTelegram()
+  const showTesterStats = canViewTesterStats({ email: cloudSession?.email, userId: cloudSession?.userId })
 
   useEffect(() => {
     showBackButton(() => {
@@ -118,29 +120,31 @@ export function AccountScreen() {
           </div>
         </Card>
 
-        <Card className="mt-4 rounded-[1.75rem] border-white/70 bg-white/85 p-4 shadow-xl shadow-emerald-950/5">
-          <div className="flex items-center justify-between gap-3">
-            <div className="flex items-center gap-3">
-              <div className="flex size-12 items-center justify-center rounded-2xl bg-primary/10 text-primary">
-                <BarChart3 className="size-6" />
+        {showTesterStats && (
+          <Card className="mt-4 rounded-[1.75rem] border-white/70 bg-white/85 p-4 shadow-xl shadow-emerald-950/5">
+            <div className="flex items-center justify-between gap-3">
+              <div className="flex items-center gap-3">
+                <div className="flex size-12 items-center justify-center rounded-2xl bg-primary/10 text-primary">
+                  <BarChart3 className="size-6" />
+                </div>
+                <div>
+                  <p className="font-black">Tester stats</p>
+                  <p className="text-sm font-semibold text-muted-foreground">Developer and analyst access.</p>
+                </div>
               </div>
-              <div>
-                <p className="font-black">Tester stats</p>
-                <p className="text-sm font-semibold text-muted-foreground">See signups and active testers.</p>
-              </div>
+              <Button
+                variant="outline"
+                className="rounded-2xl"
+                onClick={() => {
+                  hapticFeedback('light')
+                  setScreen('tester-stats')
+                }}
+              >
+                Open
+              </Button>
             </div>
-            <Button
-              variant="outline"
-              className="rounded-2xl"
-              onClick={() => {
-                hapticFeedback('light')
-                setScreen('tester-stats')
-              }}
-            >
-              Open
-            </Button>
-          </div>
-        </Card>
+          </Card>
+        )}
 
         <Button onClick={handleLogout} variant="outline" className="mt-6 h-12 w-full rounded-2xl border-red-200 text-red-600">
           <LogOut className="mr-2 size-4" />

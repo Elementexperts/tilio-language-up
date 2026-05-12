@@ -19,7 +19,7 @@ import { DailyChestScreen } from '@/components/screens/daily-chest-screen'
 import { AccountScreen } from '@/components/screens/account-screen'
 import { Feather, Flame, PartyPopper, ShieldCheck, Snowflake, Sparkles, Zap, X } from 'lucide-react'
 import { SparrowMascot } from '@/components/sparrow-mascot'
-import { playAchievementSound, playRewardSound, playTapSound, unlockAudio } from '@/lib/sound'
+import { playAchievementSound, playNavigationSound, playRewardSound, playTapSound, unlockAudio } from '@/lib/sound'
 import { useProgressSync } from '@/hooks/use-progress-sync'
 import { CloudSyncIndicator } from '@/components/cloud-sync-indicator'
 
@@ -84,7 +84,8 @@ export default function TilioApp() {
       const target = event.target as HTMLElement | null
       if (target?.closest('button, a, [role="button"]')) {
         unlockAudio()
-        playTapSound()
+        if (target.closest('nav')) playNavigationSound()
+        else playTapSound()
       }
     }
     window.addEventListener('pointerdown', handleTap, { passive: true })

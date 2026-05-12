@@ -34,28 +34,30 @@ export function unlockAudio() {
   unlock()
 }
 
-function playTone(frequency: number, endFrequency: number, duration: number, type: Wave = 'sine', volume = 0.06) {
+function playTone(frequency: number, endFrequency: number, duration: number, type: Wave = 'sine', volume = 0.06, delay = 0) {
   const ctx = getAudioContext()
   if (!ctx) return
   if (ctx.state === 'suspended') {
     ctx.resume().catch(() => undefined)
   }
 
+  const startAt = ctx.currentTime + delay
   const oscillator = ctx.createOscillator()
   const gain = ctx.createGain()
   oscillator.type = type
-  oscillator.frequency.setValueAtTime(frequency, ctx.currentTime)
-  oscillator.frequency.linearRampToValueAtTime(endFrequency, ctx.currentTime + duration * 0.72)
-  gain.gain.setValueAtTime(volume, ctx.currentTime)
-  gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + duration)
+  oscillator.frequency.setValueAtTime(frequency, startAt)
+  oscillator.frequency.linearRampToValueAtTime(endFrequency, startAt + duration * 0.72)
+  gain.gain.setValueAtTime(volume, startAt)
+  gain.gain.exponentialRampToValueAtTime(0.001, startAt + duration)
   oscillator.connect(gain)
   gain.connect(ctx.destination)
-  oscillator.start()
-  oscillator.stop(ctx.currentTime + duration)
+  oscillator.start(startAt)
+  oscillator.stop(startAt + duration)
 }
 
 export function playRewardSound() {
-  playTone(660, 880, 0.16, 'triangle', 0.08)
+  playTone(660, 880, 0.14, 'triangle', 0.07)
+  playTone(880, 1174, 0.16, 'triangle', 0.055, 0.09)
 }
 
 export function playAnswerSound(correct: boolean) {
@@ -65,15 +67,31 @@ export function playAnswerSound(correct: boolean) {
 export function playChestSound() {
   if (typeof window === 'undefined') return
   playTone(440, 720, 0.14, 'triangle', 0.07)
-  window.setTimeout(() => playTone(720, 980, 0.18, 'triangle', 0.06), 90)
+  playTone(720, 980, 0.18, 'triangle', 0.06, 0.09)
+  playTone(980, 1320, 0.18, 'sine', 0.035, 0.2)
 }
 
 export function playAchievementSound() {
   if (typeof window === 'undefined') return
   playTone(784, 1046, 0.15, 'triangle', 0.07)
-  window.setTimeout(() => playTone(1046, 1318, 0.2, 'triangle', 0.055), 110)
+  playTone(1046, 1318, 0.2, 'triangle', 0.055, 0.11)
+  playTone(1318, 1568, 0.18, 'sine', 0.035, 0.24)
 }
 
 export function playTapSound() {
-  playTone(320, 420, 0.06, 'sine', 0.025)
+  playTone(360, 460, 0.045, 'sine', 0.018)
+}
+
+export function playNavigationSound() {
+  playTone(420, 560, 0.07, 'triangle', 0.026)
+}
+
+export function playSuccessSound() {
+  playTone(523, 784, 0.1, 'triangle', 0.045)
+  playTone(784, 1046, 0.14, 'triangle', 0.036, 0.08)
+}
+
+export function playIntroSound() {
+  playTone(196, 392, 0.28, 'sine', 0.035)
+  playTone(523, 784, 0.22, 'triangle', 0.03, 0.18)
 }

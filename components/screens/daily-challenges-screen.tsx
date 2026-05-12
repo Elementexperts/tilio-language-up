@@ -9,13 +9,15 @@ import { useAppStore } from '@/lib/store'
 import { useTelegram } from '@/hooks/use-telegram'
 import { useHasMounted } from '@/hooks/use-has-mounted'
 import { cn } from '@/lib/utils'
-import { ArrowLeft, Flame, Target, Zap, Calendar, Check, ArrowRight } from 'lucide-react'
+import { playSuccessSound } from '@/lib/sound'
+import { ArrowLeft, Flame, Target, Zap, Calendar, Check, ArrowRight, Snowflake, Trophy } from 'lucide-react'
 
 export function DailyChallengesScreen() {
   const user = useAppStore((state) => state.user)
   const dailyChallenges = useAppStore((state) => state.dailyChallenges)
   const setScreen = useAppStore((state) => state.setScreen)
   const useStreakFreeze = useAppStore((state) => state.useStreakFreeze)
+  const isSoundEnabled = useAppStore((state) => state.isSoundEnabled)
   const { hapticFeedback, showBackButton, hideBackButton } = useTelegram()
   const hasMounted = useHasMounted()
 
@@ -68,6 +70,7 @@ export function DailyChallengesScreen() {
 
   const handleBuyFreeze = () => {
     hapticFeedback('medium')
+    if (isSoundEnabled) playSuccessSound()
     useStreakFreeze()
   }
 
@@ -96,31 +99,33 @@ export function DailyChallengesScreen() {
       {/* Content */}
       <main className="tilio-container flex-1 overflow-y-auto px-4 py-4 pb-24">
         {/* Streak Card */}
-        <Card className="gap-0 rounded-[2rem] p-6 bg-gradient-to-br from-orange-500/10 to-red-500/10 border-orange-500/20 mb-6 shadow-xl shadow-orange-900/8">
-          <div className="flex items-center gap-4 mb-6">
-            <div className="w-16 h-16 rounded-2xl bg-orange-500/20 flex items-center justify-center">
+        <Card className="relative mb-6 gap-0 overflow-hidden rounded-[2rem] border-orange-200/80 bg-gradient-to-br from-emerald-950 via-emerald-900 to-orange-900 p-6 text-white shadow-2xl shadow-orange-900/18">
+          <div className="absolute -right-10 top-2 h-36 w-36 rounded-full bg-orange-400/25 blur-3xl" />
+          <div className="absolute inset-x-0 bottom-0 h-24 bg-gradient-to-t from-orange-400/15 to-transparent" />
+          <div className="relative mb-6 flex items-center gap-4">
+            <div className="flex size-16 items-center justify-center rounded-2xl bg-white/12">
               <Flame className={cn(
-                'w-9 h-9',
-                user.streak > 0 ? 'text-orange-500 animate-streak-flame' : 'text-muted-foreground'
+                'size-9',
+                user.streak > 0 ? 'animate-streak-flame text-orange-300' : 'text-white/50'
               )} />
             </div>
             <div>
-              <p className="text-sm text-muted-foreground">Current Streak</p>
-              <p className="text-4xl font-black text-foreground">{user.streak} days</p>
+              <p className="text-sm font-bold text-lime-100/75">Current Streak</p>
+              <p className="text-5xl font-black leading-none">{user.streak} days</p>
+              <p className="mt-2 text-sm font-bold text-orange-100">Zo'r ish. Keep the flame alive.</p>
             </div>
           </div>
 
-          {/* Weekly Calendar */}
-          <div className="flex justify-between">
+          <div className="relative flex justify-between">
             {streakDays.map((day) => (
               <div key={day.dateStr} className="flex flex-col items-center gap-2">
-                <span className="text-xs text-muted-foreground">{day.dayName}</span>
+                <span className="text-xs font-bold text-white/65">{day.dayName}</span>
                 <div
                   className={cn(
-                    'w-10 h-10 rounded-full flex items-center justify-center transition-all',
-                    day.isActive && 'bg-orange-500 text-white',
-                    day.isToday && !day.isActive && 'border-2 border-orange-500 bg-orange-500/10',
-                    !day.isActive && !day.isToday && 'bg-muted'
+                    'flex size-10 items-center justify-center rounded-full transition-all',
+                    day.isActive && 'bg-orange-400 text-white shadow-lg shadow-orange-400/25',
+                    day.isToday && !day.isActive && 'border-2 border-orange-300 bg-white/10',
+                    !day.isActive && !day.isToday && 'bg-white/10 text-white/55'
                   )}
                 >
                   {day.isActive ? (
@@ -134,44 +139,38 @@ export function DailyChallengesScreen() {
               </div>
             ))}
           </div>
-
-          <p className="text-sm text-muted-foreground text-center mt-4">
-            {user.streak > 0
-              ? `Keep it up! Complete a lesson today to extend your streak.`
-              : `Start a lesson today to begin your streak!`
-            }
-          </p>
         </Card>
 
-        {/* Streak milestones + freeze */}
-        <Card className="tilio-card rounded-[1.75rem] p-4 mb-6 border-orange-500/20">
-          <h3 className="font-black text-foreground mb-3">Streak Milestones</h3>
-          <div className="grid grid-cols-3 gap-2 mb-4">
-            {[3, 7, 30].map((milestone) => {
+        <Card className="premium-card mb-6 rounded-[1.75rem] p-4">
+          <h3 className="mb-3 font-black text-foreground">Streak Milestones</h3>
+          <div className="grid grid-cols-4 gap-2 mb-4">
+            {[3, 7, 14, 30].map((milestone) => {
               const reached = user.streak >= milestone
               return (
                 <div
                   key={milestone}
                   className={cn(
                     'rounded-2xl border p-3 text-center',
-                    reached ? 'border-primary bg-primary/10' : 'border-border bg-muted/40'
+                    reached ? 'border-orange-200 bg-orange-50 text-orange-700' : 'border-border bg-muted/40'
                   )}
                 >
-                  <p className="text-xs text-muted-foreground">{milestone} days</p>
-                  <p className={cn('text-sm font-semibold', reached ? 'text-primary' : 'text-foreground')}>
-                    {reached ? 'Unlocked' : 'In progress'}
-                  </p>
+                  {reached ? <Trophy className="mx-auto mb-1 size-5" /> : <Flame className="mx-auto mb-1 size-5 opacity-55" />}
+                  <p className="text-xs font-black">{milestone} days</p>
+                  <p className="text-[10px] font-bold text-muted-foreground">{reached ? 'Unlocked' : 'Soon'}</p>
                 </div>
               )
             })}
           </div>
-          <div className="rounded-xl bg-muted/40 p-3 flex items-center justify-between gap-3">
+          <div className="flex items-center justify-between gap-3 rounded-2xl border border-sky-200 bg-sky-50/85 p-3">
+            <div className="flex size-12 shrink-0 items-center justify-center rounded-2xl bg-sky-100 text-sky-700">
+              <Snowflake className="size-7" />
+            </div>
             <div>
-              <p className="text-sm font-medium">Streak Freeze</p>
+              <p className="text-sm font-black">Streak Freeze</p>
               <p className="text-xs text-muted-foreground">
                 Use 50 Feathers to protect your streak when you miss a day.
               </p>
-              <p className="text-xs text-orange-600 mt-1">Owned: {user.streakFreezes}/2</p>
+              <p className="text-xs text-sky-700 mt-1 font-black">Owned: {user.streakFreezes}/2</p>
             </div>
             <Button
               variant="outline"

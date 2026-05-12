@@ -11,7 +11,7 @@ import { useHasMounted } from '@/hooks/use-has-mounted'
 import { getCourseOption, getLessonsForCourse, getNextLesson } from '@/lib/data/lessons'
 import { getXpProgress, getXpToNextLevel } from '@/lib/types'
 import { cn } from '@/lib/utils'
-import { BookOpen, ChevronRight, Flame, Feather, Gift, Home, Medal, Play, ShoppingBag, Sparkles, Target, Trophy, UserRound, Users, Zap } from 'lucide-react'
+import { ArrowRight, BookOpen, ChevronRight, Flame, Feather, Gift, Headphones, Home, Medal, MessageCircle, Play, ShoppingBag, Sparkles, Target, Trophy, UserRound, Users, Zap } from 'lucide-react'
 
 export function HomeScreen() {
   const user = useAppStore((state) => state.user)
@@ -87,9 +87,18 @@ export function HomeScreen() {
       </header>
 
       <main className="tilio-container flex-1 overflow-y-auto px-4 pb-28 pt-4">
-        <section className="relative overflow-hidden rounded-[2rem] bg-gradient-to-br from-[#fffbea] via-[#f3fbde] to-[#d9f4bd] p-5 shadow-2xl shadow-emerald-900/10">
-          <div className="absolute -right-12 top-0 h-40 w-40 rounded-full bg-primary/15" />
-          <div className="absolute bottom-0 left-0 h-20 w-full bg-[linear-gradient(135deg,transparent_0_40%,rgba(34,197,94,0.12)_40%_52%,transparent_52%)] bg-[length:42px_42px]" />
+        <section className="premium-hero relative overflow-hidden rounded-[2rem] p-5 shadow-2xl shadow-emerald-900/12">
+          <div className="absolute inset-x-0 top-0 h-28 bg-gradient-to-b from-white/70 to-transparent" />
+          <div className="absolute -right-10 top-8 h-44 w-44 rounded-full bg-lime-200/30 blur-3xl" />
+          <div className="relative z-10 mb-5 flex items-center justify-center">
+            <div className="inline-flex items-center gap-2 rounded-full border border-white/60 bg-white/70 px-4 py-2 shadow-lg shadow-emerald-950/5 backdrop-blur-xl">
+              <SparrowMascot branded size="sm" mood="waving" className="size-10 rounded-xl shadow-none" />
+              <div>
+                <p className="text-3xl font-black leading-none text-emerald-900">Tilio</p>
+                <p className="text-[10px] font-extrabold uppercase tracking-[0.18em] text-emerald-700/75">Har kuni o's</p>
+              </div>
+            </div>
+          </div>
           <div className="relative z-10 flex items-center gap-4">
             <div className="min-w-0 flex-1">
               <div className="mb-3 inline-flex items-center gap-1.5 rounded-full bg-white/75 px-3 py-1 text-xs font-extrabold text-emerald-800 shadow-sm">
@@ -101,7 +110,7 @@ export function HomeScreen() {
               </h1>
               <p className="mt-3 text-sm font-medium leading-5 text-emerald-900/75">{motivationalMessage}</p>
             </div>
-            <SparrowMascot branded size="lg" mood="waving" className="shrink-0" />
+            <SparrowMascot branded size="lg" mood="waving" className="shrink-0 rounded-[1.6rem]" />
           </div>
           {nextLesson && (
             <Button
@@ -173,7 +182,7 @@ export function HomeScreen() {
 
         {activeChallenge && (
           <button
-            className="tilio-pressed mt-4 w-full rounded-[1.75rem] border border-primary/20 bg-white/80 p-4 text-left shadow-xl shadow-emerald-950/5"
+            className="premium-card tilio-pressed mt-4 w-full rounded-[1.75rem] p-4 text-left"
             onClick={() => {
               hapticFeedback('light')
               setScreen('daily-challenges')
@@ -199,7 +208,7 @@ export function HomeScreen() {
         )}
 
         {nextLesson && (
-          <section className="tilio-card mt-4 rounded-[1.75rem] p-4">
+          <section className="premium-card mt-4 rounded-[1.75rem] p-4">
             <div className="flex items-center gap-3">
               <SparrowMascot size="sm" mood="happy" branded />
               <div className="min-w-0 flex-1">
@@ -207,9 +216,18 @@ export function HomeScreen() {
                 <h2 className="truncate text-lg font-black">{nextLesson.title}</h2>
                 <p className="text-sm font-medium text-muted-foreground">{nextLesson.description}</p>
               </div>
+              <div className="flex size-12 shrink-0 items-center justify-center rounded-full bg-primary text-white shadow-lg shadow-primary/25">
+                <ArrowRight className="size-6" />
+              </div>
             </div>
           </section>
         )}
+
+        <section className="mt-4 grid grid-cols-3 gap-3 rounded-[1.6rem] border border-white/60 bg-emerald-950/90 p-3 text-white shadow-2xl shadow-emerald-950/18">
+          <QuickMode icon={<BookOpen className="size-6" />} label="So'zlar" />
+          <QuickMode icon={<Headphones className="size-6" />} label="Tingla" />
+          <QuickMode icon={<MessageCircle className="size-6" />} label="So'zla" />
+        </section>
 
         <section className="tilio-card mt-4 rounded-[1.75rem] p-4">
           <div className="mb-3 flex items-center justify-between">
@@ -234,7 +252,7 @@ export function HomeScreen() {
 
       <nav className="fixed inset-x-0 bottom-0 z-30 safe-area-bottom">
         <div className="tilio-container px-4 pb-3">
-          <div className="grid grid-cols-5 gap-1 rounded-[1.7rem] border border-white/70 bg-white/85 p-2 shadow-2xl shadow-emerald-950/12 backdrop-blur-xl">
+          <div className="grid grid-cols-5 gap-1 rounded-[1.7rem] border border-white/20 bg-emerald-950/92 p-2 text-white shadow-2xl shadow-emerald-950/25 backdrop-blur-xl">
             <NavButton icon={<Home className="size-5" />} label="Learn" active onClick={() => hapticFeedback('light')} />
             <NavButton icon={<Trophy className="size-5" />} label="Badges" onClick={() => setScreen('achievements')} />
             <NavButton icon={<Users className="size-5" />} label="Invite" onClick={() => setScreen('referral')} />
@@ -274,13 +292,24 @@ function MetricCard({ label, value, icon, tone = 'green' }: { label: string; val
   )
 }
 
+function QuickMode({ icon, label }: { icon: React.ReactNode; label: string }) {
+  return (
+    <button className="tilio-pressed flex flex-col items-center gap-2 rounded-[1.25rem] bg-white/8 px-2 py-3 text-xs font-black text-lime-50">
+      <span className="flex size-12 items-center justify-center rounded-full bg-gradient-to-br from-lime-300 to-emerald-500 text-emerald-950 shadow-lg shadow-lime-400/15">
+        {icon}
+      </span>
+      <span className="truncate">{label}</span>
+    </button>
+  )
+}
+
 function NavButton({ icon, label, active, onClick }: { icon: React.ReactNode; label: string; active?: boolean; onClick: () => void }) {
   return (
     <button
       onClick={onClick}
       className={cn(
         'tilio-pressed flex min-w-0 flex-col items-center gap-1 rounded-[1.2rem] px-1.5 py-2 text-[11px] font-black transition-colors',
-        active ? 'bg-primary text-primary-foreground shadow-lg shadow-primary/20' : 'text-muted-foreground hover:bg-primary/5 hover:text-foreground',
+        active ? 'bg-primary text-primary-foreground shadow-lg shadow-lime-300/20' : 'text-white/72 hover:bg-white/8 hover:text-white',
       )}
     >
       {icon}

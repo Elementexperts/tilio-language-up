@@ -237,6 +237,12 @@ body {
   60% { transform: translateX(-50%) rotate(2deg) translateY(1px); }
 }
 
+@keyframes loading-sweep {
+  0% { transform: translateX(-82%); opacity: 0.45; }
+  45% { opacity: 1; }
+  100% { transform: translateX(155%); opacity: 0.55; }
+}
+
 .animate-bounce-in {
   animation: bounce-in 0.5s cubic-bezier(0.68, -0.55, 0.265, 1.55);
 }
@@ -424,6 +430,23 @@ html[data-wallpaper="wallpaper-cotton-sky"] .tilio-shell::before {
   border: 1px solid oklch(0.9 0.035 122 / 0.85);
   background: linear-gradient(180deg, oklch(1 0.006 105 / 0.94), oklch(0.985 0.018 108 / 0.9));
   box-shadow: 0 18px 45px oklch(0.42 0.08 145 / 0.12);
+}
+
+.premium-card {
+  border: 1px solid rgb(255 255 255 / 0.72);
+  background:
+    linear-gradient(135deg, rgb(255 255 255 / 0.92), rgb(247 255 235 / 0.78)),
+    radial-gradient(circle at 92% 12%, rgb(255 230 150 / 0.28), transparent 9rem);
+  box-shadow: 0 22px 52px oklch(0.36 0.08 145 / 0.13), inset 0 1px 0 rgb(255 255 255 / 0.84);
+  backdrop-filter: blur(18px);
+}
+
+.premium-hero {
+  border: 1px solid rgb(255 255 255 / 0.76);
+  background:
+    linear-gradient(180deg, rgb(255 255 255 / 0.36), rgb(255 255 255 / 0.1)),
+    url("/wallpapers/orchard-garden.png") center / cover no-repeat,
+    linear-gradient(135deg, oklch(0.99 0.03 106), oklch(0.9 0.08 136));
 }
 
 .tilio-button {

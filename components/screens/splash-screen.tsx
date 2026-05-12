@@ -4,14 +4,17 @@ import { useEffect } from 'react'
 import { SparrowMascot } from '@/components/sparrow-mascot'
 import { useAppStore } from '@/lib/store'
 import { useTelegram } from '@/hooks/use-telegram'
+import { playIntroSound } from '@/lib/sound'
 
 export function SplashScreen() {
   const { setScreen } = useAppStore()
   const { isReady, user: telegramUser } = useTelegram()
   const storedUser = useAppStore((state) => state.user)
+  const isSoundEnabled = useAppStore((state) => state.isSoundEnabled)
 
   useEffect(() => {
     if (!isReady) return
+    if (isSoundEnabled) playIntroSound()
 
     const timer = setTimeout(() => {
       if (storedUser) {
@@ -24,34 +27,47 @@ export function SplashScreen() {
     }, 2000)
 
     return () => clearTimeout(timer)
-  }, [isReady, storedUser, setScreen])
+  }, [isReady, isSoundEnabled, storedUser, setScreen])
 
   return (
-    <div className="flex flex-col items-center justify-center min-h-screen bg-primary px-6">
-      {/* Logo and Mascot */}
-      <div className="flex flex-col items-center gap-6 animate-bounce-in">
-        <SparrowMascot size="xl" mood="happy" branded />
-        
-        <div className="text-center">
-          <h1 className="text-5xl font-bold text-primary-foreground tracking-tight">
-            Tilio
-          </h1>
-          <p className="text-primary-foreground/80 text-lg mt-2">
-            Learn Uzbek & English
-          </p>
+    <div className="relative flex min-h-screen items-center justify-center overflow-hidden bg-emerald-950 px-6 text-white">
+      <video
+        className="absolute inset-0 h-full w-full object-cover opacity-72"
+        src="/videos/tilio-opening.mp4"
+        autoPlay
+        muted
+        loop
+        playsInline
+        preload="auto"
+        aria-hidden="true"
+      />
+      <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_12%,rgba(255,255,220,0.26),transparent_34%),linear-gradient(180deg,rgba(3,36,24,0.28),rgba(3,24,18,0.72))]" />
+      <div className="absolute inset-x-0 bottom-0 h-1/2 bg-gradient-to-t from-emerald-950 via-emerald-950/55 to-transparent" />
+
+      <div className="relative z-10 flex w-full max-w-sm flex-col items-center text-center">
+        <div className="mb-7 flex items-center gap-3 rounded-full border border-white/25 bg-white/14 px-4 py-2 shadow-2xl shadow-emerald-950/25 backdrop-blur-xl">
+          <SparrowMascot size="sm" mood="happy" branded className="rounded-2xl shadow-none" />
+          <div className="text-left">
+            <p className="text-3xl font-black leading-none tracking-normal">Tilio</p>
+            <p className="mt-1 text-xs font-bold uppercase tracking-[0.18em] text-lime-100/85">O'rgan. Mashq qil. So'zla.</p>
+          </div>
+        </div>
+
+        <div className="w-full rounded-[2rem] border border-white/20 bg-white/12 p-5 text-left shadow-2xl shadow-emerald-950/30 backdrop-blur-2xl">
+          <p className="text-xs font-extrabold uppercase tracking-[0.2em] text-lime-100/85">Preparing your lesson path</p>
+          <h1 className="mt-2 text-4xl font-black leading-[0.98] tracking-normal">Premium language journey</h1>
+          <div className="mt-5 h-2 overflow-hidden rounded-full bg-white/18">
+            <div className="h-full w-2/3 animate-[loading-sweep_1.7s_ease-in-out_infinite] rounded-full bg-gradient-to-r from-lime-200 via-white to-emerald-300" />
+          </div>
+          <div className="mt-4 flex items-center justify-between text-xs font-bold text-white/72">
+            <span>Loading Tilio</span>
+            <span>Almost ready</span>
+          </div>
         </div>
       </div>
 
-      {/* Loading indicator */}
-      <div className="mt-12 flex items-center gap-2">
-        <div className="w-2 h-2 bg-primary-foreground/60 rounded-full animate-bounce" style={{ animationDelay: '0ms' }} />
-        <div className="w-2 h-2 bg-primary-foreground/60 rounded-full animate-bounce" style={{ animationDelay: '150ms' }} />
-        <div className="w-2 h-2 bg-primary-foreground/60 rounded-full animate-bounce" style={{ animationDelay: '300ms' }} />
-      </div>
-
-      {/* Welcome message for Telegram users */}
       {telegramUser && (
-        <p className="absolute bottom-8 text-primary-foreground/70 text-sm">
+        <p className="absolute bottom-8 z-10 rounded-full bg-white/12 px-4 py-2 text-sm font-semibold text-white/78 backdrop-blur-xl">
           Welcome, {telegramUser.first_name}!
         </p>
       )}

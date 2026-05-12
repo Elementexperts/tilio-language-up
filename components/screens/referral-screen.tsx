@@ -7,7 +7,8 @@ import { SparrowMascot } from '@/components/sparrow-mascot'
 import { useAppStore } from '@/lib/store'
 import { useTelegram } from '@/hooks/use-telegram'
 import { cn } from '@/lib/utils'
-import { ArrowLeft, Check, Copy, Feather, Gift, Share2, Star, Users, Zap } from 'lucide-react'
+import { playSuccessSound } from '@/lib/sound'
+import { ArrowLeft, Check, Copy, Crown, Feather, Gift, Lock, MessageCircle, Send, Share2, Star, Users, Zap } from 'lucide-react'
 
 const referralRewards = [
   { friends: 1, xp: 50, feathers: 35, title: 'First friend', note: 'A warm start for your learning circle.' },
@@ -22,6 +23,7 @@ export function ReferralScreen() {
   const setScreen = useAppStore((state) => state.setScreen)
   const claimReferralReward = useAppStore((state) => state.claimReferralReward)
   const claimReferralMilestone = useAppStore((state) => state.claimReferralMilestone)
+  const isSoundEnabled = useAppStore((state) => state.isSoundEnabled)
   const { hapticFeedback, showBackButton, hideBackButton, shareReferral, isTelegramEnv } = useTelegram()
   const [copied, setCopied] = useState(false)
 
@@ -45,6 +47,7 @@ export function ReferralScreen() {
     hapticFeedback('light')
     try {
       await navigator.clipboard.writeText(referralLink)
+      if (isSoundEnabled) playSuccessSound()
       setCopied(true)
       setTimeout(() => setCopied(false), 2000)
     } catch {
@@ -54,6 +57,7 @@ export function ReferralScreen() {
 
   const handleShare = () => {
     hapticFeedback('medium')
+    if (isSoundEnabled) playSuccessSound()
     shareReferral(referralCode)
   }
 
@@ -78,12 +82,16 @@ export function ReferralScreen() {
       </header>
 
       <main className="tilio-container flex-1 overflow-y-auto px-4 py-4 pb-24">
-        <div className="mb-8 text-center">
-          <SparrowMascot size="xl" mood="celebrating" branded className="mx-auto mb-4" />
-          <h2 className="mb-2 text-3xl font-black text-foreground">Grow Your Study Circle</h2>
-          <p className="mx-auto max-w-xs text-muted-foreground">
-            Invite friends, unlock milestone rewards, and turn feathers into useful study boosts.
-          </p>
+        <div className="premium-card relative mb-5 overflow-hidden rounded-[2rem] p-5">
+          <div className="absolute -right-6 -top-8 text-8xl opacity-15">🎁</div>
+          <div className="relative flex items-center gap-4">
+            <SparrowMascot size="lg" mood="celebrating" branded className="shrink-0 rounded-[1.5rem]" />
+            <div className="min-w-0">
+              <p className="text-xs font-extrabold uppercase tracking-[0.18em] text-primary">Referral Campaign</p>
+              <h2 className="mt-1 text-3xl font-black leading-[1] text-emerald-950">Birga o'saylik, birga yutaylik</h2>
+              <p className="mt-2 text-sm font-semibold text-muted-foreground">Invite friends and unlock feathers, XP, streak protection, and badge rewards.</p>
+            </div>
+          </div>
         </div>
 
         <Card className="tilio-card mb-6 rounded-[1.75rem] border-primary/20 bg-primary/5 p-5">
@@ -118,16 +126,37 @@ export function ReferralScreen() {
           </Card>
         )}
 
-        <Card className="tilio-card mb-6 rounded-[1.75rem] p-4">
-          <p className="mb-3 text-sm font-medium text-foreground">Your Referral Link</p>
+        <Card className="mb-6 gap-0 rounded-[1.75rem] border-emerald-900/20 bg-gradient-to-br from-emerald-950 to-emerald-800 p-4 text-white shadow-2xl shadow-emerald-950/18">
+          <p className="mb-3 text-sm font-black text-lime-100">Your referral link</p>
           <div className="flex items-center gap-2">
-            <div className="flex-1 overflow-hidden rounded-xl bg-muted p-3">
-              <p className="truncate text-sm text-muted-foreground">{referralLink}</p>
+            <div className="flex-1 overflow-hidden rounded-xl border border-white/10 bg-white/10 p-3">
+              <p className="truncate text-sm font-semibold text-white/86">{referralLink}</p>
             </div>
-            <Button onClick={handleCopy} variant="outline" size="icon" className="h-12 w-12 shrink-0 rounded-xl">
+            <Button onClick={handleCopy} variant="outline" size="icon" className="h-12 w-12 shrink-0 rounded-xl border-white/20 bg-white/12 text-white hover:bg-white/20">
               {copied ? <Check className="size-5 text-primary" /> : <Copy className="size-5" />}
             </Button>
           </div>
+          <Button onClick={handleShare} className="tilio-button mt-4 h-13 w-full rounded-2xl text-base font-black">
+            <Send className="mr-2 size-5" />
+            Telegram orqali ulashish
+          </Button>
+        </Card>
+
+        <Card className="premium-card mb-6 gap-0 rounded-[1.75rem] p-4">
+          <div className="mb-4 flex items-center gap-2">
+            <MessageCircle className="size-5 text-primary" />
+            <h3 className="font-black">Qanday ishlaydi?</h3>
+          </div>
+          {[
+            ['1', 'Share your referral code or invite link.'],
+            ['2', 'Your friend joins Tilio and starts learning.'],
+            ['3', 'Both of you receive milestone rewards.'],
+          ].map(([step, text]) => (
+            <div key={step} className="mb-2 flex items-center gap-3 rounded-2xl border border-emerald-100 bg-white/70 px-3 py-3 last:mb-0">
+              <span className="flex size-8 shrink-0 items-center justify-center rounded-full bg-primary text-sm font-black text-white">{step}</span>
+              <p className="text-sm font-bold text-emerald-950">{text}</p>
+            </div>
+          ))}
         </Card>
 
         <div className="mb-6">
@@ -153,7 +182,7 @@ export function ReferralScreen() {
                 >
                   <div className="flex items-center gap-4">
                     <div className={cn('flex size-12 items-center justify-center rounded-xl', unlocked ? 'bg-primary/20' : 'bg-muted')}>
-                      <Gift className={cn('size-6', unlocked ? 'text-primary' : 'text-muted-foreground')} />
+                      {reward.friends >= 20 ? <Crown className={cn('size-6', unlocked ? 'text-accent' : 'text-muted-foreground')} /> : <Gift className={cn('size-6', unlocked ? 'text-primary' : 'text-muted-foreground')} />}
                     </div>
                     <div className="min-w-0 flex-1">
                       <p className={cn('font-black', unlocked ? 'text-foreground' : 'text-muted-foreground')}>{reward.title}</p>
@@ -175,13 +204,14 @@ export function ReferralScreen() {
                         className="rounded-xl font-black"
                         onClick={() => {
                           hapticFeedback('success')
+                          if (isSoundEnabled) playSuccessSound()
                           claimReferralMilestone(reward.friends, reward.xp, reward.feathers)
                         }}
                       >
                         Claim
                       </Button>
                     ) : (
-                      <p className="text-right text-xs text-muted-foreground">{reward.friends - user.referralCount} more</p>
+                      <Lock className="size-5 text-muted-foreground" />
                     )}
                   </div>
                 </Card>
@@ -200,6 +230,7 @@ export function ReferralScreen() {
             className="mt-3 rounded-xl"
             onClick={() => {
               hapticFeedback('success')
+              if (isSoundEnabled) playSuccessSound()
               claimReferralReward(1)
             }}
           >

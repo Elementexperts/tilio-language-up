@@ -24,6 +24,52 @@ import { SparrowMascot } from '@/components/sparrow-mascot'
 import { playAchievementSound, playNavigationSound, playRewardSound, playTapSound, unlockAudio } from '@/lib/sound'
 import { useProgressSync } from '@/hooks/use-progress-sync'
 import { CloudSyncIndicator } from '@/components/cloud-sync-indicator'
+import { completeOAuthSignInFromUrl } from '@/lib/auth'
+import { getLevel, type User } from '@/lib/types'
+
+function createOAuthUser(updates: Partial<User>): User {
+  const today = new Date().toISOString().split('T')[0]
+  const firstName = updates.firstName ?? 'Tester'
+
+  return {
+    id: updates.cloudUserId ?? `user_${Date.now()}`,
+    username: updates.username ?? 'tester',
+    firstName,
+    lastName: updates.lastName,
+    photoUrl: updates.photoUrl,
+    telegramId: updates.telegramId,
+    cloudUserId: updates.cloudUserId,
+    avatarStyle: 'boy',
+    learningPath: 'uz-en',
+    selectedCourse: 'uz-en',
+    level: 'beginner',
+    dailyGoal: 10,
+    xp: 0,
+    feathers: 50,
+    streak: 0,
+    maxStreak: 0,
+    streakFreezes: 0,
+    lastActiveDate: today,
+    completedLessons: [],
+    achievements: [],
+    courseProgress: {
+      'uz-en': { completedLessons: [], achievements: [] },
+      'uz-ko': { completedLessons: [], achievements: [] },
+    },
+    referralCount: 0,
+    claimedReferralMilestones: [],
+    joinedAt: new Date().toISOString(),
+    lastChestClaim: null,
+    userLevel: getLevel(0),
+    equippedTheme: 'classic-green',
+    equippedFrame: 'default',
+    purchasedItems: [],
+    xpMultiplier: 1,
+    xpMultiplierExpiresAt: null,
+    wordReviews: {},
+    lastSyncedAt: null,
+  }
+}
 
 export default function TilioApp() {
   useProgressSync()
@@ -43,6 +89,11 @@ export default function TilioApp() {
   const newLevel = useAppStore((state) => state.newLevel)
   const closeLevelUpModal = useAppStore((state) => state.closeLevelUpModal)
   const isSoundEnabled = useAppStore((state) => state.isSoundEnabled)
+  const setCloudSession = useAppStore((state) => state.setCloudSession)
+  const setSyncStatus = useAppStore((state) => state.setSyncStatus)
+  const updateUser = useAppStore((state) => state.updateUser)
+  const setUser = useAppStore((state) => state.setUser)
+  const setScreen = useAppStore((state) => state.setScreen)
   const previousPopupCountRef = useRef(0)
   const previousAchievementCountRef = useRef(0)
 
@@ -79,6 +130,33 @@ export default function TilioApp() {
   useEffect(() => {
     document.documentElement.dataset.wallpaper = equippedTheme
   }, [equippedTheme])
+
+  useEffect(() => {
+    if (typeof window === 'undefined' || !window.location.hash.includes('access_token=')) return
+
+    let cancelled = false
+    setSyncStatus('loading')
+    completeOAuthSignInFromUrl()
+      .then((result) => {
+        if (cancelled || !result) return
+        setCloudSession(result.session)
+        if (useAppStore.getState().user) {
+          updateUser({ ...result.user, id: result.user.cloudUserId ?? useAppStore.getState().user?.id })
+          setScreen('account')
+        } else {
+          setUser(createOAuthUser(result.user))
+          setScreen('home')
+        }
+      })
+      .catch((error) => {
+        if (cancelled) return
+        setSyncStatus('error', error instanceof Error ? error.message : 'Google sign-in failed')
+      })
+
+    return () => {
+      cancelled = true
+    }
+  }, [setCloudSession, setScreen, setSyncStatus, setUser, updateUser])
 
   useEffect(() => {
     if (!isSoundEnabled) return

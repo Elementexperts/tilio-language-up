@@ -9,7 +9,7 @@ import { SparrowMascot } from '@/components/sparrow-mascot'
 import { useAppStore } from '@/lib/store'
 import { useTelegram } from '@/hooks/use-telegram'
 import { cn } from '@/lib/utils'
-import { signInWithEmail, signUpWithEmail } from '@/lib/auth'
+import { getGoogleSignInUrl, signInWithEmail, signUpWithEmail } from '@/lib/auth'
 import { getLevel, type User } from '@/lib/types'
 
 type AuthMode = 'signup' | 'login'
@@ -115,6 +115,12 @@ export function AuthScreen() {
     }
   }
 
+  const handleGoogleSignIn = () => {
+    hapticFeedback('medium')
+    setError(null)
+    window.location.href = getGoogleSignInUrl(window.location.origin)
+  }
+
   return (
     <div className="tilio-shell flex flex-col">
       <header className="sticky top-0 z-10 safe-area-top">
@@ -181,6 +187,21 @@ export function AuthScreen() {
         </Card>
 
         <Card className="mt-4 rounded-[1.75rem] border-white/70 bg-white/90 p-4 shadow-xl shadow-emerald-950/5">
+          <Button
+            variant="outline"
+            className="mb-4 h-13 w-full rounded-2xl border-emerald-100 bg-white text-base font-black shadow-sm"
+            onClick={handleGoogleSignIn}
+          >
+            <span className="mr-2 flex size-6 items-center justify-center rounded-full bg-white text-base">G</span>
+            Continue with Google
+          </Button>
+
+          <div className="mb-4 flex items-center gap-3 text-xs font-black uppercase tracking-[0.14em] text-muted-foreground">
+            <span className="h-px flex-1 bg-border" />
+            Email
+            <span className="h-px flex-1 bg-border" />
+          </div>
+
           <div className="space-y-3">
             {isSignup && (
               <label className="block">

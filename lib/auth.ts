@@ -1,5 +1,5 @@
 import type { CloudAuthSession, User } from '@/lib/types'
-import { isSupabaseConfigured, supabaseFetch } from '@/lib/supabase'
+import { getSupabaseConfig, isSupabaseConfigured, supabaseFetch } from '@/lib/supabase'
 
 export interface TelegramAuthResult {
   session: CloudAuthSession
@@ -92,6 +92,13 @@ type SupabaseEmailAuthResponse = {
   refresh_token?: string
   expires_at?: number
   expires_in?: number
+  id?: string
+  email?: string
+  user_metadata?: {
+    name?: string
+    first_name?: string
+    full_name?: string
+  }
   user?: {
     id: string
     email?: string
@@ -118,7 +125,7 @@ function buildEmailSession(result: SupabaseEmailAuthResponse) {
     (result.expires_in ?? result.session?.expires_in
       ? Math.floor(Date.now() / 1000) + (result.expires_in ?? result.session?.expires_in ?? 0)
       : undefined)
-  const userId = result.user?.id
+  const userId = result.user?.id ?? result.id
 
   if (!token || !userId) {
     throw new Error('Email confirmation may be required before login.')
@@ -129,7 +136,7 @@ function buildEmailSession(result: SupabaseEmailAuthResponse) {
     refreshToken,
     expiresAt,
     userId,
-    email: result.user?.email,
+    email: result.user?.email ?? result.email,
   }
 
   cacheCloudSession(session)
@@ -159,6 +166,16 @@ async function upsertEmailProfile(session: CloudAuthSession, params: { email: st
     username: emailName,
     firstName: displayName,
   } satisfies Partial<User>
+}
+
+function buildAuthUser(result: SupabaseEmailAuthResponse, fallbackEmail: string) {
+  const metadata = result.user?.user_metadata ?? result.user_metadata
+  const email = result.user?.email ?? result.email ?? fallbackEmail
+
+  return {
+    email,
+    name: metadata?.name ?? metadata?.first_name ?? metadata?.full_name ?? email.split('@')[0],
+  }
 }
 
 export async function signUpWithEmail(params: { email: string; password: string; name: string }): Promise<EmailAuthResult> {
@@ -194,7 +211,54 @@ export async function signInWithEmail(params: { email: string; password: string 
   })
 
   const session = buildEmailSession(result)
-  const user = await upsertEmailProfile(session, { email: params.email, name: result.user?.user_metadata?.name ?? result.user?.user_metadata?.first_name })
+  const profile = buildAuthUser(result, params.email)
+  const user = await upsertEmailProfile(session, { email: profile.email, name: profile.name })
+
+  return { session, user }
+}
+
+export function getGoogleSignInUrl(redirectTo?: string) {
+  const { url } = getSupabaseConfig()
+  const callbackUrl = redirectTo ?? (typeof window !== 'undefined' ? window.location.origin : '')
+  const params = new URLSearchParams({
+    provider: 'google',
+    redirect_to: callbackUrl,
+  })
+
+  return `${url}/auth/v1/authorize?${params.toString()}`
+}
+
+export async function completeOAuthSignInFromUrl(): Promise<EmailAuthResult | null> {
+  if (typeof window === 'undefined' || !isSupabaseConfigured) return null
+
+  const hash = new URLSearchParams(window.location.hash.replace(/^#/, ''))
+  const query = new URLSearchParams(window.location.search)
+  const accessToken = hash.get('access_token')
+  const refreshToken = hash.get('refresh_token') ?? undefined
+  const expiresIn = Number(hash.get('expires_in') ?? 0)
+
+  if (!accessToken) return null
+
+  const result = await supabaseFetch<SupabaseEmailAuthResponse>('/auth/v1/user', {
+    method: 'GET',
+    accessToken,
+  })
+
+  const session: CloudAuthSession = {
+    accessToken,
+    refreshToken,
+    expiresAt: expiresIn ? Math.floor(Date.now() / 1000) + expiresIn : undefined,
+    userId: result.user?.id ?? result.id ?? '',
+    email: result.user?.email ?? result.email,
+  }
+
+  if (!session.userId || !session.email) throw new Error('Google sign-in did not return a user profile.')
+
+  cacheCloudSession(session)
+  const profile = buildAuthUser(result, session.email)
+  const user = await upsertEmailProfile(session, { email: profile.email, name: profile.name })
+
+  window.history.replaceState({}, document.title, `${window.location.pathname}${query.toString() ? `?${query.toString()}` : ''}`)
 
   return { session, user }
 }

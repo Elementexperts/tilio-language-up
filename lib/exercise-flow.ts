@@ -1,3 +1,4 @@
+import { getLessonsForCourse } from '@/lib/data/lessons'
 import type { Lesson, User, Word, WordReview } from '@/lib/types'
 
 export type LessonExerciseType =
@@ -26,7 +27,7 @@ export interface LessonExercise {
 
 const MAX_LESSON_EXERCISES = 15
 const MAX_REVIEW_EXERCISES = 20
-const PRACTICE_ROUND_TYPES: LessonExerciseType[] = ['translation', 'listening', 'grammar', 'sentence-builder', 'pronunciation']
+const PRACTICE_SECTION_ORDER: LessonExerciseType[] = ['translation', 'listening', 'grammar', 'sentence-builder', 'pronunciation']
 
 function wordCount(value: string) {
   return value.trim().split(/\s+/).filter(Boolean).length
@@ -34,6 +35,15 @@ function wordCount(value: string) {
 
 function escapeRegExp(value: string) {
   return value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
+}
+
+function uniqueWords(words: Word[]) {
+  const seen = new Set<string>()
+  return words.filter((word) => {
+    if (seen.has(word.id)) return false
+    seen.add(word.id)
+    return true
+  })
 }
 
 function scoreFor(seed: string) {
@@ -99,24 +109,6 @@ function avoidImmediateDuplicateWords(exercises: LessonExercise[], seed: string)
   })
 }
 
-function buildPracticeRounds(
-  allExercises: LessonExercise[],
-  words: Word[],
-  seed: string,
-) {
-  return PRACTICE_ROUND_TYPES.flatMap((_, roundIndex) => {
-    const shuffledWords = seededSort(words, `${seed}-words-${roundIndex}`)
-    const roundExercises = shuffledWords
-      .map((word, wordIndex) => {
-        const type = PRACTICE_ROUND_TYPES[(roundIndex + wordIndex) % PRACTICE_ROUND_TYPES.length]
-        return allExercises.find((exercise) => exercise.type === type && exercise.word.id === word.id)
-      })
-      .filter((exercise): exercise is LessonExercise => Boolean(exercise))
-
-    return seededSort(roundExercises, `${seed}-round-${roundIndex}`)
-  })
-}
-
 export function buildChoiceOptions(
   words: Word[],
   word: Word,
@@ -144,6 +136,56 @@ export function buildChoiceOptions(
   )
 }
 
+function buildTextOptions(candidates: string[], correctAnswer: string, seed: string) {
+  const uniqueCandidates = candidates.filter(
+    (candidate, index, allCandidates) =>
+      candidate !== correctAnswer && candidate.trim().length > 0 && allCandidates.indexOf(candidate) === index
+  )
+
+  return seededSort(
+    [correctAnswer, ...seededSort(uniqueCandidates, `wrong-${seed}`).slice(0, 3)],
+    `options-${seed}`
+  )
+}
+
+function getPreviousLessonWords(lesson: Lesson) {
+  const courseLessons = getLessonsForCourse(lesson.courseId ?? 'uz-en')
+  return uniqueWords(
+    courseLessons
+      .filter((candidate) => candidate.order < lesson.order)
+      .flatMap((candidate) => candidate.words)
+  )
+}
+
+function getDueReviewWords(lesson: Lesson, wordReviews: Record<string, WordReview>, today: string) {
+  const courseWords = uniqueWords(getLessonsForCourse(lesson.courseId ?? 'uz-en').flatMap((candidate) => candidate.words))
+  const reviewedWords = courseWords.filter((word) => {
+    const review = wordReviews[word.id]
+    return review && (review.nextReviewAt <= today || review.incorrectCount > 0)
+  })
+
+  return seededSort(reviewedWords, `review-${lesson.id}`).sort((a, b) => {
+    const aReview = wordReviews[a.id]
+    const bReview = wordReviews[b.id]
+    const aDue = aReview.nextReviewAt <= today
+    const bDue = bReview.nextReviewAt <= today
+    if (aDue !== bDue) return aDue ? -1 : 1
+    return bReview.incorrectCount - aReview.incorrectCount
+  })
+}
+
+function getGrammarPattern(word: Word, sourceText: string, example: string, translatedExample?: string) {
+  const blankedExample = example.replace(new RegExp(escapeRegExp(sourceText), 'i'), '_____')
+  const hasBlank = blankedExample !== example
+
+  return {
+    questionText: hasBlank ? blankedExample : example,
+    rule: translatedExample
+      ? `Pattern practice: choose the phrase that completes "${example}". Uzbek meaning: "${translatedExample}".`
+      : `Pattern practice: choose the phrase that completes "${example}".`,
+  }
+}
+
 function getKoreanGrammarNote(word: Word, sourceText: string, correctAnswer: string) {
   const romanization = word.romanization ? `Talaffuz: ${word.romanization}. ` : ''
   const explanation = word.uzbekExplanation ? `${word.uzbekExplanation} ` : ''
@@ -166,7 +208,7 @@ export function buildLessonExercises(
   _learningPath: User['learningPath'] | undefined,
   wordReviews: Record<string, WordReview> = {}
 ): LessonExercise[] {
-  const words = lesson.words
+  const words = uniqueWords(lesson.words)
   const isUzToEn = true
   const maxExercises = lesson.isReview ? MAX_REVIEW_EXERCISES : MAX_LESSON_EXERCISES
   const today = new Date().toISOString().split('T')[0]
@@ -178,99 +220,164 @@ export function buildLessonExercises(
     if (aDue === bDue) return (bReview?.incorrectCount ?? 0) - (aReview?.incorrectCount ?? 0)
     return aDue ? -1 : 1
   })
-  const exerciseTypes: LessonExerciseType[] = ['vocabulary', 'grammar', 'translation', 'listening', 'sentence-builder', 'pronunciation']
-  const exerciseList: LessonExercise[] = []
 
-  exerciseTypes.forEach((type, roundIndex) => {
-    const roundWords = seededSort(
-      reviewSortedWords,
-      `lesson-${lesson.id}-${type}-${roundIndex}-${isUzToEn ? 'uz-en' : 'en-uz'}`
-    )
+  const previousWords = getPreviousLessonWords(lesson)
+  const dueReviewWords = getDueReviewWords(lesson, wordReviews, today)
+  const newWordIds = new Set(words.map((word) => word.id))
+  const mixedPracticeWords = uniqueWords([
+    ...reviewSortedWords,
+    ...seededSort(dueReviewWords.filter((word) => !newWordIds.has(word.id)), `due-${lesson.id}`),
+    ...seededSort(previousWords, `previous-${lesson.id}`),
+  ])
+  const reviewPracticeWords = uniqueWords([
+    ...dueReviewWords,
+    ...reviewSortedWords,
+    ...previousWords,
+  ])
+  const practiceSourceWords = lesson.isReview ? reviewPracticeWords : mixedPracticeWords
 
-    roundWords.forEach((word, wordIndex) => {
-      const correctAnswer = isUzToEn ? word.uzbek : word.english
-      const options = buildChoiceOptions(words, word, roundIndex * words.length + wordIndex, isUzToEn)
-      const sourceText = isUzToEn ? word.english : word.uzbek
-      const example = isUzToEn ? word.example?.english : word.example?.uzbek
-      const translatedExample = isUzToEn ? word.example?.uzbek : word.example?.english
-      const canBuildSentence = Boolean(example && translatedExample && wordCount(example) > 1)
-      if (type === 'sentence-builder' && !canBuildSentence) return
+  const createExercise = (type: LessonExerciseType, word: Word, index: number): LessonExercise | null => {
+    const correctAnswer = isUzToEn ? word.uzbek : word.english
+    const sourceText = isUzToEn ? word.english : word.uzbek
+    const example = isUzToEn ? word.example?.english : word.example?.uzbek
+    const translatedExample = isUzToEn ? word.example?.uzbek : word.example?.english
+    const hasSentence = Boolean(example && translatedExample && wordCount(example) > 1)
+    const sentenceTarget = example ?? sourceText
+    const sentenceTiles = seededSort(sentenceTarget.split(' ').filter(Boolean), `tiles-${word.id}-${type}-${isUzToEn ? 'uz-en' : 'en-uz'}`)
+    const choicePool = type === 'translation' ? practiceSourceWords : words
 
-      const sentenceTarget = example ?? sourceText
-      const sentenceTiles = seededSort(sentenceTarget.split(' ').filter(Boolean), `tiles-${word.id}-${isUzToEn ? 'uz-en' : 'en-uz'}`)
-      const grammarRule = lesson.courseId === 'uz-ko'
-        ? getKoreanGrammarNote(word, sourceText, correctAnswer)
-        : isUzToEn
-        ? `In English, place the key word where it naturally completes the sentence. "${sourceText}" means "${correctAnswer}".`
-        : `O'zbek tilida ma'no ko'pincha qo'shimchalar va so'z tartibi orqali aniqlanadi. "${sourceText}" = "${correctAnswer}".`
+    if (type === 'sentence-builder' && !hasSentence) return null
+    if ((type === 'listening' || type === 'pronunciation' || type === 'grammar') && !example) return null
+    if (type === 'grammar' && lesson.courseId !== 'uz-ko' && example && !new RegExp(escapeRegExp(sourceText), 'i').test(example)) {
+      return null
+    }
 
-      exerciseList.push({
+    if (type === 'listening' && example && translatedExample) {
+      return {
         type,
         word,
-        options: type === 'pronunciation' || type === 'sentence-builder' ? undefined : options,
-        correctAnswer: type === 'sentence-builder' || type === 'pronunciation' ? sentenceTarget : correctAnswer,
-        speakText: sourceText,
-        xpReward: type === 'pronunciation' || type === 'sentence-builder' ? 8 : 5,
+        options: buildTextOptions(
+          practiceSourceWords.map((candidate) => candidate.example?.uzbek ?? candidate.uzbek),
+          translatedExample,
+          `${lesson.id}-${type}-${word.id}-${index}`
+        ),
+        correctAnswer: translatedExample,
+        speakText: example,
+        questionText: '',
+        xpReward: 6,
+        prompt: 'Listen to the full sentence',
+      }
+    }
+
+    if (type === 'grammar' && example) {
+      const grammarPattern = lesson.courseId === 'uz-ko'
+        ? { questionText: sourceText, rule: getKoreanGrammarNote(word, sourceText, correctAnswer) }
+        : getGrammarPattern(word, sourceText, example, translatedExample)
+
+      return {
+        type,
+        word,
+        options: buildTextOptions(
+          practiceSourceWords.map((candidate) => candidate.english),
+          sourceText,
+          `${lesson.id}-${type}-${word.id}-${index}`
+        ),
+        correctAnswer: sourceText,
+        speakText: example,
+        questionText: grammarPattern.questionText,
+        grammarRule: grammarPattern.rule,
+        xpReward: 6,
+        prompt: 'Choose the phrase that fits the pattern',
+      }
+    }
+
+    if (type === 'sentence-builder' && example && translatedExample) {
+      return {
+        type,
+        word,
+        correctAnswer: sentenceTarget,
+        speakText: sentenceTarget,
         sentenceTarget,
         sentenceTiles,
-        grammarRule,
-        questionText:
-          type === 'sentence-builder' && example
-            ? example.replace(new RegExp(escapeRegExp(sourceText), 'i'), '_____')
-            : sourceText,
-        prompt:
-          type === 'vocabulary'
-            ? `New word: ${sourceText}`
-            : type === 'grammar'
-              ? 'Mini grammar'
-            : type === 'listening'
-              ? 'Listen and choose the meaning'
-              : type === 'sentence-builder'
-                ? `Translate: ${translatedExample}`
-                : type === 'pronunciation'
-                  ? 'Say it out loud'
-                  : 'Choose the meaning',
-      })
-    })
-  })
+        xpReward: 8,
+        questionText: example.replace(new RegExp(escapeRegExp(sourceText), 'i'), '_____'),
+        prompt: `Translate: ${translatedExample}`,
+      }
+    }
 
-  if (words.length >= 4) {
-    exerciseList.push({
+    if (type === 'pronunciation') {
+      return {
+        type,
+        word,
+        correctAnswer: sentenceTarget,
+        speakText: sentenceTarget,
+        xpReward: 8,
+        prompt: 'Say the full sentence',
+      }
+    }
+
+    if (type === 'translation') {
+      return {
+        type,
+        word,
+        options: buildChoiceOptions(choicePool, word, index, isUzToEn),
+        correctAnswer,
+        speakText: sourceText,
+        questionText: sourceText,
+        xpReward: 5,
+        prompt: newWordIds.has(word.id) ? 'Translate the new word' : 'Review from earlier lessons',
+      }
+    }
+
+    if (type === 'vocabulary') {
+      return {
+        type,
+        word,
+        options: buildChoiceOptions(words, word, index, isUzToEn),
+        correctAnswer,
+        speakText: sourceText,
+        questionText: sourceText,
+        xpReward: 5,
+        prompt: `New word: ${sourceText}`,
+      }
+    }
+
+    return null
+  }
+
+  const vocabularyCards = lesson.isReview
+    ? []
+    : reviewSortedWords
+    .map((word, index) => createExercise('vocabulary', word, index))
+    .filter((exercise): exercise is LessonExercise => Boolean(exercise))
+
+  const practiceExercises: LessonExercise[] = []
+  const usedPracticeWordIds = new Set<string>()
+  const targetPracticeCount = Math.max(0, maxExercises - vocabularyCards.length)
+
+  for (let pass = 0; practiceExercises.length < targetPracticeCount && pass < 4; pass += 1) {
+    for (const type of PRACTICE_SECTION_ORDER) {
+      if (practiceExercises.length >= targetPracticeCount) break
+
+      const pool = seededSort(practiceSourceWords, `${lesson.id}-${type}-pool-${pass}`)
+      const exercise = pool
+        .filter((candidate) => pass > 0 || !usedPracticeWordIds.has(candidate.id))
+        .map((candidate) => createExercise(type, candidate, practiceExercises.length + pass))
+        .find((candidate): candidate is LessonExercise => Boolean(candidate))
+      if (!exercise) continue
+
+      practiceExercises.push(exercise)
+      usedPracticeWordIds.add(exercise.word.id)
+    }
+  }
+
+  if (lesson.isReview && words.length >= 4 && practiceExercises.length < maxExercises) {
+    practiceExercises.push({
       type: 'matching',
       word: reviewSortedWords[0],
       correctAnswer: 'matching',
     })
   }
 
-  const uniqueExercises = new Map<string, LessonExercise>()
-  exerciseList.forEach((exercise) => {
-    uniqueExercises.set(`${exercise.type}-${exercise.word.id}`, exercise)
-  })
-
-  const allExercises = [...uniqueExercises.values()]
-  const vocabularyCards = lesson.isReview
-    ? []
-    : reviewSortedWords
-    .map((word) => allExercises.find((exercise) => exercise.type === 'vocabulary' && exercise.word.id === word.id))
-    .filter((exercise): exercise is LessonExercise => Boolean(exercise))
-  const practiceExercises = avoidImmediateDuplicateWords(
-    buildPracticeRounds(
-      allExercises,
-      reviewSortedWords,
-      `session-${lesson.id}-${isUzToEn ? 'uz-en' : 'en-uz'}`
-    ),
-    lesson.id
-  )
-
-  const lastIntroWordId = vocabularyCards[vocabularyCards.length - 1]?.word.id
-  if (lastIntroWordId && practiceExercises[0]?.word.id === lastIntroWordId) {
-    const swapIndex = practiceExercises.findIndex((exercise) => exercise.word.id !== lastIntroWordId)
-    if (swapIndex > 0) {
-      const firstPractice = practiceExercises[0]
-      practiceExercises[0] = practiceExercises[swapIndex]
-      practiceExercises[swapIndex] = firstPractice
-    }
-  }
-
-  return [...vocabularyCards, ...practiceExercises].slice(0, maxExercises)
+  return [...vocabularyCards, ...avoidImmediateDuplicateWords(practiceExercises, lesson.id)].slice(0, maxExercises)
 }

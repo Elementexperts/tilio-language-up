@@ -10,8 +10,32 @@ import { useTelegram } from '@/hooks/use-telegram'
 import { cn } from '@/lib/utils'
 import { playAnswerSound } from '@/lib/sound'
 import { buildLessonExercises, seededSort } from '@/lib/exercise-flow'
-import { X, Check, ArrowRight, Sparkles, Zap, Volume2, Mic } from 'lucide-react'
+import { X, Check, ArrowRight, Sparkles, Zap, Volume2, Mic, BookOpen, Headphones, Languages, GraduationCap, Keyboard } from 'lucide-react'
 import type { Word } from '@/lib/types'
+
+type ExerciseSection = 'vocabulary' | 'translation' | 'listening' | 'grammar' | 'sentence-builder' | 'pronunciation'
+
+function ExerciseSectionPill({ section, label }: { section: ExerciseSection; label: string }) {
+  const Icon =
+    section === 'vocabulary'
+      ? BookOpen
+      : section === 'listening'
+        ? Headphones
+        : section === 'grammar'
+          ? GraduationCap
+          : section === 'sentence-builder'
+            ? Keyboard
+            : section === 'pronunciation'
+              ? Mic
+              : Languages
+
+  return (
+    <div className="inline-flex items-center gap-2 rounded-full bg-white/85 px-3 py-1 text-xs font-extrabold uppercase tracking-[0.16em] text-primary shadow-sm">
+      <Icon className="size-3.5" />
+      {label}
+    </div>
+  )
+}
 
 function getPreferredVoice(lang: string) {
   if (typeof window === 'undefined' || !('speechSynthesis' in window)) return null
@@ -477,9 +501,9 @@ function VocabularyCard({ word, isUzToEn, onContinue, isSpeaking, isKoreanCourse
 
   return (
     <div className="flex flex-1 flex-col items-center justify-center animate-soft-pop">
-      <div className="mb-4 flex items-center gap-2 rounded-full bg-white/80 px-3 py-1 text-xs font-extrabold uppercase tracking-[0.16em] text-primary shadow-sm">
-        <Sparkles className="size-3.5" />
-        {isKoreanCourse ? 'Korean New Word' : isUzToEn ? 'English New Word' : 'Yangi o‘zbekcha so‘z'}
+      <div className="mb-4 flex items-center gap-2">
+        <ExerciseSectionPill section="vocabulary" label={isKoreanCourse ? 'Korean New Word' : isUzToEn ? 'English New Word' : 'New Word'} />
+        <Sparkles className="size-3.5 text-primary" />
       </div>
       
       <Card className="tilio-card w-full max-w-sm rounded-[2rem] p-7 text-center">
@@ -588,12 +612,13 @@ function TranslationExercise({
         : 'Choose the meaning'
   const eyebrow = type === 'listening' ? 'Listening' : type === 'grammar' ? 'Grammar' : type === 'sentence' ? 'Sentence' : 'Translate'
   const displayText = questionText ?? (isUzToEn ? word.english : word.uzbek)
+  const section = type === 'sentence' ? 'sentence-builder' : type
 
   return (
     <div key={`${type}-${word.id}`} className="flex flex-1 flex-col animate-soft-pop">
       <div className="mb-4 flex items-center justify-between">
         <div>
-          <p className="text-xs font-extrabold uppercase tracking-[0.16em] text-primary">{eyebrow}</p>
+          <ExerciseSectionPill section={section} label={eyebrow} />
           <h1 className="text-2xl font-black">{title}</h1>
         </div>
         <SparrowMascot size="sm" mood={isAnswered ? 'celebrating' : 'happy'} branded />
@@ -702,7 +727,7 @@ function SentenceBuilderExercise({ target, tiles, prompt, isSoundEnabled, onSpea
     <div className="flex flex-1 flex-col animate-soft-pop">
       <div className="mb-4 flex items-center justify-between">
         <div>
-          <p className="text-xs font-extrabold uppercase tracking-[0.16em] text-primary">Sentence builder</p>
+          <ExerciseSectionPill section="sentence-builder" label="Sentence builder" />
           <h1 className="text-2xl font-black">Build the sentence</h1>
         </div>
         <SparrowMascot size="sm" mood="thinking" branded />
@@ -795,7 +820,9 @@ function PronunciationExercise({ text, isUzToEn, speechLang, onSpeak, onComplete
 
   return (
     <div className="flex flex-1 flex-col items-center justify-center animate-soft-pop">
-      <p className="mb-3 text-xs font-extrabold uppercase tracking-[0.16em] text-primary">Pronunciation</p>
+      <div className="mb-3">
+        <ExerciseSectionPill section="pronunciation" label="Speaking" />
+      </div>
       <h1 className="mb-2 text-center text-2xl font-black">Say this out loud</h1>
       <Card className="tilio-card w-full max-w-sm rounded-[2rem] p-7 text-center">
         <button type="button" onClick={onSpeak} className="tilio-pressed mx-auto mb-5 flex size-16 items-center justify-center rounded-2xl bg-emerald-50 text-primary">

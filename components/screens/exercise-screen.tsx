@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useMemo, useCallback, useEffect, useRef } from 'react'
+import { useState, useMemo, useCallback, useEffect, useRef, type ReactNode } from 'react'
 import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
 import { Progress } from '@/components/ui/progress'
@@ -299,6 +299,14 @@ export function ExerciseScreen() {
     return null
   }
 
+  const feedbackPanel = isAnswered ? (
+    <AnswerFeedbackPanel
+      isCorrect={isCorrect}
+      correctAnswer={currentExercise.correctAnswer}
+      onContinue={handleContinue}
+    />
+  ) : null
+
   return (
     <div className="tilio-shell flex flex-col">
       {showCelebration && (
@@ -378,6 +386,7 @@ export function ExerciseScreen() {
             isSpeaking={isSpeaking}
             onReplay={() => speakText(currentExercise.speakText ?? (isUzToEn ? currentExercise.word.english : currentExercise.word.uzbek), isUzToEn ? targetSpeechLang : 'uz-UZ')}
             onAnswer={handleAnswer}
+          feedbackPanel={feedbackPanel}
           />
         )}
 
@@ -395,6 +404,7 @@ export function ExerciseScreen() {
               if (isSoundEnabled) playAnswerSound(correct)
             }}
             isAnswered={isAnswered}
+          feedbackPanel={feedbackPanel}
           />
         )}
 
@@ -410,6 +420,7 @@ export function ExerciseScreen() {
               correct ? hapticFeedback('success') : hapticFeedback('warning')
               if (isSoundEnabled) playAnswerSound(correct)
             }}
+          feedbackPanel={feedbackPanel}
           />
         )}
 
@@ -428,60 +439,69 @@ export function ExerciseScreen() {
               }
             }}
             isAnswered={isAnswered}
+          feedbackPanel={feedbackPanel}
           />
         )}
       </main>
-
-      {/* Bottom Action */}
-      {isAnswered && (
-        <div className={cn(
-          'relative z-20 safe-area-bottom',
-          isCorrect ? 'bg-primary/10' : 'bg-destructive/10'
-        )}>
-          <div className="tilio-container p-5">
-          <div className="mb-4 flex items-center gap-3">
-            {isCorrect ? (
-              <>
-                <div className="flex size-10 items-center justify-center rounded-2xl bg-primary text-primary-foreground shadow-lg shadow-primary/25">
-                  <Check className="w-5 h-5 text-primary-foreground" />
-                </div>
-                <div>
-                  <span className="text-lg font-black text-primary">Correct!</span>
-                  <p className="text-sm font-semibold text-muted-foreground">Nice answer. Keep the rhythm.</p>
-                </div>
-              </>
-            ) : (
-              <>
-                <div className="flex size-10 items-center justify-center rounded-2xl bg-destructive">
-                  <X className="w-5 h-5 text-destructive-foreground" />
-                </div>
-                <div>
-                  <span className="text-lg font-black text-destructive">Almost</span>
-                  <p className="text-sm font-semibold text-muted-foreground">
-                    Correct: {currentExercise.correctAnswer}
-                  </p>
-                </div>
-              </>
-            )}
-          </div>
-          <Button
-            onClick={handleContinue}
-            className={cn(
-              'tilio-button h-14 w-full rounded-2xl text-lg font-black',
-              isCorrect 
-                ? 'bg-primary hover:bg-primary/90' 
-                : 'bg-destructive hover:bg-destructive/90'
-            )}
-          >
-            Continue
-            <ArrowRight className="w-5 h-5 ml-2" />
-          </Button>
-          </div>
-        </div>
-      )}
     </div>
   )
 }
+
+function AnswerFeedbackPanel({
+  isCorrect,
+  correctAnswer,
+  onContinue,
+}: {
+  isCorrect: boolean
+  correctAnswer: string
+  onContinue: () => void
+}) {
+  return (
+    <div
+      className={cn(
+        'mt-4 rounded-[1.5rem] border p-4 shadow-xl animate-soft-pop',
+        isCorrect
+          ? 'border-primary/20 bg-emerald-50/95 shadow-primary/10'
+          : 'border-destructive/20 bg-red-50/95 shadow-destructive/10',
+      )}
+    >
+      <div className="mb-4 flex items-center gap-3">
+        {isCorrect ? (
+          <>
+            <div className="flex size-10 items-center justify-center rounded-2xl bg-primary text-primary-foreground shadow-lg shadow-primary/25">
+              <Check className="w-5 h-5 text-primary-foreground" />
+            </div>
+            <div>
+              <span className="text-lg font-black text-primary">Correct!</span>
+              <p className="text-sm font-semibold text-muted-foreground">Nice answer. Keep the rhythm.</p>
+            </div>
+          </>
+        ) : (
+          <>
+            <div className="flex size-10 items-center justify-center rounded-2xl bg-destructive">
+              <X className="w-5 h-5 text-destructive-foreground" />
+            </div>
+            <div>
+              <span className="text-lg font-black text-destructive">Almost</span>
+              <p className="text-sm font-semibold text-muted-foreground">Correct: {correctAnswer}</p>
+            </div>
+          </>
+        )}
+      </div>
+      <Button
+        onClick={onContinue}
+        className={cn(
+          'tilio-button h-13 w-full rounded-2xl text-base font-black',
+          isCorrect ? 'bg-primary hover:bg-primary/90' : 'bg-destructive hover:bg-destructive/90',
+        )}
+      >
+        Continue
+        <ArrowRight className="w-5 h-5 ml-2" />
+      </Button>
+    </div>
+  )
+}
+
 
 // Vocabulary Card Component
 interface VocabularyCardProps {
@@ -585,6 +605,7 @@ interface TranslationExerciseProps {
   isSpeaking: boolean
   onReplay: () => void
   onAnswer: (answer: string) => void
+  feedbackPanel?: ReactNode
 }
 
 function TranslationExercise({
@@ -601,6 +622,7 @@ function TranslationExercise({
   isSpeaking,
   onReplay,
   onAnswer,
+  feedbackPanel,
 }: TranslationExerciseProps) {
   const title =
     type === 'listening'
@@ -682,6 +704,7 @@ function TranslationExercise({
           )
         })}
       </div>
+      {feedbackPanel}
     </div>
   )
 }
@@ -694,9 +717,10 @@ interface SentenceBuilderExerciseProps {
   onSpeakTile: (tile: string) => void
   onComplete: (correct: boolean) => void
   isAnswered: boolean
+  feedbackPanel?: ReactNode
 }
 
-function SentenceBuilderExercise({ target, tiles, prompt, isSoundEnabled, onSpeakTile, onComplete, isAnswered }: SentenceBuilderExerciseProps) {
+function SentenceBuilderExercise({ target, tiles, prompt, isSoundEnabled, onSpeakTile, onComplete, isAnswered, feedbackPanel }: SentenceBuilderExerciseProps) {
   const [selectedTiles, setSelectedTiles] = useState<string[]>([])
   const [availableTiles, setAvailableTiles] = useState(tiles)
 
@@ -756,9 +780,11 @@ function SentenceBuilderExercise({ target, tiles, prompt, isSoundEnabled, onSpea
         ))}
       </div>
 
-      <Button className="tilio-button mt-auto h-14 rounded-2xl text-lg font-black" disabled={selectedTiles.length === 0 || isAnswered} onClick={checkAnswer}>
-        Check sentence
-      </Button>
+      {isAnswered ? feedbackPanel : (
+        <Button className="tilio-button mt-auto h-14 rounded-2xl text-lg font-black" disabled={selectedTiles.length === 0} onClick={checkAnswer}>
+          Check sentence
+        </Button>
+      )}
     </div>
   )
 }
@@ -769,9 +795,10 @@ interface PronunciationExerciseProps {
   speechLang: string
   onSpeak: () => void
   onComplete: (correct: boolean) => void
+  feedbackPanel?: ReactNode
 }
 
-function PronunciationExercise({ text, isUzToEn, speechLang, onSpeak, onComplete }: PronunciationExerciseProps) {
+function PronunciationExercise({ text, isUzToEn, speechLang, onSpeak, onComplete, feedbackPanel }: PronunciationExerciseProps) {
   const [isListening, setIsListening] = useState(false)
   const [transcript, setTranscript] = useState('')
   const [score, setScore] = useState<number | null>(null)
@@ -840,6 +867,7 @@ function PronunciationExercise({ text, isUzToEn, speechLang, onSpeak, onComplete
           </div>
         )}
       </Card>
+      {feedbackPanel}
     </div>
   )
 }
@@ -850,9 +878,10 @@ interface MatchingExerciseProps {
   isUzToEn: boolean
   onComplete: (correct: boolean) => void
   isAnswered: boolean
+  feedbackPanel?: ReactNode
 }
 
-function MatchingExercise({ words, isUzToEn, onComplete, isAnswered }: MatchingExerciseProps) {
+function MatchingExercise({ words, isUzToEn, onComplete, isAnswered, feedbackPanel }: MatchingExerciseProps) {
   const [selectedLeft, setSelectedLeft] = useState<string | null>(null)
   const [matches, setMatches] = useState<Record<string, string>>({})
   const [wrongMatch, setWrongMatch] = useState<string | null>(null)
@@ -956,6 +985,7 @@ function MatchingExercise({ words, isUzToEn, onComplete, isAnswered }: MatchingE
           })}
         </div>
       </div>
+      {feedbackPanel}
     </div>
   )
 }

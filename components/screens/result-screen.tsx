@@ -7,6 +7,7 @@ import { SparrowMascot } from '@/components/sparrow-mascot'
 import { useAppStore } from '@/lib/store'
 import { useTelegram } from '@/hooks/use-telegram'
 import { cn } from '@/lib/utils'
+import { playLessonCompleteSound } from '@/lib/sound'
 import { Zap, Star, Target, ArrowRight, RotateCcw, Home } from 'lucide-react'
 
 export function ResultScreen() {
@@ -15,6 +16,7 @@ export function ResultScreen() {
   const setScreen = useAppStore((state) => state.setScreen)
   const resetExercise = useAppStore((state) => state.resetExercise)
   const startLesson = useAppStore((state) => state.startLesson)
+  const isSoundEnabled = useAppStore((state) => state.isSoundEnabled)
   const { hapticFeedback } = useTelegram()
   
   const [showConfetti, setShowConfetti] = useState(false)
@@ -39,6 +41,7 @@ export function ResultScreen() {
 
   useEffect(() => {
     hapticFeedback('success')
+    if (isSoundEnabled) playLessonCompleteSound()
     setShowConfetti(true)
     setConfettiPieces(
       Array.from({ length: 20 }).map((_, i) => ({
@@ -67,7 +70,7 @@ export function ResultScreen() {
     }, duration / steps)
 
     return () => clearInterval(timer)
-  }, [hapticFeedback, xpEarned])
+  }, [hapticFeedback, isSoundEnabled, xpEarned])
 
   const handleContinue = () => {
     hapticFeedback('light')

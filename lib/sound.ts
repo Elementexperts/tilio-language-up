@@ -56,19 +56,28 @@ function playTone(frequency: number, endFrequency: number, duration: number, typ
 }
 
 export function playRewardSound() {
-  playTone(660, 880, 0.14, 'triangle', 0.07)
-  playTone(880, 1174, 0.16, 'triangle', 0.055, 0.09)
+  playTone(659, 784, 0.1, 'triangle', 0.05)
+  playTone(784, 988, 0.13, 'triangle', 0.045, 0.07)
+  playTone(988, 1318, 0.16, 'sine', 0.032, 0.16)
 }
 
 export function playAnswerSound(correct: boolean) {
-  playTone(correct ? 740 : 220, correct ? 920 : 180, 0.12, 'sine', 0.06)
+  if (correct) {
+    playTone(523, 659, 0.08, 'triangle', 0.042)
+    playTone(659, 880, 0.11, 'triangle', 0.038, 0.06)
+    return
+  }
+
+  playTone(294, 220, 0.11, 'sawtooth', 0.032)
+  playTone(220, 165, 0.14, 'sine', 0.026, 0.08)
 }
 
 export function playChestSound() {
   if (typeof window === 'undefined') return
-  playTone(440, 720, 0.14, 'triangle', 0.07)
-  playTone(720, 980, 0.18, 'triangle', 0.06, 0.09)
-  playTone(980, 1320, 0.18, 'sine', 0.035, 0.2)
+  playTone(392, 587, 0.13, 'triangle', 0.06)
+  playTone(587, 880, 0.16, 'triangle', 0.052, 0.08)
+  playTone(880, 1175, 0.18, 'sine', 0.04, 0.18)
+  playTone(1175, 1568, 0.2, 'triangle', 0.028, 0.3)
 }
 
 export function playAchievementSound() {
@@ -89,6 +98,14 @@ export function playNavigationSound() {
 export function playSuccessSound() {
   playTone(523, 784, 0.1, 'triangle', 0.045)
   playTone(784, 1046, 0.14, 'triangle', 0.036, 0.08)
+}
+
+export function playLessonCompleteSound() {
+  if (typeof window === 'undefined') return
+  playTone(392, 523, 0.12, 'triangle', 0.052)
+  playTone(523, 659, 0.12, 'triangle', 0.046, 0.09)
+  playTone(659, 784, 0.14, 'triangle', 0.04, 0.18)
+  playTone(988, 1318, 0.24, 'sine', 0.028, 0.31)
 }
 
 export function playIntroSound() {

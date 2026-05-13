@@ -193,6 +193,13 @@ body {
   100% { transform: translateY(-56px) scale(1.08); opacity: 0; }
 }
 
+@keyframes xp-float {
+  0% { transform: translate3d(14px, 16px, 0) scale(0.86); opacity: 0; filter: blur(2px); }
+  14% { transform: translate3d(0, 0, 0) scale(1.08); opacity: 1; filter: blur(0); }
+  38% { transform: translate3d(-5px, -20px, 0) scale(1); opacity: 1; }
+  100% { transform: translate3d(-12px, -76px, 0) scale(0.96); opacity: 0; }
+}
+
 @keyframes soft-pop {
   0% { transform: scale(0.94); opacity: 0; }
   100% { transform: scale(1); opacity: 1; }
@@ -263,6 +270,10 @@ body {
   animation: float-up 1.15s ease-out forwards;
 }
 
+.animate-xp-float {
+  animation: xp-float 1.35s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
 .animate-soft-pop {
   animation: soft-pop 0.32s ease-out both;
 }
@@ -284,7 +295,7 @@ body {
 }
 
 .animate-reward-glow {
-  animation: float-up 1.15s ease-out forwards, reward-glow 1.15s ease-in-out forwards;
+  animation: xp-float 1.35s cubic-bezier(0.16, 1, 0.3, 1) forwards, reward-glow 1.35s ease-in-out forwards;
 }
 
 .animate-chest-shake {

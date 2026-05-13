@@ -78,7 +78,7 @@ export default function TilioApp() {
   const hasUser = useAppStore((state) => Boolean(state.user))
   const userLastActiveDate = useAppStore((state) => state.user?.lastActiveDate ?? '')
   const equippedTheme = useAppStore((state) => state.user?.equippedTheme ?? 'classic-green')
-  const { isReady } = useTelegram()
+  const { isReady, hapticFeedback } = useTelegram()
   const xpPopups = useAppStore((state) => state.xpPopups)
   const removeXpPopup = useAppStore((state) => state.removeXpPopup)
   const achievementPopups = useAppStore((state) => state.achievementPopups)
@@ -112,9 +112,10 @@ export default function TilioApp() {
     }
     if (xpPopups.length > previousPopupCountRef.current) {
       playRewardSound()
+      hapticFeedback('medium')
     }
     previousPopupCountRef.current = xpPopups.length
-  }, [xpPopups.length, isSoundEnabled])
+  }, [hapticFeedback, xpPopups.length, isSoundEnabled])
 
   useEffect(() => {
     if (!isSoundEnabled) {
@@ -213,10 +214,11 @@ export default function TilioApp() {
       <CloudSyncIndicator />
       {renderScreen()}
       <div className="fixed right-4 top-20 z-50 space-y-2 pointer-events-none">
-        {xpPopups.map((popup) => (
+        {xpPopups.map((popup, index) => (
           <div
             key={popup.id}
-            className="animate-float-up animate-reward-glow bg-white/95 border border-primary/15 shadow-xl rounded-2xl px-4 py-2.5 text-sm font-extrabold"
+            className="animate-xp-float animate-reward-glow rounded-2xl border border-primary/15 bg-white/95 px-4 py-2.5 text-sm font-extrabold shadow-xl"
+            style={{ animationDelay: `${index * 60}ms` }}
             onAnimationEnd={() => removeXpPopup(popup.id)}
           >
             <span className="inline-flex items-center gap-1">

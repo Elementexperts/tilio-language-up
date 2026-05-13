@@ -63,6 +63,7 @@ export function DailyChestScreen() {
     setIsOpening(true)
     setTimeout(() => {
       setRewards(claimDailyChest())
+      hapticFeedback('heavy')
       setIsOpening(false)
     }, 900)
   }

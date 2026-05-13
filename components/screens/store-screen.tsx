@@ -9,7 +9,7 @@ import { useAppStore } from '@/lib/store'
 import { useTelegram } from '@/hooks/use-telegram'
 import { storeItemsData } from '@/lib/data/lessons'
 import { cn } from '@/lib/utils'
-import { ArrowLeft, BadgeCheck, Check, Cloud, Feather, Landmark, Leaf, Map, Palette, Shield, ShoppingBag, Snowflake, Sparkles, Wand2, Zap } from 'lucide-react'
+import { ArrowLeft, BadgeCheck, BarChart3, BookOpenCheck, Brain, Check, Cloud, Feather, Landmark, Leaf, Map, MessageCircle, Palette, Shield, ShoppingBag, Snowflake, Sparkles, Wand2, Zap } from 'lucide-react'
 import type { StoreItem } from '@/lib/types'
 
 const wallpaperItems: StoreItem[] = [
@@ -93,6 +93,40 @@ const wallpaperIcon: Record<string, ElementType> = {
   cloud: Cloud,
 }
 
+const plusFeatureCards = [
+  {
+    title: 'Premium Practice Mode',
+    description: 'Extra speaking, listening, and mixed review sessions after daily lessons.',
+    icon: BookOpenCheck,
+    status: 'Planned',
+  },
+  {
+    title: 'Smart Review',
+    description: 'A focused weak-word queue based on mistakes, misses, and old lesson history.',
+    icon: Brain,
+    status: 'Planned',
+  },
+  {
+    title: 'AI Conversation Practice',
+    description: 'Guided Uzbek, English, and Korean conversations with a Tilio tutor.',
+    icon: MessageCircle,
+    status: 'Next',
+  },
+  {
+    title: 'Weekly Insights',
+    description: 'Progress reports with active days, skill balance, strongest words, and next goals.',
+    icon: BarChart3,
+    status: 'Planned',
+  },
+]
+
+const plusRewards = [
+  'Unlimited smart reviews',
+  'Extra Streak Freezes',
+  'Premium themes and frames',
+  'Weekly progress insights',
+]
+
 export function StoreScreen() {
   const user = useAppStore((state) => state.user)
   const setScreen = useAppStore((state) => state.setScreen)
@@ -115,6 +149,7 @@ export function StoreScreen() {
   const ownedItemIds = new Set([...user.purchasedItems, 'classic-green'])
   const frameItems = storeItemsData.filter((item) => item.type === 'frame')
   const styleItems = storeItemsData.filter((item) => item.type !== 'frame')
+  const plusActive = user.purchasedItems.includes('tilio-plus-preview')
 
   const handleBuy = (item: StoreItem) => {
     hapticFeedback('light')
@@ -133,6 +168,11 @@ export function StoreScreen() {
   const handleBuyFreeze = () => {
     hapticFeedback('medium')
     useStreakFreeze()
+  }
+
+  const handlePreviewPlus = () => {
+    hapticFeedback('success')
+    purchaseItem('tilio-plus-preview', 250)
   }
 
   const boostActive = user.xpMultiplierExpiresAt && new Date(user.xpMultiplierExpiresAt).getTime() > Date.now()
@@ -162,9 +202,78 @@ export function StoreScreen() {
           <div className="flex items-center gap-4">
             <SparrowMascot branded size="lg" mood="waving" />
             <div className="min-w-0 flex-1">
-              <p className="text-xs font-extrabold uppercase tracking-[0.16em] text-primary">Premium wallpapers</p>
-              <h2 className="text-2xl font-black leading-tight">Keep learning bright, calm, and fresh.</h2>
+              <p className="text-xs font-extrabold uppercase tracking-[0.16em] text-primary">Tilio Plus</p>
+              <h2 className="text-2xl font-black leading-tight">Practice deeper. Keep streaks safer.</h2>
             </div>
+          </div>
+        </section>
+
+        <section className="mb-5 overflow-hidden rounded-[2rem] border border-emerald-900/20 bg-gradient-to-br from-emerald-950 via-emerald-900 to-lime-800 p-5 text-white shadow-2xl shadow-emerald-950/20">
+          <div className="flex items-start justify-between gap-4">
+            <div className="min-w-0">
+              <p className="text-xs font-extrabold uppercase tracking-[0.18em] text-lime-200">Premium bundle</p>
+              <h2 className="mt-2 text-3xl font-black leading-[1]">Tilio Plus Preview</h2>
+              <p className="mt-3 text-sm font-semibold leading-5 text-white/78">
+                A first premium bundle for testers: smarter practice, stronger streak support, richer personalization, and progress insights.
+              </p>
+            </div>
+            <div className="flex size-16 shrink-0 items-center justify-center rounded-[1.35rem] bg-white/12 text-lime-200">
+              <Sparkles className="size-8" />
+            </div>
+          </div>
+
+          <div className="mt-4 grid grid-cols-2 gap-2">
+            {plusRewards.map((reward) => (
+              <div key={reward} className="rounded-2xl bg-white/10 px-3 py-2 text-xs font-black text-lime-50">
+                <Check className="mr-1 inline size-3.5 text-lime-200" />
+                {reward}
+              </div>
+            ))}
+          </div>
+
+          <div className="mt-5 flex items-center justify-between gap-3 rounded-2xl bg-white/10 p-3">
+            <div>
+              <p className="text-sm font-black">{plusActive ? 'Preview unlocked' : 'Unlock tester preview'}</p>
+              <p className="text-xs font-semibold text-white/68">Uses feathers for testing until payments are connected.</p>
+            </div>
+            <Button
+              className="h-11 rounded-2xl bg-lime-300 px-4 font-black text-emerald-950 hover:bg-lime-200"
+              disabled={plusActive || user.feathers < 250}
+              onClick={handlePreviewPlus}
+            >
+              <Feather className="size-4" />
+              {plusActive ? 'Unlocked' : '250'}
+            </Button>
+          </div>
+        </section>
+
+        <section className="mb-5">
+          <div className="mb-3">
+            <p className="text-xs font-extrabold uppercase tracking-[0.16em] text-primary">Premium features</p>
+            <h2 className="text-lg font-black">What Tilio Plus will include</h2>
+          </div>
+          <div className="grid grid-cols-1 gap-3">
+            {plusFeatureCards.map((feature) => {
+              const Icon = feature.icon
+              return (
+                <Card key={feature.title} className="premium-card rounded-[1.75rem] p-4">
+                  <div className="flex items-center gap-4">
+                    <div className="flex size-14 shrink-0 items-center justify-center rounded-2xl bg-primary/10 text-primary">
+                      <Icon className="size-7" />
+                    </div>
+                    <div className="min-w-0 flex-1">
+                      <div className="flex items-center justify-between gap-3">
+                        <p className="font-black leading-tight">{feature.title}</p>
+                        <span className="shrink-0 rounded-full bg-emerald-50 px-2.5 py-1 text-[10px] font-black uppercase tracking-[0.1em] text-primary">
+                          {feature.status}
+                        </span>
+                      </div>
+                      <p className="mt-1 text-xs font-semibold leading-4 text-muted-foreground">{feature.description}</p>
+                    </div>
+                  </div>
+                </Card>
+              )
+            })}
           </div>
         </section>
 

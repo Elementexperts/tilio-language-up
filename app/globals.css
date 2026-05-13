@@ -205,6 +205,11 @@ body {
   100% { transform: scale(1); opacity: 1; }
 }
 
+@keyframes onboarding-step {
+  0% { transform: translateY(14px) scale(0.985); opacity: 0; filter: blur(4px); }
+  100% { transform: translateY(0) scale(1); opacity: 1; filter: blur(0); }
+}
+
 @keyframes progress-shine {
   0% { transform: translateX(-100%); }
   100% { transform: translateX(220%); }
@@ -443,6 +448,13 @@ html[data-wallpaper="wallpaper-cotton-sky"] .tilio-shell::before {
   box-shadow: 0 18px 45px oklch(0.42 0.08 145 / 0.12);
 }
 
+.tilio-surface {
+  border: 1px solid rgb(255 255 255 / 0.72);
+  background: rgb(255 255 255 / 0.84);
+  box-shadow: 0 18px 44px oklch(0.42 0.08 145 / 0.09), inset 0 1px 0 rgb(255 255 255 / 0.78);
+  backdrop-filter: blur(16px);
+}
+
 .premium-card {
   border: 1px solid rgb(255 255 255 / 0.72);
   background:
@@ -465,6 +477,10 @@ html[data-wallpaper="wallpaper-cotton-sky"] .tilio-shell::before {
   transition: transform 160ms ease, box-shadow 160ms ease, filter 160ms ease;
 }
 
+.tilio-button:hover {
+  filter: saturate(1.05) brightness(1.02);
+}
+
 .tilio-button:active {
   transform: translateY(4px) scale(0.985);
   box-shadow: 0 4px 0 oklch(0.47 0.15 145), 0 10px 20px oklch(0.44 0.13 145 / 0.18);
@@ -474,8 +490,48 @@ html[data-wallpaper="wallpaper-cotton-sky"] .tilio-shell::before {
   transition: transform 160ms ease, box-shadow 160ms ease, border-color 160ms ease;
 }
 
+.tilio-pressed:hover {
+  transform: translateY(-1px);
+}
+
 .tilio-pressed:active {
   transform: scale(0.975);
+}
+
+.tilio-title {
+  font-size: clamp(1.65rem, 4.5vw, 2.35rem);
+  line-height: 1;
+  font-weight: 950;
+  letter-spacing: 0;
+  color: oklch(0.2 0.045 150);
+}
+
+.tilio-section-title {
+  font-size: 1.125rem;
+  line-height: 1.2;
+  font-weight: 950;
+  letter-spacing: 0;
+  color: oklch(0.22 0.045 150);
+}
+
+.tilio-body {
+  font-size: 0.95rem;
+  line-height: 1.55;
+  font-weight: 700;
+  color: oklch(0.47 0.025 150);
+}
+
+.tilio-label {
+  font-size: 0.72rem;
+  line-height: 1;
+  font-weight: 950;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: oklch(0.48 0.05 145);
+}
+
+.animate-onboarding-step {
+  animation: onboarding-step 0.42s cubic-bezier(0.16, 1, 0.3, 1) both;
 }
 
 .tilio-progress {

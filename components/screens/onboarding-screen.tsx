@@ -198,7 +198,7 @@ export function OnboardingScreen() {
         <div className="h-full bg-primary transition-all duration-500 ease-out" style={{ width: getProgressWidth() }} />
       </div>
 
-      <div className="tilio-container flex flex-1 flex-col overflow-y-auto px-6 pb-32 pt-8">
+      <div className="tilio-container flex flex-1 flex-col overflow-y-auto px-6 pb-44 pt-8">
         {step === 'welcome' && (
           <div className="flex flex-1 flex-col items-center justify-center text-center animate-onboarding-step">
             <SparrowMascot size="lg" mood="waving" branded />
@@ -423,9 +423,9 @@ export function OnboardingScreen() {
           </div>
         )}
       </div>
-      <div className="fixed inset-x-0 bottom-0 z-30 bg-gradient-to-t from-background via-background/95 to-background/0 px-5 pb-5 pt-8 safe-area-bottom">
+      <div className="fixed inset-x-0 bottom-8 z-30 bg-gradient-to-t from-background via-background/95 to-background/0 px-5 pb-4 pt-8 safe-area-bottom">
         <div className="tilio-container">
-          <Button onClick={handleNext} disabled={!canProceed()} className="tilio-button h-14 w-full rounded-2xl text-lg font-black touch-target" size="lg">
+          <Button onClick={handleNext} disabled={!canProceed()} className={cn('h-14 w-full rounded-2xl text-lg font-black touch-target', step === 'account' ? 'bg-emerald-100 text-primary shadow-md shadow-emerald-950/8 hover:bg-emerald-50' : 'tilio-button')} size="lg">
             {step === 'goal' ? 'Boshlaymiz!' : step === 'account' ? 'Continue without account' : 'Davom etish'}
             <ArrowRight className="ml-2 h-5 w-5" />
           </Button>
@@ -434,5 +434,7 @@ export function OnboardingScreen() {
     </div>
   )
 }
+
+
 
 

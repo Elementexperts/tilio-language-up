@@ -28,6 +28,14 @@ const MAX_LESSON_EXERCISES = 15
 const MAX_REVIEW_EXERCISES = 20
 const PRACTICE_ROUND_TYPES: LessonExerciseType[] = ['translation', 'listening', 'grammar', 'sentence-builder', 'pronunciation']
 
+function wordCount(value: string) {
+  return value.trim().split(/\s+/).filter(Boolean).length
+}
+
+function escapeRegExp(value: string) {
+  return value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
+}
+
 function scoreFor(seed: string) {
   let hash = 2166136261
   for (let i = 0; i < seed.length; i++) {
@@ -185,6 +193,9 @@ export function buildLessonExercises(
       const sourceText = isUzToEn ? word.english : word.uzbek
       const example = isUzToEn ? word.example?.english : word.example?.uzbek
       const translatedExample = isUzToEn ? word.example?.uzbek : word.example?.english
+      const canBuildSentence = Boolean(example && translatedExample && wordCount(example) > 1)
+      if (type === 'sentence-builder' && !canBuildSentence) return
+
       const sentenceTarget = example ?? sourceText
       const sentenceTiles = seededSort(sentenceTarget.split(' ').filter(Boolean), `tiles-${word.id}-${isUzToEn ? 'uz-en' : 'en-uz'}`)
       const grammarRule = lesson.courseId === 'uz-ko'
@@ -205,7 +216,7 @@ export function buildLessonExercises(
         grammarRule,
         questionText:
           type === 'sentence-builder' && example
-            ? example.replace(sourceText, '_____')
+            ? example.replace(new RegExp(escapeRegExp(sourceText), 'i'), '_____')
             : sourceText,
         prompt:
           type === 'vocabulary'
@@ -215,7 +226,7 @@ export function buildLessonExercises(
             : type === 'listening'
               ? 'Listen and choose the meaning'
               : type === 'sentence-builder'
-                ? translatedExample ?? 'Build the phrase'
+                ? `Translate: ${translatedExample}`
                 : type === 'pronunciation'
                   ? 'Say it out loud'
                   : 'Choose the meaning',

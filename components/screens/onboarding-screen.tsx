@@ -229,7 +229,7 @@ export function OnboardingScreen() {
             <SparrowMascot size="md" mood="celebrating" branded />
             <h2 className="tilio-title mt-5">Progressingiz saqlanadi</h2>
             <p className="tilio-body mt-3 max-w-xs">
-              Telegram akkauntingiz orqali XP, streak, patlar, darslar va nishonlar bulutda saqlanadi.
+              Ro'yxatdan o'tish orqali XP, streak, patlar, darslar va nishonlar bulutda saqlanadi.
             </p>
             <div className="mt-6 grid w-full gap-3">
               <Button
@@ -240,7 +240,7 @@ export function OnboardingScreen() {
                 }}
               >
                 <UserPlus className="mr-2 size-5" />
-                Sign up to save progress
+                Progressni saqlash uchun ro'yxatdan o'ting
               </Button>
               <Button
                 variant="outline"
@@ -251,13 +251,13 @@ export function OnboardingScreen() {
                 }}
               >
                 <LogIn className="mr-2 size-5" />
-                Log in
+                Kirish
               </Button>
               <Card className="tilio-surface rounded-[1.35rem] p-4 text-left">
                 <div className="flex items-center gap-3">
                   <ShieldCheck className="size-5 text-primary" />
                   <div>
-                    <p className="tilio-section-title text-base">Secure Telegram sign-in</p>
+                    <p className="tilio-section-title text-base">Secure sign-in</p>
                     <p className="tilio-body text-xs">No password needed inside the Mini App.</p>
                   </div>
                 </div>
@@ -426,7 +426,7 @@ export function OnboardingScreen() {
       <div className="fixed inset-x-0 bottom-8 z-30 bg-gradient-to-t from-background via-background/95 to-background/0 px-5 pb-4 pt-8 safe-area-bottom">
         <div className="tilio-container">
           <Button onClick={handleNext} disabled={!canProceed()} className={cn('h-14 w-full rounded-2xl text-lg font-black touch-target', step === 'account' ? 'bg-emerald-100 text-primary shadow-md shadow-emerald-950/8 hover:bg-emerald-50' : 'tilio-button')} size="lg">
-            {step === 'goal' ? 'Boshlaymiz!' : step === 'account' ? 'Continue without account' : 'Davom etish'}
+            {step === 'goal' ? 'Boshlaymiz!' : step === 'account' ? 'Akkauntsiz davom etish' : 'Davom etish'}
             <ArrowRight className="ml-2 h-5 w-5" />
           </Button>
         </div>

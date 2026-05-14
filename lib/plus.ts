@@ -1,5 +1,5 @@
-import { getLessonsForCourse } from '@/lib/data/lessons'
-import type { CourseId, Lesson, PracticeMode, User, Word, WordReview } from '@/lib/types'
+import { getCourseOption, getLessonsForCourse } from '@/lib/data/lessons'
+import type { CourseId, Lesson, PracticeMode, SkillFocus, User, UserActivityDay, Word, WordReview } from '@/lib/types'
 
 export interface ReviewWordInsight {
   word: Word
@@ -25,6 +25,52 @@ export interface SmartReviewSummary {
   readiness: 'ready' | 'building' | 'empty'
   learnedWordCount: number
   trackedWordCount: number
+}
+
+export interface WeeklyInsightStat {
+  label: string
+  value: number
+  helper: string
+  suffix?: string
+  tone: 'green' | 'gold' | 'blue' | 'orange'
+}
+
+export interface WeeklyTrendDay {
+  date: string
+  label: string
+  active: boolean
+  xp: number
+  sessions: number
+}
+
+export interface WeeklySkillBalance {
+  skill: SkillFocus
+  label: string
+  value: number
+  percentage: number
+  helper: string
+}
+
+export interface WeeklyInsightSummary {
+  stats: WeeklyInsightStat[]
+  trend: WeeklyTrendDay[]
+  skillBalance: WeeklySkillBalance[]
+  courseLabel: string
+  progressPercent: number
+  activeDays: number
+  lessonsCompleted: number
+  xpEarned: number
+  wordsLearned: number
+  wordsReviewed: number
+  missedWords: number
+  practiceSessions: number
+  accuracy: number
+  strongestSkill: string
+  weakestSkill: string
+  nextWeekTarget: string
+  recommendation: string
+  shareText: string
+  hasTrackedWeek: boolean
 }
 
 export type PlusPracticeMode = PracticeMode
@@ -294,16 +340,273 @@ export function getPlusPracticeReward(summary: SmartReviewSummary, practiceMode:
   }
 }
 
-export function getWeeklyInsightStats(user: User | null | undefined, summary: SmartReviewSummary) {
+export function getWeeklyInsightStats(user: User | null | undefined, summary: SmartReviewSummary): WeeklyInsightSummary {
   const selectedCourse = user?.selectedCourse ?? user?.learningPath ?? 'uz-en'
-  const completedLessons = user?.courseProgress?.[selectedCourse]?.completedLessons ?? user?.completedLessons ?? []
+  const course = getCourseOption(selectedCourse)
+  const courseLessons = getLessonsForCourse(selectedCourse)
+  const completedLessonIds = user?.courseProgress?.[selectedCourse]?.completedLessons ?? user?.completedLessons ?? []
+  const completedLessons = courseLessons.filter((lesson) => completedLessonIds.includes(lesson.id))
+  const dates = getRecentDates(7)
+  const weekDays = dates.map((date) => normalizeActivityDay(date, user?.activityLog?.[date]))
+  const hasTrackedWeek = weekDays.some((day) => day.studySessions > 0 || day.xpEarned > 0)
+  const totals = sumActivityDays(weekDays)
+  const fallbackActiveDays = Math.min(user?.streak ?? 0, 7)
+  const activeDays = hasTrackedWeek
+    ? weekDays.filter((day) => day.studySessions > 0 || day.xpEarned > 0).length
+    : fallbackActiveDays
+  const skillSessions = hasTrackedWeek ? totals.skillSessions : getCompletedLessonSkillCounts(completedLessons)
+  const progressPercent = courseLessons.length > 0 ? Math.round((completedLessonIds.length / courseLessons.length) * 100) : 0
+  const lessonsCompleted = hasTrackedWeek ? totals.lessonsCompleted : completedLessonIds.length
+  const xpEarned = hasTrackedWeek ? totals.xpEarned : user?.xp ?? 0
+  const wordsLearned = hasTrackedWeek ? totals.newWordsLearned : summary.learnedWordCount
+  const wordsReviewed = hasTrackedWeek ? totals.wordsReviewed : summary.reviewQueue.length
+  const missedWords = hasTrackedWeek ? totals.missedWords : summary.recentlyMissed.length
+  const practiceSessions = totals.practiceSessions
+  const accuracy = getWeeklyAccuracy(totals.correctAnswers, totals.incorrectAnswers, summary)
+  const strongestSkill = getStrongestSkill(skillSessions)
+  const weakestSkill = getWeakestSkill(skillSessions, summary)
+  const recommendation = getWeeklyRecommendation({
+    activeDays,
+    hasTrackedWeek,
+    lessonsCompleted,
+    missedWords,
+    practiceSessions,
+    skillSessions,
+    summary,
+  })
+  const nextWeekTarget = getNextWeekTarget({ activeDays, lessonsCompleted, xpEarned, summary })
+  const trend = buildWeeklyTrend(weekDays, hasTrackedWeek ? activeDays : fallbackActiveDays)
 
-  return [
-    { label: 'Lessons', value: completedLessons.length, helper: 'completed' },
-    { label: 'XP', value: user?.xp ?? 0, helper: 'total earned' },
-    { label: 'Streak', value: user?.streak ?? 0, helper: 'active days' },
-    { label: 'Review', value: summary.reviewQueue.length, helper: 'ready words' },
-  ]
+  return {
+    stats: [
+      { label: 'XP', value: xpEarned, helper: hasTrackedWeek ? 'this week' : 'total earned', tone: 'gold' },
+      { label: 'Lessons', value: lessonsCompleted, helper: hasTrackedWeek ? 'this week' : 'completed total', tone: 'green' },
+      { label: 'Active', value: activeDays, helper: 'days this week', tone: 'blue' },
+      { label: 'Accuracy', value: accuracy, suffix: '%', helper: accuracy > 0 ? 'answer rate' : 'starts after practice', tone: 'orange' },
+    ],
+    trend,
+    skillBalance: buildSkillBalance(skillSessions),
+    courseLabel: course.title,
+    progressPercent,
+    activeDays,
+    lessonsCompleted,
+    xpEarned,
+    wordsLearned,
+    wordsReviewed,
+    missedWords,
+    practiceSessions,
+    accuracy,
+    strongestSkill,
+    weakestSkill,
+    nextWeekTarget,
+    recommendation,
+    shareText: 'Tilio weekly progress: ' + xpEarned + ' XP, ' + lessonsCompleted + ' lessons, ' + activeDays + '/7 active days, ' + wordsLearned + ' new words. Next: ' + nextWeekTarget,
+    hasTrackedWeek,
+  }
+}
+
+const WEEKLY_SKILLS: SkillFocus[] = ['listening', 'speaking', 'reading', 'grammar', 'writing', 'mixed']
+
+const SKILL_LABELS: Record<SkillFocus, string> = {
+  reading: 'Reading',
+  writing: 'Writing',
+  listening: 'Listening',
+  speaking: 'Speaking',
+  grammar: 'Grammar',
+  mixed: 'Mixed',
+}
+
+function getRecentDates(days: number) {
+  const dates: string[] = []
+  const today = new Date()
+  for (let offset = days - 1; offset >= 0; offset -= 1) {
+    const date = new Date(today)
+    date.setDate(today.getDate() - offset)
+    dates.push(date.toISOString().split('T')[0])
+  }
+  return dates
+}
+
+function normalizeActivityDay(date: string, day?: UserActivityDay): UserActivityDay {
+  return {
+    date,
+    xpEarned: day?.xpEarned ?? 0,
+    feathersEarned: day?.feathersEarned ?? 0,
+    lessonsCompleted: day?.lessonsCompleted ?? 0,
+    practiceSessions: day?.practiceSessions ?? 0,
+    studySessions: day?.studySessions ?? 0,
+    newWordsLearned: day?.newWordsLearned ?? 0,
+    wordsReviewed: day?.wordsReviewed ?? 0,
+    correctAnswers: day?.correctAnswers ?? 0,
+    incorrectAnswers: day?.incorrectAnswers ?? 0,
+    missedWords: day?.missedWords ?? 0,
+    courseSessions: day?.courseSessions ?? {},
+    skillSessions: day?.skillSessions ?? {},
+  }
+}
+
+function sumActivityDays(days: UserActivityDay[]) {
+  const skillSessions: Partial<Record<SkillFocus, number>> = {}
+  const totals = days.reduce(
+    (sum, day) => {
+      for (const skill of WEEKLY_SKILLS) {
+        const value = day.skillSessions[skill] ?? 0
+        if (value > 0) skillSessions[skill] = (skillSessions[skill] ?? 0) + value
+      }
+      return {
+        xpEarned: sum.xpEarned + day.xpEarned,
+        feathersEarned: sum.feathersEarned + day.feathersEarned,
+        lessonsCompleted: sum.lessonsCompleted + day.lessonsCompleted,
+        practiceSessions: sum.practiceSessions + day.practiceSessions,
+        studySessions: sum.studySessions + day.studySessions,
+        newWordsLearned: sum.newWordsLearned + day.newWordsLearned,
+        wordsReviewed: sum.wordsReviewed + day.wordsReviewed,
+        correctAnswers: sum.correctAnswers + day.correctAnswers,
+        incorrectAnswers: sum.incorrectAnswers + day.incorrectAnswers,
+        missedWords: sum.missedWords + day.missedWords,
+      }
+    },
+    {
+      xpEarned: 0,
+      feathersEarned: 0,
+      lessonsCompleted: 0,
+      practiceSessions: 0,
+      studySessions: 0,
+      newWordsLearned: 0,
+      wordsReviewed: 0,
+      correctAnswers: 0,
+      incorrectAnswers: 0,
+      missedWords: 0,
+    },
+  )
+
+  return { ...totals, skillSessions }
+}
+
+function getCompletedLessonSkillCounts(lessons: Lesson[]) {
+  const counts: Partial<Record<SkillFocus, number>> = {}
+  for (const lesson of lessons) {
+    const skill = lesson.skillFocus ?? 'mixed'
+    counts[skill] = (counts[skill] ?? 0) + 1
+  }
+  return counts
+}
+
+function getWeeklyAccuracy(correctAnswers: number, incorrectAnswers: number, summary: SmartReviewSummary) {
+  const total = correctAnswers + incorrectAnswers
+  if (total > 0) return Math.round((correctAnswers / total) * 100)
+
+  const reviewTotals = summary.allInsights.reduce(
+    (sum, item) => ({
+      correct: sum.correct + item.review.correctCount,
+      incorrect: sum.incorrect + item.review.incorrectCount,
+    }),
+    { correct: 0, incorrect: 0 },
+  )
+  const reviewTotal = reviewTotals.correct + reviewTotals.incorrect
+  return reviewTotal > 0 ? Math.round((reviewTotals.correct / reviewTotal) * 100) : 0
+}
+
+function buildWeeklyTrend(days: UserActivityDay[], fallbackActiveDays: number): WeeklyTrendDay[] {
+  const maxXp = Math.max(1, ...days.map((day) => day.xpEarned))
+  const fallbackStart = Math.max(0, days.length - fallbackActiveDays)
+
+  return days.map((day, index) => ({
+    date: day.date,
+    label: getWeekdayLabel(day.date),
+    active: day.studySessions > 0 || day.xpEarned > 0 || (fallbackActiveDays > 0 && index >= fallbackStart),
+    xp: maxXp > 1 ? Math.round((day.xpEarned / maxXp) * 100) : 0,
+    sessions: day.studySessions,
+  }))
+}
+
+function buildSkillBalance(skillSessions: Partial<Record<SkillFocus, number>>): WeeklySkillBalance[] {
+  const maxValue = Math.max(1, ...WEEKLY_SKILLS.map((skill) => skillSessions[skill] ?? 0))
+  return WEEKLY_SKILLS.map((skill) => {
+    const value = skillSessions[skill] ?? 0
+    return {
+      skill,
+      label: SKILL_LABELS[skill],
+      value,
+      percentage: Math.round((value / maxValue) * 100),
+      helper: getSkillHelper(skill, value),
+    }
+  })
+}
+
+function getSkillHelper(skill: SkillFocus, value: number) {
+  if (value === 0) return 'Needs a session'
+  if (skill === 'mixed') return 'Balanced workout'
+  return value === 1 ? '1 session' : String(value) + ' sessions'
+}
+
+function getStrongestSkill(skillSessions: Partial<Record<SkillFocus, number>>) {
+  const strongest = WEEKLY_SKILLS.reduce<SkillFocus>((best, skill) => (
+    (skillSessions[skill] ?? 0) > (skillSessions[best] ?? 0) ? skill : best
+  ), 'mixed')
+  return (skillSessions[strongest] ?? 0) > 0 ? SKILL_LABELS[strongest] : 'Momentum'
+}
+
+function getWeakestSkill(skillSessions: Partial<Record<SkillFocus, number>>, summary: SmartReviewSummary) {
+  if (summary.weakWords.length >= 3) return 'Review'
+  const focusSkills: SkillFocus[] = ['listening', 'speaking', 'grammar', 'writing', 'reading']
+  const weakest = focusSkills.reduce<SkillFocus>((lowest, skill) => (
+    (skillSessions[skill] ?? 0) < (skillSessions[lowest] ?? 0) ? skill : lowest
+  ), focusSkills[0])
+  return SKILL_LABELS[weakest]
+}
+
+function getWeeklyRecommendation({
+  activeDays,
+  hasTrackedWeek,
+  lessonsCompleted,
+  missedWords,
+  practiceSessions,
+  skillSessions,
+  summary,
+}: {
+  activeDays: number
+  hasTrackedWeek: boolean
+  lessonsCompleted: number
+  missedWords: number
+  practiceSessions: number
+  skillSessions: Partial<Record<SkillFocus, number>>
+  summary: SmartReviewSummary
+}) {
+  if (!hasTrackedWeek && lessonsCompleted === 0) {
+    return 'Bugun bitta darsni tugating. Keyin haftalik hisobot real progress bilan toldiriladi.'
+  }
+  if (summary.dueWords.length >= 5) {
+    return 'Smart Review bugun eng kuchli tanlov. Xotira uchun navbatdagi sozlarni hozir mustahkamlang.'
+  }
+  if (missedWords >= 3 || summary.weakWords.length >= 3) {
+    return 'Keyingi mashqni Mistake Practice qiling. Sust sozlar tezroq tiklanadi.'
+  }
+  if ((skillSessions.listening ?? 0) === 0) {
+    return 'Bu hafta Listening Practice qoshing. Quloq organishi gapirishni ham tezlashtiradi.'
+  }
+  if ((skillSessions.speaking ?? 0) === 0) {
+    return 'Speaking Practice bilan 3-5 qisqa iborani ovoz chiqarib qaytaring.'
+  }
+  if (activeDays < 3) {
+    return 'Haftani yutish uchun 3 kunlik ritm yetarli. Ertaga qisqa review bilan qayting.'
+  }
+  if (practiceSessions === 0) {
+    return 'Mixed Practice premium ritmni ochadi: tinglash, tarjima va grammatika bir sessiyada.'
+  }
+  return 'Ajoyib hafta. Endi maqsad: review navbatini toza saqlash va 1 ta speaking sessiya qoshish.'
+}
+
+function getNextWeekTarget({ activeDays, lessonsCompleted, xpEarned, summary }: { activeDays: number; lessonsCompleted: number; xpEarned: number; summary: SmartReviewSummary }) {
+  if (summary.weakWords.length >= 3) return 'Repair 5 weak words'
+  if (activeDays < 4) return 'Study on 4 active days'
+  if (lessonsCompleted < 3) return 'Complete 3 lessons'
+  return 'Reach ' + Math.max(150, Math.ceil((xpEarned + 50) / 25) * 25) + ' weekly XP'
+}
+
+function getWeekdayLabel(date: string) {
+  const labels = ['S', 'M', 'T', 'W', 'T', 'F', 'S']
+  return labels[new Date(date + 'T00:00:00').getDay()]
 }
 
 function hasPracticeSentence(word: Word) {

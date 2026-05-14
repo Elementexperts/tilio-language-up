@@ -12,7 +12,9 @@ import {
   type CloudAuthSession,
   type CourseId,
   type CourseProgress,
+  type SkillFocus,
   type SyncStatus,
+  type UserActivityDay,
 } from './types'
 
 const getToday = () => new Date().toISOString().split('T')[0]
@@ -140,6 +142,40 @@ const getActiveXpMultiplier = (user: User) => {
   return new Date(user.xpMultiplierExpiresAt).getTime() > Date.now() ? user.xpMultiplier ?? 1 : 1
 }
 
+type ActivityUpdate = Pick<UserActivityDay, 'xpEarned' | 'feathersEarned' | 'lessonsCompleted' | 'practiceSessions' | 'studySessions' | 'newWordsLearned' | 'wordsReviewed' | 'correctAnswers' | 'incorrectAnswers' | 'missedWords'> & {
+  date: string
+  courseId: CourseId
+  skillFocus: SkillFocus
+}
+
+const updateActivityLog = (user: User, activity: ActivityUpdate): Record<string, UserActivityDay> => {
+  const existing = user.activityLog?.[activity.date]
+  const courseSessions: Partial<Record<CourseId, number>> = { ...(existing?.courseSessions ?? {}) }
+  const skillSessions: Partial<Record<SkillFocus, number>> = { ...(existing?.skillSessions ?? {}) }
+
+  courseSessions[activity.courseId] = (courseSessions[activity.courseId] ?? 0) + 1
+  skillSessions[activity.skillFocus] = (skillSessions[activity.skillFocus] ?? 0) + 1
+
+  return {
+    ...(user.activityLog ?? {}),
+    [activity.date]: {
+      date: activity.date,
+      xpEarned: (existing?.xpEarned ?? 0) + activity.xpEarned,
+      feathersEarned: (existing?.feathersEarned ?? 0) + activity.feathersEarned,
+      lessonsCompleted: (existing?.lessonsCompleted ?? 0) + activity.lessonsCompleted,
+      practiceSessions: (existing?.practiceSessions ?? 0) + activity.practiceSessions,
+      studySessions: (existing?.studySessions ?? 0) + activity.studySessions,
+      newWordsLearned: (existing?.newWordsLearned ?? 0) + activity.newWordsLearned,
+      wordsReviewed: (existing?.wordsReviewed ?? 0) + activity.wordsReviewed,
+      correctAnswers: (existing?.correctAnswers ?? 0) + activity.correctAnswers,
+      incorrectAnswers: (existing?.incorrectAnswers ?? 0) + activity.incorrectAnswers,
+      missedWords: (existing?.missedWords ?? 0) + activity.missedWords,
+      courseSessions,
+      skillSessions,
+    },
+  }
+}
+
 const buildAchievementPopups = (ids: string[]): AchievementPopup[] =>
   ids
     .map((id) => achievementsData.find((achievement) => achievement.id === id))
@@ -222,6 +258,7 @@ export const useAppStore = create<AppState>()(
                 xpMultiplier: user.xpMultiplier ?? 1,
                 xpMultiplierExpiresAt: user.xpMultiplierExpiresAt ?? null,
                 wordReviews: user.wordReviews ?? {},
+                activityLog: user.activityLog ?? {},
                 cloudUserId: user.cloudUserId,
                 telegramId: user.telegramId,
                 learningPath: normalizeCourseId(user.selectedCourse ?? user.learningPath),
@@ -366,9 +403,10 @@ export const useAppStore = create<AppState>()(
         const featherEarned = state.currentLesson.featherReward ?? 5
         const isPracticeSession = Boolean(state.currentLesson.isPracticeSession)
         const alreadyCompleted = activeProgress.completedLessons.includes(lessonId)
-        const newCompletedLessons = isPracticeSession || alreadyCompleted
-          ? activeProgress.completedLessons
-          : [...activeProgress.completedLessons, lessonId]
+        const lessonCompletedNow = !isPracticeSession && !alreadyCompleted
+        const newCompletedLessons = lessonCompletedNow
+          ? [...activeProgress.completedLessons, lessonId]
+          : activeProgress.completedLessons
 
         // Update daily challenges
         const today = getToday()
@@ -433,6 +471,8 @@ export const useAppStore = create<AppState>()(
         const finalXp = baseXp + achievementRewards.xp
         const finalFeathers = baseFeathers + achievementRewards.feathers
         const finalLevel = getLevel(finalXp)
+        const totalXpEarned = xpEarned + challengeBonusXp + achievementRewards.xp
+        const totalFeathersEarned = featherEarned + challengeBonusFeathers + achievementRewards.feathers
         const nextCourseProgress = {
           ...user.courseProgress,
           [courseId]: {
@@ -453,6 +493,21 @@ export const useAppStore = create<AppState>()(
             completedLessons: newCompletedLessons,
             courseProgress: nextCourseProgress,
             lastActiveDate: today,
+            activityLog: updateActivityLog(user, {
+              date: today,
+              courseId,
+              skillFocus: state.currentLesson.skillFocus ?? 'mixed',
+              xpEarned: totalXpEarned,
+              feathersEarned: totalFeathersEarned,
+              lessonsCompleted: lessonCompletedNow ? 1 : 0,
+              practiceSessions: isPracticeSession ? 1 : 0,
+              studySessions: 1,
+              newWordsLearned: lessonCompletedNow ? state.currentLesson.words.length : 0,
+              wordsReviewed: isPracticeSession || state.currentLesson.isReview ? state.currentLesson.words.length : 0,
+              correctAnswers: state.exerciseAnswers.correct,
+              incorrectAnswers: state.exerciseAnswers.incorrect,
+              missedWords: state.exerciseAnswers.missedWordIds.length,
+            }),
             xpMultiplier: multiplier,
             xpMultiplierExpiresAt: multiplier > 1 ? user.xpMultiplierExpiresAt : null,
           },
@@ -466,8 +521,8 @@ export const useAppStore = create<AppState>()(
           ],
         })
 
-        get().addXpPopup(xpEarned + challengeBonusXp + achievementRewards.xp, 'xp', multiplier > 1 ? `${multiplier}x XP active` : undefined)
-        get().addXpPopup(featherEarned + challengeBonusFeathers + achievementRewards.feathers, 'feathers')
+        get().addXpPopup(totalXpEarned, 'xp', multiplier > 1 ? `${multiplier}x XP active` : undefined)
+        get().addXpPopup(totalFeathersEarned, 'feathers')
       },
 
       addXp: (amount) => {

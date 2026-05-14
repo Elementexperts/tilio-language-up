@@ -1,6 +1,23 @@
 // User types
 export type CourseId = 'uz-en' | 'uz-ko'
 export type PracticeMode = 'smart-review' | 'mistake' | 'listening' | 'speaking' | 'mixed'
+export type SkillFocus = 'reading' | 'writing' | 'listening' | 'speaking' | 'grammar' | 'mixed'
+
+export interface UserActivityDay {
+  date: string
+  xpEarned: number
+  feathersEarned: number
+  lessonsCompleted: number
+  practiceSessions: number
+  studySessions: number
+  newWordsLearned: number
+  wordsReviewed: number
+  correctAnswers: number
+  incorrectAnswers: number
+  missedWords: number
+  courseSessions: Partial<Record<CourseId, number>>
+  skillSessions: Partial<Record<SkillFocus, number>>
+}
 
 export interface CourseProgress {
   completedLessons: string[]
@@ -38,6 +55,7 @@ export interface User {
   xpMultiplier?: number
   xpMultiplierExpiresAt?: string | null
   wordReviews?: Record<string, WordReview>
+  activityLog?: Record<string, UserActivityDay>
   cloudUserId?: string
   telegramId?: string
   lastSyncedAt?: string | null
@@ -93,7 +111,7 @@ export interface Lesson {
   isReview?: boolean
   isPracticeSession?: boolean
   practiceMode?: PracticeMode
-  skillFocus?: 'reading' | 'writing' | 'listening' | 'speaking' | 'grammar' | 'mixed'
+  skillFocus?: SkillFocus
 }
 
 // Exercise types

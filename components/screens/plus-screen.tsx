@@ -1,23 +1,26 @@
-﻿'use client'
+'use client'
 
 import { useMemo, useState } from 'react'
 import { Button } from '@/components/ui/button'
 import { Progress } from '@/components/ui/progress'
 import { SparrowMascot } from '@/components/sparrow-mascot'
 import { useAppStore } from '@/lib/store'
-import { buildSmartReviewSummary, createPlusPracticeLesson, getPlusPracticeReward, getPlusPracticeWordCount, getWeeklyInsightStats, hasTilioPlus, type PlusPracticeMode, type ReviewWordInsight, type SmartReviewSummary } from '@/lib/plus'
+import { buildSmartReviewSummary, createPlusPracticeLesson, getPlusPracticeReward, getPlusPracticeWordCount, getWeeklyInsightStats, hasTilioPlus, type PlusPracticeMode, type ReviewWordInsight, type SmartReviewSummary, type WeeklyInsightSummary } from '@/lib/plus'
 import { cn } from '@/lib/utils'
 import {
   ArrowLeft,
+  Award,
   BarChart3,
   BookOpen,
   Brain,
+  CalendarDays,
   CheckCircle2,
   ChevronRight,
   Clock3,
   Crown,
   Dumbbell,
   Flame,
+  Gauge,
   Headphones,
   Lock,
   MessageCircle,
@@ -30,6 +33,7 @@ import {
   Target,
   Timer,
   TrendingUp,
+  Trophy,
 } from 'lucide-react'
 
 type PlusTab = 'practice' | 'review' | 'chat' | 'insights'
@@ -129,7 +133,7 @@ export function PlusScreen() {
         {activeTab === 'practice' && <PracticeTab plusActive={plusActive} summary={summary} onStartPractice={startPractice} />}
         {activeTab === 'review' && <ReviewTab plusActive={plusActive} summary={summary} onStartReview={() => startPractice('smart-review')} />}
         {activeTab === 'chat' && <ChatTab plusActive={plusActive} />}
-        {activeTab === 'insights' && <InsightsTab plusActive={plusActive} stats={weeklyStats} recommendation={summary.recommendation} />}
+        {activeTab === 'insights' && <InsightsTab plusActive={plusActive} insights={weeklyStats} />}
       </main>
     </div>
   )
@@ -268,50 +272,204 @@ function ChatTab({ plusActive }: { plusActive: boolean }) {
   )
 }
 
-function InsightsTab({ plusActive, stats, recommendation }: { plusActive: boolean; stats: Array<{ label: string; value: number; helper: string }>; recommendation: string }) {
-  const shareText = `Tilio weekly progress: ${stats.map((stat) => `${stat.value} ${stat.label}`).join(', ')}. ${recommendation}`
+function InsightsTab({ plusActive, insights }: { plusActive: boolean; insights: WeeklyInsightSummary }) {
+  const [copied, setCopied] = useState(false)
 
   const shareProgress = async () => {
-    if (typeof window === 'undefined') return
+    if (typeof window === 'undefined' || !plusActive) return
     const nav = window.navigator as Navigator & { share?: (data: ShareData) => Promise<void> }
     if (nav.share) {
-      await nav.share({ title: 'Tilio progress', text: shareText })
+      await nav.share({ title: 'Tilio weekly progress', text: insights.shareText })
       return
     }
-    await nav.clipboard?.writeText(shareText)
+    await nav.clipboard?.writeText(insights.shareText)
+    setCopied(true)
+    window.setTimeout(() => setCopied(false), 1600)
   }
 
   return (
     <section className="mt-4 space-y-4">
-      <div className="grid grid-cols-2 gap-3">
-        {stats.map((stat) => (
-          <div key={stat.label} className="rounded-[1.45rem] border border-white/70 bg-white/78 p-4 shadow-lg shadow-emerald-950/5">
-            <p className="text-2xl font-black text-emerald-950">{stat.value}</p>
-            <p className="font-black">{stat.label}</p>
-            <p className="text-xs font-semibold text-muted-foreground">{stat.helper}</p>
+      <div className="relative overflow-hidden rounded-[1.9rem] border border-emerald-900/20 bg-gradient-to-br from-emerald-950 via-emerald-800 to-lime-600 p-5 text-white shadow-2xl shadow-emerald-950/18">
+        <div className="relative z-10">
+          <div className="mb-4 flex items-start justify-between gap-4">
+            <div className="min-w-0">
+              <p className="text-xs font-extrabold uppercase tracking-[0.16em] text-lime-200">Weekly Insights</p>
+              <h2 className="mt-1 text-2xl font-black leading-tight">Your progress report</h2>
+              <p className="mt-2 text-sm font-semibold text-white/75">
+                {insights.hasTrackedWeek ? 'Live learning rhythm from the last 7 days.' : 'Using current progress until new weekly sessions are tracked.'}
+              </p>
+            </div>
+            <div className="flex size-12 shrink-0 items-center justify-center rounded-2xl bg-white/12 text-lime-200">
+              <BarChart3 className="size-6" />
+            </div>
           </div>
-        ))}
-      </div>
-      <div className="relative overflow-hidden rounded-[1.75rem] border border-lime-200 bg-gradient-to-br from-lime-50 via-white to-emerald-50 p-4 shadow-xl shadow-emerald-950/8">
-        <div className="absolute -right-5 -top-5 size-24 rounded-full bg-lime-200/40 blur-2xl" />
-        <div className="relative z-10 flex items-start gap-3">
-          <div className="flex size-12 shrink-0 items-center justify-center rounded-2xl bg-primary text-white">
-            <TrendingUp className="size-6" />
+
+          <div className="rounded-[1.35rem] border border-white/15 bg-white/10 p-3">
+            <div className="mb-2 flex items-center justify-between gap-3 text-xs font-black uppercase tracking-[0.12em] text-lime-100">
+              <span>{insights.courseLabel}</span>
+              <span>{insights.progressPercent}% course</span>
+            </div>
+            <Progress value={insights.progressPercent} className="h-2 bg-white/18" />
           </div>
-          <div>
-            <p className="text-xs font-extrabold uppercase tracking-[0.16em] text-primary">Next week target</p>
-            <h2 className="text-lg font-black">Personal recommendation</h2>
-            <p className="mt-1 text-sm font-semibold text-muted-foreground">{recommendation}</p>
+
+          <div className="mt-4 grid grid-cols-3 gap-2">
+            <PremiumMiniMetric label="New words" value={insights.wordsLearned} />
+            <PremiumMiniMetric label="Reviewed" value={insights.wordsReviewed} />
+            <PremiumMiniMetric label="Missed" value={insights.missedWords} />
           </div>
         </div>
       </div>
-      <Button disabled={!plusActive} onClick={shareProgress} className="tilio-button h-12 w-full rounded-2xl">
-        <Share2 className="size-5" />
-        Share weekly progress
-      </Button>
-      {!plusActive && <LockedHint />}
+
+      <div className="grid grid-cols-2 gap-3">
+        {insights.stats.map((stat) => <WeeklyStatCard key={stat.label} stat={stat} />)}
+      </div>
+
+      <div className={cn('rounded-[1.75rem] border border-white/70 bg-white/82 p-4 shadow-lg shadow-emerald-950/5', !plusActive && 'relative overflow-hidden')}>
+        <div className={cn(!plusActive && 'blur-[1.5px]')}>
+          <div className="mb-4 flex items-center justify-between gap-3">
+            <div className="flex items-center gap-2">
+              <CalendarDays className="size-5 text-primary" />
+              <h3 className="font-black">7-day rhythm</h3>
+            </div>
+            <span className="rounded-full bg-emerald-50 px-2.5 py-1 text-[10px] font-black uppercase tracking-[0.12em] text-primary">
+              {insights.activeDays}/7 active
+            </span>
+          </div>
+          <WeeklyTrendStrip trend={insights.trend} />
+        </div>
+        {!plusActive && <LockedOverlay />}
+      </div>
+
+      <div className="rounded-[1.75rem] border border-white/70 bg-white/82 p-4 shadow-lg shadow-emerald-950/5">
+        <div className="mb-4 flex items-center gap-2">
+          <Gauge className="size-5 text-primary" />
+          <h3 className="font-black">Skill balance</h3>
+        </div>
+        <WeeklySkillBalanceList skills={insights.skillBalance} locked={!plusActive} />
+      </div>
+
+      <div className="grid grid-cols-2 gap-3">
+        <InsightFocusCard icon={<Trophy className="size-5" />} label="Strongest" value={insights.strongestSkill} tone="gold" />
+        <InsightFocusCard icon={<Target className="size-5" />} label="Focus next" value={insights.weakestSkill} tone="green" />
+      </div>
+
+      <div className="rounded-[1.75rem] border border-lime-200 bg-gradient-to-br from-lime-50 via-white to-emerald-50 p-4 shadow-xl shadow-emerald-950/8">
+        <div className="flex items-start gap-3">
+          <div className="flex size-12 shrink-0 items-center justify-center rounded-2xl bg-primary text-white">
+            <TrendingUp className="size-6" />
+          </div>
+          <div className="min-w-0 flex-1">
+            <p className="text-xs font-extrabold uppercase tracking-[0.16em] text-primary">Next week target</p>
+            <h2 className="text-lg font-black">{insights.nextWeekTarget}</h2>
+            <p className="mt-1 text-sm font-semibold text-muted-foreground">{insights.recommendation}</p>
+          </div>
+        </div>
+      </div>
+
+      <div className="rounded-[1.75rem] border border-emerald-900/10 bg-white/82 p-4 shadow-lg shadow-emerald-950/5">
+        <div className="mb-3 flex items-center gap-2">
+          <Award className="size-5 text-amber-500" />
+          <h3 className="font-black">Shareable progress</h3>
+        </div>
+        <div className={cn('rounded-[1.35rem] border border-lime-200 bg-gradient-to-br from-emerald-50 to-lime-50 p-4', !plusActive && 'blur-[1.5px]')}>
+          <p className="text-xs font-extrabold uppercase tracking-[0.16em] text-primary">Tilio Weekly</p>
+          <p className="mt-2 text-xl font-black text-emerald-950">{insights.xpEarned} XP - {insights.activeDays}/7 active days</p>
+          <p className="mt-1 text-sm font-semibold text-muted-foreground">{insights.wordsLearned} new words learned. {insights.nextWeekTarget}.</p>
+        </div>
+        <Button disabled={!plusActive} onClick={shareProgress} className="tilio-button mt-3 h-12 w-full rounded-2xl">
+          <Share2 className="size-5" />
+          {copied ? 'Copied progress' : 'Share weekly progress'}
+        </Button>
+        {!plusActive && <LockedHint />}
+      </div>
     </section>
   )
+}
+
+function PremiumMiniMetric({ label, value }: { label: string; value: number }) {
+  return (
+    <div className="rounded-2xl border border-white/15 bg-white/10 p-3 text-center">
+      <p className="text-xl font-black">{value}</p>
+      <p className="text-[10px] font-black uppercase tracking-[0.12em] text-white/70">{label}</p>
+    </div>
+  )
+}
+
+function WeeklyStatCard({ stat }: { stat: WeeklyInsightSummary['stats'][number] }) {
+  return (
+    <div className={cn('rounded-[1.45rem] border p-4 shadow-lg shadow-emerald-950/5', getWeeklyStatTone(stat.tone))}>
+      <p className="text-2xl font-black text-emerald-950">{stat.value}{stat.suffix ?? ''}</p>
+      <p className="font-black">{stat.label}</p>
+      <p className="text-xs font-semibold text-muted-foreground">{stat.helper}</p>
+    </div>
+  )
+}
+
+function WeeklyTrendStrip({ trend }: { trend: WeeklyInsightSummary['trend'] }) {
+  return (
+    <div className="grid grid-cols-7 gap-2">
+      {trend.map((day) => {
+        const height = String(day.active ? Math.max(28, day.xp || 44) : 16) + '%'
+        return (
+          <div key={day.date} className="flex h-28 flex-col items-center justify-end gap-2 rounded-2xl bg-emerald-50/70 px-1.5 py-2">
+            <div className="flex h-16 w-full items-end justify-center">
+              <div
+                className={cn('w-5 rounded-full transition-all', day.active ? 'bg-gradient-to-t from-primary to-lime-300 shadow-lg shadow-lime-300/20' : 'bg-emerald-100')}
+                style={{ height }}
+              />
+            </div>
+            <p className={cn('text-[10px] font-black', day.active ? 'text-primary' : 'text-muted-foreground')}>{day.label}</p>
+          </div>
+        )
+      })}
+    </div>
+  )
+}
+
+function WeeklySkillBalanceList({ skills, locked }: { skills: WeeklyInsightSummary['skillBalance']; locked: boolean }) {
+  return (
+    <div className={cn('space-y-3', locked && 'blur-[1.5px]')}>
+      {skills.map((skill) => (
+        <div key={skill.skill}>
+          <div className="mb-1.5 flex items-center justify-between gap-3 text-xs font-black">
+            <span>{skill.label}</span>
+            <span className="text-muted-foreground">{skill.helper}</span>
+          </div>
+          <Progress value={skill.percentage} className="h-2.5" />
+        </div>
+      ))}
+    </div>
+  )
+}
+
+function InsightFocusCard({ icon, label, value, tone }: { icon: React.ReactNode; label: string; value: string; tone: 'green' | 'gold' }) {
+  return (
+    <div className={cn('rounded-[1.45rem] border bg-white/82 p-4 shadow-lg shadow-emerald-950/5', tone === 'gold' ? 'border-amber-200' : 'border-primary/15')}>
+      <div className={cn('mb-3 flex size-10 items-center justify-center rounded-2xl', tone === 'gold' ? 'bg-amber-100 text-amber-700' : 'bg-primary/10 text-primary')}>
+        {icon}
+      </div>
+      <p className="text-[10px] font-black uppercase tracking-[0.12em] text-muted-foreground">{label}</p>
+      <p className="mt-1 truncate font-black">{value}</p>
+    </div>
+  )
+}
+
+function LockedOverlay() {
+  return (
+    <div className="absolute inset-0 flex items-center justify-center bg-white/35 backdrop-blur-[1px]">
+      <span className="inline-flex items-center gap-2 rounded-full bg-emerald-950 px-3 py-2 text-xs font-black text-lime-100 shadow-lg">
+        <Lock className="size-4" />
+        Plus insight
+      </span>
+    </div>
+  )
+}
+
+function getWeeklyStatTone(tone: WeeklyInsightSummary['stats'][number]['tone']) {
+  if (tone === 'gold') return 'border-amber-200 bg-amber-50/80'
+  if (tone === 'blue') return 'border-sky-200 bg-sky-50/80'
+  if (tone === 'orange') return 'border-orange-200 bg-orange-50/80'
+  return 'border-primary/15 bg-white/82'
 }
 
 function PracticeCard({ icon, title, detail, badge, reward, locked, disabled, tone = 'green', onClick }: { icon: React.ReactNode; title: string; detail: string; badge?: string; reward?: string; locked?: boolean; disabled?: boolean; tone?: 'green' | 'orange' | 'gold'; onClick?: () => void }) {

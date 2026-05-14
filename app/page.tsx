@@ -15,6 +15,7 @@ import { DailyChallengesScreen } from '@/components/screens/daily-challenges-scr
 import { ProfileScreen } from '@/components/screens/profile-screen'
 import { ReferralScreen } from '@/components/screens/referral-screen'
 import { StoreScreen } from '@/components/screens/store-screen'
+import { PlusScreen } from '@/components/screens/plus-screen'
 import { DailyChestScreen } from '@/components/screens/daily-chest-screen'
 import { AccountScreen } from '@/components/screens/account-screen'
 import { AuthScreen } from '@/components/screens/auth-screen'
@@ -196,6 +197,8 @@ export default function TilioApp() {
         return <ReferralScreen />
       case 'store':
         return <StoreScreen />
+      case 'plus':
+        return <PlusScreen />
       case 'daily-chest':
         return <DailyChestScreen />
       case 'account':

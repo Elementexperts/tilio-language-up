@@ -186,6 +186,7 @@ export type AppScreen =
   | 'daily-challenges'
   | 'referral'
   | 'store'
+  | 'plus'
   | 'daily-chest'
 
 // XP Popup type

@@ -239,35 +239,212 @@ function ReviewTab({ plusActive, summary, onStartReview }: { plusActive: boolean
 }
 
 function ChatTab({ plusActive }: { plusActive: boolean }) {
-  const scenarios = ['Greetings', 'Cafe', 'Travel', 'Shopping', 'School']
+  const [messages, setMessages] = useState<
+    Array<{
+      id: string
+      role: 'user' | 'assistant'
+      text: string
+    }>
+  >([])
+
+  const [input, setInput] = useState('')
+  const [loading, setLoading] = useState(false)
+  const [error, setError] = useState('')
+
+  const courseId = 'uz-en'
+
+  const scenarios = [
+    {
+      label: 'Salomlashish',
+      prompt: 'Salomlashishni mashq qilamiz.',
+    },
+    {
+      label: 'Kafe',
+      prompt: 'Kafeda buyurtma berishni mashq qilamiz.',
+    },
+    {
+      label: 'Sayohat',
+      prompt: 'Sayohat uchun oddiy dialog qilamiz.',
+    },
+    {
+      label: 'Maktab',
+      prompt: 'Maktab haqida oddiy suhbat qilamiz.',
+    },
+    {
+      label: 'Do‘kon',
+      prompt: 'Do‘konda xarid qilishni mashq qilamiz.',
+    },
+  ]
+
+  const createId = () =>
+    `${Date.now()}-${Math.random().toString(36).slice(2)}`
+
+  const sendMessage = async (message: string) => {
+    const trimmed = message.trim()
+
+    if (!trimmed || loading) return
+
+    setError('')
+
+    const userMessage = {
+      id: createId(),
+      role: 'user' as const,
+      text: trimmed,
+    }
+
+    setMessages((prev) => [...prev, userMessage])
+
+    setInput('')
+    setLoading(true)
+
+    try {
+      const response = await fetch('/api/ai-tutor', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          message:
+            trimmed +
+            '\n\nKeep response beginner-friendly and short.',
+          courseId,
+        }),
+      })
+
+      if (!response.ok) {
+        throw new Error('AI tutor failed')
+      }
+
+      const data = await response.json()
+
+      const aiMessage = {
+        id: createId(),
+        role: 'assistant' as const,
+        text: data.text || 'No response',
+      }
+
+      setMessages((prev) => [...prev, aiMessage])
+    } catch (err) {
+      console.error(err)
+
+      setError(
+        'Xatolik yuz berdi. Internetni tekshirib qayta urinib ko‘ring.',
+      )
+    } finally {
+      setLoading(false)
+    }
+  }
 
   return (
-    <section className="mt-4 space-y-3">
+    <section className="mt-4 space-y-4">
       <div className="premium-card rounded-[1.75rem] p-4">
         <div className="flex items-center gap-3">
           <div className="flex size-12 items-center justify-center rounded-2xl bg-emerald-950 text-lime-200">
             <MessageCircle className="size-6" />
           </div>
-          <div>
-            <p className="text-xs font-extrabold uppercase tracking-[0.16em] text-primary">AI Conversation</p>
-            <h2 className="text-xl font-black">Guided roleplay tutor</h2>
+
+          <div className="min-w-0 flex-1">
+            <p className="text-xs font-extrabold uppercase tracking-[0.16em] text-primary">
+              AI Conversation
+            </p>
+
+            <h2 className="text-xl font-black">
+              Guided roleplay tutor
+            </h2>
           </div>
         </div>
-        <p className="mt-3 text-sm font-semibold text-muted-foreground">Beginner-safe conversations with short replies, corrections, and better phrase suggestions.</p>
+
+        <p className="mt-3 text-sm font-semibold text-muted-foreground">
+          Beginner-safe conversations with short replies,
+          corrections, and better phrase suggestions.
+        </p>
+
+        <div className="mt-4 rounded-2xl border border-lime-200 bg-lime-50 px-4 py-3 text-sm font-semibold text-emerald-950">
+          Free: 3 AI messages/day. Plus: more practice.
+        </div>
+
         {!plusActive && <LockedHint />}
       </div>
-      {scenarios.map((scenario) => (
-        <button key={scenario} className="tilio-pressed flex w-full items-center gap-3 rounded-[1.4rem] border border-white/70 bg-white/78 p-4 text-left shadow-lg shadow-emerald-950/5">
-          <div className="flex size-11 items-center justify-center rounded-2xl bg-primary/10 text-primary">
-            {plusActive ? <MessageCircle className="size-5" /> : <Lock className="size-5" />}
+
+      <div className="flex gap-2 overflow-x-auto pb-1">
+        {scenarios.map((scenario) => (
+          <button
+            key={scenario.label}
+            onClick={() => sendMessage(scenario.prompt)}
+            disabled={loading}
+            className="tilio-pressed shrink-0 rounded-2xl border border-white/70 bg-white/80 px-4 py-3 text-sm font-black shadow-lg shadow-emerald-950/5 disabled:opacity-50"
+          >
+            {scenario.label}
+          </button>
+        ))}
+      </div>
+
+      <div className="space-y-3 rounded-[1.75rem] border border-white/70 bg-white/80 p-4 shadow-lg shadow-emerald-950/5">
+        {messages.length === 0 && (
+          <div className="rounded-2xl bg-emerald-50 p-4 text-sm font-semibold text-emerald-950">
+            Xabar yuboring yoki scenario tanlang.
           </div>
-          <div className="min-w-0 flex-1">
-            <p className="font-black">{scenario}</p>
-            <p className="text-xs font-semibold text-muted-foreground">Correction after every answer</p>
+        )}
+
+        {messages.map((message) => (
+          <div
+            key={message.id}
+            className={`flex ${
+              message.role === 'user'
+                ? 'justify-end'
+                : 'justify-start'
+            }`}
+          >
+            <div
+              className={`max-w-[85%] rounded-[1.4rem] px-4 py-3 text-sm font-semibold leading-6 ${
+                message.role === 'user'
+                  ? 'bg-primary text-white'
+                  : 'bg-emerald-50 text-emerald-950'
+              }`}
+            >
+              {message.text}
+            </div>
           </div>
-          <ChevronRight className="size-5 text-muted-foreground" />
-        </button>
-      ))}
+        ))}
+
+        {loading && (
+          <div className="flex justify-start">
+            <div className="rounded-[1.4rem] bg-emerald-50 px-4 py-3 text-sm font-semibold text-emerald-950">
+              AI yozmoqda...
+            </div>
+          </div>
+        )}
+
+        {error && (
+          <div className="rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-sm font-semibold text-red-600">
+            {error}
+          </div>
+        )}
+      </div>
+
+      <form
+        onSubmit={(e) => {
+          e.preventDefault()
+          sendMessage(input)
+        }}
+        className="flex items-center gap-2 rounded-[1.6rem] border border-white/70 bg-white/80 p-2 shadow-lg shadow-emerald-950/5"
+      >
+        <input
+          value={input}
+          onChange={(e) => setInput(e.target.value)}
+          disabled={loading}
+          placeholder="Xabar yozing..."
+          className="h-12 flex-1 rounded-2xl bg-emerald-50 px-4 text-sm font-semibold outline-none"
+        />
+
+        <Button
+          type="submit"
+          disabled={!input.trim() || loading}
+          className="h-12 rounded-2xl px-5"
+        >
+          Send
+        </Button>
+      </form>
     </section>
   )
 }

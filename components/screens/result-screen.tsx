@@ -18,7 +18,7 @@ export function ResultScreen() {
   const startLesson = useAppStore((state) => state.startLesson)
   const isSoundEnabled = useAppStore((state) => state.isSoundEnabled)
   const { hapticFeedback } = useTelegram()
-  
+
   const [showConfetti, setShowConfetti] = useState(false)
   const [xpAnimated, setXpAnimated] = useState(0)
   const [confettiPieces, setConfettiPieces] = useState<
@@ -35,7 +35,8 @@ export function ResultScreen() {
   const total = correct + incorrect
   const accuracy = total > 0 ? Math.round((correct / total) * 100) : 0
   const xpEarned = Math.max(0, (currentLesson?.xpReward || 0) - incorrect)
-  
+  const isPracticeSession = Boolean(currentLesson?.isPracticeSession)
+
   const isPerfect = accuracy === 100
   const isGood = accuracy >= 80
 
@@ -52,13 +53,13 @@ export function ResultScreen() {
         emoji: ['🎉', '⭐', '✨', '🌟', '💫'][Math.floor(Math.random() * 5)],
       }))
     )
-    
+
     // Animate XP counter
     const duration = 1000
     const steps = 20
     const increment = xpEarned / steps
     let current = 0
-    
+
     const timer = setInterval(() => {
       current += increment
       if (current >= xpEarned) {
@@ -74,7 +75,7 @@ export function ResultScreen() {
 
   const handleContinue = () => {
     hapticFeedback('light')
-    setScreen('home')
+    setScreen(isPracticeSession ? 'plus' : 'home')
   }
 
   const handleRetry = () => {
@@ -111,23 +112,25 @@ export function ResultScreen() {
       {/* Content */}
       <main className="flex-1 flex flex-col items-center justify-center px-6 py-8">
         {/* Mascot */}
-        <SparrowMascot 
-          size="lg" 
-          mood={isPerfect ? 'celebrating' : isGood ? 'happy' : 'thinking'} 
+        <SparrowMascot
+          size="lg"
+          mood={isPerfect ? 'celebrating' : isGood ? 'happy' : 'thinking'}
           branded
           className="mb-6"
         />
 
         {/* Title */}
         <h1 className="text-3xl font-bold text-foreground text-center mb-2 animate-bounce-in">
-          {isPerfect ? 'Perfect!' : isGood ? 'Great job!' : 'Lesson Complete!'}
+          {isPracticeSession ? 'Review Complete!' : isPerfect ? 'Perfect!' : isGood ? 'Great job!' : 'Lesson Complete!'}
         </h1>
         <p className="text-muted-foreground text-center mb-8">
-          {isPerfect 
-            ? 'You nailed every question!' 
-            : isGood 
-              ? 'Keep up the great work!'
-              : 'Practice makes perfect!'
+          {isPracticeSession
+            ? 'Your review queue is getting stronger.'
+            : isPerfect
+              ? 'You nailed every question!'
+              : isGood
+                ? 'Keep up the great work!'
+                : 'Practice makes perfect!'
           }
         </p>
 
@@ -198,7 +201,7 @@ export function ResultScreen() {
         {/* Motivational message */}
         {accuracy < 80 && (
           <p className="text-sm text-muted-foreground text-center mt-6 max-w-xs">
-            Don&apos;t worry! Try the lesson again to improve your score and earn more XP.
+            {isPracticeSession ? 'These words will come back at the right time.' : "Don't worry! Try the lesson again to improve your score and earn more XP."}
           </p>
         )}
       </main>
@@ -213,7 +216,7 @@ export function ResultScreen() {
           Continue
           <ArrowRight className="w-5 h-5 ml-2" />
         </Button>
-        
+
         {accuracy < 100 && (
           <Button
             onClick={handleRetry}
@@ -221,7 +224,7 @@ export function ResultScreen() {
             className="w-full h-12 font-medium rounded-2xl"
           >
             <RotateCcw className="w-4 h-4 mr-2" />
-            Practice Again
+            {isPracticeSession ? 'Review Again' : 'Practice Again'}
           </Button>
         )}
       </div>

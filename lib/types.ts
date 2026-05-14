@@ -90,11 +90,12 @@ export interface Lesson {
   isLocked: boolean
   requiredLessonId?: string
   isReview?: boolean
+  isPracticeSession?: boolean
   skillFocus?: 'reading' | 'writing' | 'listening' | 'speaking' | 'grammar' | 'mixed'
 }
 
 // Exercise types
-export type ExerciseType = 
+export type ExerciseType =
   | 'vocabulary'
   | 'matching'
   | 'sentence-building'
@@ -171,7 +172,7 @@ export interface StoreItem {
 }
 
 // Navigation types
-export type AppScreen = 
+export type AppScreen =
   | 'splash'
   | 'onboarding'
   | 'account'
@@ -243,7 +244,7 @@ export interface AppState {
   showStreakSavedModal: boolean
   showLevelUpModal: boolean
   newLevel: number
-  
+
   // Actions
   setUser: (user: User | null) => void
   updateUser: (updates: Partial<User>) => void

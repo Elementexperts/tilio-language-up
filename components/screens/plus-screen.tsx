@@ -5,14 +5,16 @@ import { Button } from '@/components/ui/button'
 import { Progress } from '@/components/ui/progress'
 import { SparrowMascot } from '@/components/sparrow-mascot'
 import { useAppStore } from '@/lib/store'
-import { buildSmartReviewSummary, createSmartReviewLesson, getWeeklyInsightStats, hasTilioPlus, type ReviewWordInsight } from '@/lib/plus'
+import { buildSmartReviewSummary, createSmartReviewLesson, getWeeklyInsightStats, hasTilioPlus, type ReviewWordInsight, type SmartReviewSummary } from '@/lib/plus'
 import { cn } from '@/lib/utils'
 import {
   ArrowLeft,
   BarChart3,
+  BookOpen,
   Brain,
   CheckCircle2,
   ChevronRight,
+  Clock3,
   Crown,
   Dumbbell,
   Flame,
@@ -22,6 +24,7 @@ import {
   Mic,
   RefreshCcw,
   Share2,
+  ShieldCheck,
   Shuffle,
   Sparkles,
   Target,
@@ -50,7 +53,11 @@ export function PlusScreen() {
   const startSmartReview = () => {
     if (!user || !plusActive) return
     const lesson = createSmartReviewLesson(user, summary)
-    if (lesson) startLesson(lesson)
+    if (lesson) {
+      startLesson(lesson)
+      return
+    }
+    setActiveTab('review')
   }
 
   if (!user) return null
@@ -86,6 +93,11 @@ export function PlusScreen() {
               </div>
               <h2 className="text-3xl font-black leading-tight">Mashqlar aqlliroq. Natija tezroq.</h2>
               <p className="mt-2 text-sm font-semibold leading-5 text-white/78">{summary.recommendation}</p>
+              <div className="mt-4 flex flex-wrap gap-2 text-[11px] font-black uppercase tracking-[0.12em] text-lime-50/90">
+                <span className="inline-flex items-center gap-1 rounded-full bg-white/12 px-2.5 py-1"><Clock3 className="size-3.5" /> {summary.nextReviewLabel}</span>
+                <span className="rounded-full bg-white/12 px-2.5 py-1">{summary.learnedWordCount} learned</span>
+                <span className="rounded-full bg-white/12 px-2.5 py-1">{summary.reviewQueue.length} ready</span>
+              </div>
             </div>
             <SparrowMascot branded mood="celebrating" size="lg" className="shrink-0 rounded-[1.6rem]" />
           </div>
@@ -115,7 +127,7 @@ export function PlusScreen() {
           </div>
         </section>
 
-        {activeTab === 'practice' && <PracticeTab plusActive={plusActive} dueCount={summary.dueWords.length} weakCount={summary.weakWords.length} onStartReview={startSmartReview} />}
+        {activeTab === 'practice' && <PracticeTab plusActive={plusActive} summary={summary} onStartReview={startSmartReview} />}
         {activeTab === 'review' && <ReviewTab plusActive={plusActive} summary={summary} onStartReview={startSmartReview} />}
         {activeTab === 'chat' && <ChatTab plusActive={plusActive} />}
         {activeTab === 'insights' && <InsightsTab plusActive={plusActive} stats={weeklyStats} recommendation={summary.recommendation} />}
@@ -124,19 +136,23 @@ export function PlusScreen() {
   )
 }
 
-function PracticeTab({ plusActive, dueCount, weakCount, onStartReview }: { plusActive: boolean; dueCount: number; weakCount: number; onStartReview: () => void }) {
+function PracticeTab({ plusActive, summary, onStartReview }: { plusActive: boolean; summary: SmartReviewSummary; onStartReview: () => void }) {
+  const canStart = plusActive && summary.reviewQueue.length > 0
+
   return (
     <section className="mt-4 space-y-3">
-      <PracticeCard icon={<Target className="size-6" />} title="Mistake Practice" detail={`${weakCount} weak words ready`} tone="orange" locked={!plusActive} onClick={onStartReview} />
+      <PracticeCard icon={<Target className="size-6" />} title="Mistake Practice" detail={summary.weakWords.length > 0 ? `${summary.weakWords.length} weak words ready` : 'Uses mistakes as soon as they appear'} tone="orange" locked={!plusActive} disabled={plusActive && summary.reviewQueue.length === 0} onClick={onStartReview} />
       <PracticeCard icon={<Headphones className="size-6" />} title="Listening Practice" detail="Audio-first drills with repeat mode" locked={!plusActive} />
       <PracticeCard icon={<Mic className="size-6" />} title="Speaking Practice" detail="Pronunciation attempts and score ring" locked={!plusActive} />
-      <PracticeCard icon={<Shuffle className="size-6" />} title="Mixed Practice" detail={`${dueCount} due words can join a focus workout`} locked={!plusActive} onClick={onStartReview} />
+      <PracticeCard icon={<Shuffle className="size-6" />} title="Mixed Practice" detail={canStart ? `${summary.reviewQueue.length} words in a focus workout` : 'Learns from completed lessons'} locked={!plusActive} disabled={plusActive && summary.reviewQueue.length === 0} onClick={onStartReview} />
       <PracticeCard icon={<Timer className="size-6" />} title="Timed Challenge" detail="Speed rounds, combos, XP multipliers" locked tone="gold" />
     </section>
   )
 }
 
-function ReviewTab({ plusActive, summary, onStartReview }: { plusActive: boolean; summary: ReturnType<typeof buildSmartReviewSummary>; onStartReview: () => void }) {
+function ReviewTab({ plusActive, summary, onStartReview }: { plusActive: boolean; summary: SmartReviewSummary; onStartReview: () => void }) {
+  const canStart = plusActive && summary.reviewQueue.length > 0
+
   return (
     <section className="mt-4 space-y-4">
       <div className="premium-card rounded-[1.75rem] p-4">
@@ -147,17 +163,28 @@ function ReviewTab({ plusActive, summary, onStartReview }: { plusActive: boolean
           <div className="min-w-0 flex-1">
             <p className="text-xs font-extrabold uppercase tracking-[0.16em] text-primary">Smart Review Ready</p>
             <h2 className="text-xl font-black">{summary.reviewQueue.length} words in queue</h2>
-            <p className="text-sm font-semibold text-muted-foreground">Estimated {summary.estimatedMinutes} minutes</p>
+            <p className="text-sm font-semibold text-muted-foreground">{summary.nextReviewLabel} · Estimated {summary.estimatedMinutes} min</p>
           </div>
         </div>
-        <Button disabled={!plusActive || summary.reviewQueue.length === 0} onClick={onStartReview} className="tilio-button mt-4 h-12 w-full rounded-2xl">
+        <div className="mt-4 grid grid-cols-3 gap-2">
+          <MiniStat label="Due" value={summary.dueWords.length} />
+          <MiniStat label="Weak" value={summary.weakWords.length} tone="orange" />
+          <MiniStat label="Tracked" value={summary.trackedWordCount} />
+        </div>
+        <Button disabled={!canStart} onClick={onStartReview} className="tilio-button mt-4 h-12 w-full rounded-2xl">
           <RefreshCcw className="size-5" />
-          Start Smart Review
+          {plusActive ? summary.reviewQueue.length > 0 ? `Start ${summary.reviewQueue.length}-word review` : 'Complete a lesson first' : 'Unlock to start'}
         </Button>
         {!plusActive && <LockedHint />}
       </div>
 
-      <InsightList title="Weak Words" icon={<Flame className="size-5 text-orange-500" />} items={summary.weakWords.slice(0, 5)} empty="No weak words yet. Complete a lesson to unlock this." />
+      {summary.reviewQueue.length > 0 ? (
+        <ReviewQueueList items={summary.reviewQueue} />
+      ) : (
+        <ReviewEmptyState readiness={summary.readiness} />
+      )}
+
+      <InsightList title="Weak Words" icon={<Flame className="size-5 text-orange-500" />} items={summary.weakWords.slice(0, 5)} empty="No weak words yet. Mistakes will appear here automatically." />
       <InsightList title="Recently Missed" icon={<Target className="size-5 text-red-500" />} items={summary.recentlyMissed.slice(0, 5)} empty="Recent mistakes will appear here." />
       <InsightList title="Almost Mastered" icon={<CheckCircle2 className="size-5 text-primary" />} items={summary.almostMastered.slice(0, 5)} empty="Keep practicing to move words into mastery." />
     </section>
@@ -244,14 +271,18 @@ function InsightsTab({ plusActive, stats, recommendation }: { plusActive: boolea
   )
 }
 
-function PracticeCard({ icon, title, detail, locked, tone = 'green', onClick }: { icon: React.ReactNode; title: string; detail: string; locked?: boolean; tone?: 'green' | 'orange' | 'gold'; onClick?: () => void }) {
+function PracticeCard({ icon, title, detail, locked, disabled, tone = 'green', onClick }: { icon: React.ReactNode; title: string; detail: string; locked?: boolean; disabled?: boolean; tone?: 'green' | 'orange' | 'gold'; onClick?: () => void }) {
+  const unavailable = Boolean(disabled || locked)
+
   return (
     <button
-      disabled={locked && !onClick}
-      onClick={locked ? undefined : onClick}
+      disabled={unavailable}
+      onClick={unavailable ? undefined : onClick}
       className={cn(
         'tilio-pressed relative flex w-full items-center gap-4 overflow-hidden rounded-[1.6rem] border bg-white/80 p-4 text-left shadow-lg shadow-emerald-950/5',
         tone === 'orange' ? 'border-orange-200' : tone === 'gold' ? 'border-amber-200' : 'border-primary/15',
+        disabled && 'opacity-72',
+        locked && 'opacity-90',
       )}
     >
       <div className={cn('flex size-14 shrink-0 items-center justify-center rounded-2xl text-white shadow-lg', tone === 'orange' ? 'bg-gradient-to-br from-orange-400 to-red-500 shadow-orange-300/20' : tone === 'gold' ? 'bg-gradient-to-br from-amber-300 to-lime-400 text-emerald-950 shadow-lime-300/20' : 'bg-gradient-to-br from-primary to-emerald-700 shadow-primary/20')}>
@@ -263,6 +294,54 @@ function PracticeCard({ icon, title, detail, locked, tone = 'green', onClick }: 
       </div>
       {locked ? <Lock className="size-5 text-muted-foreground" /> : <ChevronRight className="size-5 text-muted-foreground" />}
     </button>
+  )
+}
+
+function MiniStat({ label, value, tone = 'green' }: { label: string; value: number; tone?: 'green' | 'orange' }) {
+  return (
+    <div className={cn('rounded-2xl border bg-white/70 p-3 text-center', tone === 'orange' ? 'border-orange-200 text-orange-600' : 'border-primary/15 text-primary')}>
+      <p className="text-xl font-black text-foreground">{value}</p>
+      <p className="text-[10px] font-black uppercase tracking-[0.12em] text-muted-foreground">{label}</p>
+    </div>
+  )
+}
+
+function ReviewQueueList({ items }: { items: ReviewWordInsight[] }) {
+  return (
+    <div className="rounded-[1.75rem] border border-white/70 bg-white/78 p-4 shadow-lg shadow-emerald-950/5">
+      <div className="mb-3 flex items-center gap-2">
+        <ShieldCheck className="size-5 text-primary" />
+        <h3 className="font-black">Today&apos;s Queue</h3>
+      </div>
+      <div className="space-y-2">
+        {items.slice(0, 6).map((item, index) => (
+          <div key={item.word.id} className="flex items-center gap-3 rounded-2xl bg-emerald-50/70 p-3">
+            <div className="flex size-9 shrink-0 items-center justify-center rounded-xl bg-white text-sm font-black text-primary shadow-sm">{index + 1}</div>
+            <div className="min-w-0 flex-1">
+              <p className="truncate font-black">{item.word.english}</p>
+              <p className="truncate text-xs font-semibold text-muted-foreground">{item.reason} · {item.lessonTitle ?? item.word.category}</p>
+            </div>
+            <span className="rounded-full bg-white px-2 py-1 text-[10px] font-black text-emerald-700">{Math.round(item.accuracy * 100)}%</span>
+          </div>
+        ))}
+      </div>
+    </div>
+  )
+}
+
+function ReviewEmptyState({ readiness }: { readiness: SmartReviewSummary['readiness'] }) {
+  return (
+    <div className="rounded-[1.75rem] border border-white/70 bg-white/78 p-5 text-center shadow-lg shadow-emerald-950/5">
+      <div className="mx-auto mb-3 flex size-14 items-center justify-center rounded-2xl bg-primary/10 text-primary">
+        <BookOpen className="size-7" />
+      </div>
+      <h3 className="text-lg font-black">{readiness === 'empty' ? 'Review is warming up' : 'Review data is building'}</h3>
+      <p className="mx-auto mt-2 max-w-xs text-sm font-semibold text-muted-foreground">
+        {readiness === 'empty'
+          ? 'Complete one lesson and Tilio Plus will build a personal queue from your learned words.'
+          : 'Keep answering a few questions. Weak words and due words will appear automatically.'}
+      </p>
+    </div>
   )
 }
 
@@ -281,7 +360,7 @@ function InsightList({ title, icon, items, empty }: { title: string; icon: React
             <div key={item.word.id} className="flex items-center gap-3 rounded-2xl bg-emerald-50/70 p-3">
               <div className="min-w-0 flex-1">
                 <p className="truncate font-black">{item.word.english}</p>
-                <p className="truncate text-xs font-semibold text-muted-foreground">{item.word.uzbek}</p>
+                <p className="truncate text-xs font-semibold text-muted-foreground">{item.word.uzbek} · {item.reason}</p>
               </div>
               <div className="w-24">
                 <Progress value={Math.round(item.accuracy * 100)} className="h-2" />

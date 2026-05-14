@@ -231,7 +231,7 @@ export const useAppStore = create<AppState>()(
               })
             : null,
         }),
-      
+
       updateUser: (updates) => set((state) => ({
         user: state.user ? { ...state.user, ...updates } : null,
       })),
@@ -364,7 +364,9 @@ export const useAppStore = create<AppState>()(
         const rawXpEarned = Math.max(0, state.currentLesson.xpReward - state.exerciseAnswers.incorrect)
         const xpEarned = Math.round(rawXpEarned * multiplier)
         const featherEarned = state.currentLesson.featherReward ?? 5
-        const newCompletedLessons = activeProgress.completedLessons.includes(lessonId)
+        const isPracticeSession = Boolean(state.currentLesson.isPracticeSession)
+        const alreadyCompleted = activeProgress.completedLessons.includes(lessonId)
+        const newCompletedLessons = isPracticeSession || alreadyCompleted
           ? activeProgress.completedLessons
           : [...activeProgress.completedLessons, lessonId]
 
@@ -374,11 +376,12 @@ export const useAppStore = create<AppState>()(
         if (challenges.length === 0 || challenges[0].date !== today) {
           challenges = generateDailyChallenges()
         }
-        
+
         challenges = challenges.map((challenge) => {
           if (challenge.completed) return challenge
-          
+
           if (challenge.type === 'lessons') {
+            if (isPracticeSession) return challenge
             const newCurrent = challenge.current + 1
             return {
               ...challenge,

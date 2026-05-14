@@ -223,18 +223,27 @@ export function buildLessonExercises(
 
   const previousWords = getPreviousLessonWords(lesson)
   const dueReviewWords = getDueReviewWords(lesson, wordReviews, today)
+  const isFocusedReview = Boolean(lesson.isPracticeSession)
   const newWordIds = new Set(words.map((word) => word.id))
   const mixedPracticeWords = uniqueWords([
     ...reviewSortedWords,
     ...seededSort(dueReviewWords.filter((word) => !newWordIds.has(word.id)), `due-${lesson.id}`),
     ...seededSort(previousWords, `previous-${lesson.id}`),
   ])
-  const reviewPracticeWords = uniqueWords([
-    ...dueReviewWords,
-    ...reviewSortedWords,
-    ...previousWords,
-  ])
+  const reviewPracticeWords = isFocusedReview
+    ? reviewSortedWords
+    : uniqueWords([
+        ...dueReviewWords,
+        ...reviewSortedWords,
+        ...previousWords,
+      ])
   const practiceSourceWords = lesson.isReview ? reviewPracticeWords : mixedPracticeWords
+  const optionSourceWords = uniqueWords([
+    ...practiceSourceWords,
+    ...previousWords,
+    ...dueReviewWords,
+    ...words,
+  ])
 
   const createExercise = (type: LessonExerciseType, word: Word, index: number): LessonExercise | null => {
     const correctAnswer = isUzToEn ? word.uzbek : word.english
@@ -244,7 +253,7 @@ export function buildLessonExercises(
     const hasSentence = Boolean(example && translatedExample && wordCount(example) > 1)
     const sentenceTarget = example ?? sourceText
     const sentenceTiles = seededSort(sentenceTarget.split(' ').filter(Boolean), `tiles-${word.id}-${type}-${isUzToEn ? 'uz-en' : 'en-uz'}`)
-    const choicePool = type === 'translation' ? practiceSourceWords : words
+    const choicePool = type === 'translation' ? optionSourceWords : words
 
     if (type === 'sentence-builder' && !hasSentence) return null
     if ((type === 'listening' || type === 'pronunciation' || type === 'grammar') && !example) return null
@@ -257,7 +266,7 @@ export function buildLessonExercises(
         type,
         word,
         options: buildTextOptions(
-          practiceSourceWords.map((candidate) => candidate.example?.uzbek ?? candidate.uzbek),
+          optionSourceWords.map((candidate) => candidate.example?.uzbek ?? candidate.uzbek),
           translatedExample,
           `${lesson.id}-${type}-${word.id}-${index}`
         ),
@@ -278,7 +287,7 @@ export function buildLessonExercises(
         type,
         word,
         options: buildTextOptions(
-          practiceSourceWords.map((candidate) => candidate.english),
+          optionSourceWords.map((candidate) => candidate.english),
           sourceText,
           `${lesson.id}-${type}-${word.id}-${index}`
         ),

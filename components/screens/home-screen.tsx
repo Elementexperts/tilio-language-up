@@ -9,7 +9,7 @@ import { useAppStore } from '@/lib/store'
 import { useTelegram } from '@/hooks/use-telegram'
 import { useHasMounted } from '@/hooks/use-has-mounted'
 import { getCourseOption, getLessonsForCourse, getNextLesson } from '@/lib/data/lessons'
-import { buildSmartReviewSummary, hasTilioPlus } from '@/lib/plus'
+import { buildSmartReviewSummary, createSmartReviewLesson, hasTilioPlus } from '@/lib/plus'
 import { getXpProgress, getXpToNextLevel } from '@/lib/types'
 import { cn } from '@/lib/utils'
 import { ArrowRight, BookOpen, ChevronRight, Flame, Feather, Gift, Headphones, Home, Medal, MessageCircle, Play, ShoppingBag, Sparkles, Target, Trophy, UserRound, Users, Zap } from 'lucide-react'
@@ -18,6 +18,7 @@ export function HomeScreen() {
   const user = useAppStore((state) => state.user)
   const dailyChallenges = useAppStore((state) => state.dailyChallenges)
   const setScreen = useAppStore((state) => state.setScreen)
+  const startLesson = useAppStore((state) => state.startLesson)
   const canClaimChest = useAppStore((state) => state.canClaimChest)
   const { hapticFeedback } = useTelegram()
   const hasMounted = useHasMounted()
@@ -65,6 +66,19 @@ export function HomeScreen() {
   const avatarSrc = user.photoUrl ?? (user.avatarStyle === 'girl' ? '/avatars/tilio-girl-avatar.png' : '/avatars/tilio-boy-avatar.png')
   const plusActive = hasTilioPlus(user)
   const smartReview = buildSmartReviewSummary(user)
+  const handleSmartReview = () => {
+    if (plusActive && smartReview.reviewQueue.length > 0) {
+      const lesson = createSmartReviewLesson(user, smartReview)
+      if (lesson) {
+        hapticFeedback('medium')
+        startLesson(lesson)
+        return
+      }
+    }
+
+    hapticFeedback('light')
+    setScreen('plus')
+  }
 
   return (
     <div className="tilio-shell flex flex-col">
@@ -185,10 +199,7 @@ export function HomeScreen() {
 
         <button
           className="tilio-pressed mt-4 w-full overflow-hidden rounded-[1.75rem] border border-lime-200/80 bg-gradient-to-br from-emerald-950 via-emerald-800 to-lime-600 p-4 text-left text-white shadow-2xl shadow-emerald-950/16"
-          onClick={() => {
-            hapticFeedback('light')
-            setScreen('plus')
-          }}
+          onClick={handleSmartReview}
         >
           <div className="flex items-center gap-3">
             <div className="flex size-12 shrink-0 items-center justify-center rounded-2xl bg-white/14 text-lime-100 shadow-lg shadow-lime-300/10">
@@ -198,12 +209,19 @@ export function HomeScreen() {
               <div className="mb-1 inline-flex items-center gap-1.5 rounded-full bg-white/12 px-2.5 py-1 text-[10px] font-black uppercase tracking-[0.14em] text-lime-100">
                 {plusActive ? 'Plus active' : 'Premium preview'}
               </div>
-              <h2 className="text-lg font-black">Smart Review Ready</h2>
+              <h2 className="text-lg font-black">{smartReview.reviewQueue.length > 0 ? 'Smart Review Ready' : 'Tilio Plus Coach'}</h2>
               <p className="text-sm font-semibold text-white/75">
                 {smartReview.reviewQueue.length > 0
                   ? `${smartReview.reviewQueue.length} words, about ${smartReview.estimatedMinutes} min`
-                  : 'Practice, Review, Chat and Insights'}
+                  : smartReview.learnedWordCount > 0
+                    ? smartReview.nextReviewLabel
+                    : 'Practice, Review, Chat and Insights'}
               </p>
+              <div className="mt-2 flex flex-wrap gap-1.5 text-[10px] font-black uppercase tracking-[0.12em] text-lime-50/90">
+                <span className="rounded-full bg-white/12 px-2 py-1">{smartReview.dueWords.length} due</span>
+                <span className="rounded-full bg-white/12 px-2 py-1">{smartReview.weakWords.length} weak</span>
+                <span className="rounded-full bg-white/12 px-2 py-1">{plusActive && smartReview.reviewQueue.length > 0 ? 'Start now' : 'Open Plus'}</span>
+              </div>
             </div>
             <ChevronRight className="size-5 text-white/72" />
           </div>

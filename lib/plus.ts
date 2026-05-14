@@ -1,5 +1,5 @@
 import { getLessonsForCourse } from '@/lib/data/lessons'
-import type { CourseId, Lesson, User, Word, WordReview } from '@/lib/types'
+import type { CourseId, Lesson, PracticeMode, User, Word, WordReview } from '@/lib/types'
 
 export interface ReviewWordInsight {
   word: Word
@@ -25,6 +25,84 @@ export interface SmartReviewSummary {
   readiness: 'ready' | 'building' | 'empty'
   learnedWordCount: number
   trackedWordCount: number
+}
+
+export type PlusPracticeMode = PracticeMode
+
+interface PracticeModeConfig {
+  title: string
+  titleUz: string
+  description: string
+  descriptionUz: string
+  category: string
+  skillFocus: Lesson['skillFocus']
+  baseXp: number
+  xpPerWord: number
+  featherBase: number
+  maxWords: number
+}
+
+const PRACTICE_MODE_CONFIG: Record<PlusPracticeMode, PracticeModeConfig> = {
+  'smart-review': {
+    title: 'Smart Review',
+    titleUz: 'Aqlli takrorlash',
+    description: 'Personalized review from weak and due words.',
+    descriptionUz: 'Xatolar va takrorlash vaqti kelgan sozlardan tuzilgan mashq.',
+    category: 'plus-review',
+    skillFocus: 'mixed',
+    baseXp: 12,
+    xpPerWord: 4,
+    featherBase: 5,
+    maxWords: 10,
+  },
+  mistake: {
+    title: 'Mistake Practice',
+    titleUz: 'Xatolar mashqi',
+    description: 'Focused repair session for missed and weak words.',
+    descriptionUz: 'Xato qilingan va sust sozlarni mustahkamlash mashqi.',
+    category: 'plus-mistakes',
+    skillFocus: 'mixed',
+    baseXp: 14,
+    xpPerWord: 4,
+    featherBase: 6,
+    maxWords: 10,
+  },
+  listening: {
+    title: 'Listening Practice',
+    titleUz: 'Tinglash mashqi',
+    description: 'Audio-first sentence recognition workout.',
+    descriptionUz: 'Gaplarni eshitib tanish uchun audio mashq.',
+    category: 'plus-listening',
+    skillFocus: 'listening',
+    baseXp: 16,
+    xpPerWord: 5,
+    featherBase: 6,
+    maxWords: 8,
+  },
+  speaking: {
+    title: 'Speaking Practice',
+    titleUz: 'Talaffuz mashqi',
+    description: 'Microphone practice with simple pronunciation scoring.',
+    descriptionUz: 'Mikrofon orqali talaffuzni tekshirish mashqi.',
+    category: 'plus-speaking',
+    skillFocus: 'speaking',
+    baseXp: 16,
+    xpPerWord: 5,
+    featherBase: 6,
+    maxWords: 8,
+  },
+  mixed: {
+    title: 'Mixed Practice',
+    titleUz: 'Aralash mashq',
+    description: 'A balanced focus workout across listening, translation, grammar, and speaking.',
+    descriptionUz: 'Tinglash, tarjima, grammatika va talaffuzni birlashtirgan mashq.',
+    category: 'plus-mixed',
+    skillFocus: 'mixed',
+    baseXp: 18,
+    xpPerWord: 4,
+    featherBase: 7,
+    maxWords: 12,
+  },
 }
 
 const DAY_MS = 24 * 60 * 60 * 1000
@@ -123,27 +201,96 @@ export function buildSmartReviewSummary(user: User | null | undefined): SmartRev
 }
 
 export function createSmartReviewLesson(user: User, summary: SmartReviewSummary): Lesson | null {
+  return createPlusPracticeLesson(user, summary, 'smart-review')
+}
+
+export function createPlusPracticeLesson(user: User, summary: SmartReviewSummary, practiceMode: PlusPracticeMode): Lesson | null {
   const courseId = user.selectedCourse ?? user.learningPath
-  const queueWords = uniqueWords(summary.reviewQueue.map((item) => item.word))
+  const config = PRACTICE_MODE_CONFIG[practiceMode]
+  const queueWords = uniqueWords(getPlusPracticeQueue(summary, practiceMode).map((item) => item.word)).slice(0, config.maxWords)
   if (queueWords.length === 0) return null
 
   return {
-    id: `plus-smart-review-${courseId}-${getToday()}`,
+    id: `plus-${practiceMode}-${courseId}-${getToday()}`,
     courseId,
-    title: 'Smart Review',
-    titleUz: 'Aqlli takrorlash',
-    description: 'Personalized review from weak and due words.',
-    descriptionUz: 'Xatolar va takrorlash vaqti kelgan sozlardan tuzilgan mashq.',
-    category: 'plus-review',
+    title: config.title,
+    titleUz: config.titleUz,
+    description: config.description,
+    descriptionUz: config.descriptionUz,
+    category: config.category,
     level: user.level,
     words: queueWords,
-    xpReward: Math.min(36, Math.max(16, queueWords.length * 4)),
-    featherReward: Math.min(12, Math.max(5, Math.ceil(queueWords.length / 2))),
+    xpReward: Math.min(48, Math.max(config.baseXp, queueWords.length * config.xpPerWord)),
+    featherReward: Math.min(14, Math.max(config.featherBase, Math.ceil(queueWords.length / 2))),
     order: 999,
     isLocked: false,
     isReview: true,
     isPracticeSession: true,
-    skillFocus: 'mixed',
+    practiceMode,
+    skillFocus: config.skillFocus,
+  }
+}
+
+export function getPlusPracticeQueue(summary: SmartReviewSummary, practiceMode: PlusPracticeMode): ReviewWordInsight[] {
+  const sentenceReady = (item: ReviewWordInsight) => hasPracticeSentence(item.word)
+
+  if (practiceMode === 'mistake') {
+    return uniqueInsights([
+      ...summary.weakWords,
+      ...summary.recentlyMissed,
+      ...summary.dueWords,
+      ...summary.reviewQueue,
+      ...summary.allInsights,
+    ])
+  }
+
+  if (practiceMode === 'listening') {
+    const listeningQueue = uniqueInsights([
+      ...summary.reviewQueue,
+      ...summary.dueWords,
+      ...summary.weakWords,
+      ...summary.allInsights,
+    ]).filter(sentenceReady)
+    return listeningQueue.length > 0 ? listeningQueue : summary.reviewQueue
+  }
+
+  if (practiceMode === 'speaking') {
+    const speakingQueue = uniqueInsights([
+      ...summary.weakWords,
+      ...summary.reviewQueue,
+      ...summary.allInsights,
+    ]).filter(sentenceReady)
+    return speakingQueue.length > 0 ? speakingQueue : summary.reviewQueue
+  }
+
+  if (practiceMode === 'mixed') {
+    return uniqueInsights([
+      ...summary.dueWords,
+      ...summary.weakWords,
+      ...summary.almostMastered,
+      ...summary.recentlyMissed,
+      ...summary.reviewQueue,
+      ...summary.allInsights,
+    ])
+  }
+
+  return summary.reviewQueue
+}
+
+export function getPlusPracticeWordCount(summary: SmartReviewSummary, practiceMode: PlusPracticeMode) {
+  return Math.min(PRACTICE_MODE_CONFIG[practiceMode].maxWords, getPlusPracticeQueue(summary, practiceMode).length)
+}
+
+export function getPlusPracticeTitle(practiceMode: PlusPracticeMode) {
+  return PRACTICE_MODE_CONFIG[practiceMode].title
+}
+
+export function getPlusPracticeReward(summary: SmartReviewSummary, practiceMode: PlusPracticeMode) {
+  const config = PRACTICE_MODE_CONFIG[practiceMode]
+  const wordCount = getPlusPracticeWordCount(summary, practiceMode)
+  return {
+    xp: Math.min(48, Math.max(config.baseXp, wordCount * config.xpPerWord)),
+    feathers: Math.min(14, Math.max(config.featherBase, Math.ceil(wordCount / 2))),
   }
 }
 
@@ -157,6 +304,10 @@ export function getWeeklyInsightStats(user: User | null | undefined, summary: Sm
     { label: 'Streak', value: user?.streak ?? 0, helper: 'active days' },
     { label: 'Review', value: summary.reviewQueue.length, helper: 'ready words' },
   ]
+}
+
+function hasPracticeSentence(word: Word) {
+  return Boolean(word.example?.english && word.example?.uzbek)
 }
 
 function createInsight(word: Word, review: WordReview, lessonTitle?: string): ReviewWordInsight {

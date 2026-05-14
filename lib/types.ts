@@ -1,5 +1,6 @@
 // User types
 export type CourseId = 'uz-en' | 'uz-ko'
+export type PracticeMode = 'smart-review' | 'mistake' | 'listening' | 'speaking' | 'mixed'
 
 export interface CourseProgress {
   completedLessons: string[]
@@ -91,6 +92,7 @@ export interface Lesson {
   requiredLessonId?: string
   isReview?: boolean
   isPracticeSession?: boolean
+  practiceMode?: PracticeMode
   skillFocus?: 'reading' | 'writing' | 'listening' | 'speaking' | 'grammar' | 'mixed'
 }
 

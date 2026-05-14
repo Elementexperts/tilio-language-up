@@ -1,11 +1,11 @@
-'use client'
+﻿'use client'
 
 import { useMemo, useState } from 'react'
 import { Button } from '@/components/ui/button'
 import { Progress } from '@/components/ui/progress'
 import { SparrowMascot } from '@/components/sparrow-mascot'
 import { useAppStore } from '@/lib/store'
-import { buildSmartReviewSummary, createSmartReviewLesson, getWeeklyInsightStats, hasTilioPlus, type ReviewWordInsight, type SmartReviewSummary } from '@/lib/plus'
+import { buildSmartReviewSummary, createPlusPracticeLesson, getPlusPracticeReward, getPlusPracticeWordCount, getWeeklyInsightStats, hasTilioPlus, type PlusPracticeMode, type ReviewWordInsight, type SmartReviewSummary } from '@/lib/plus'
 import { cn } from '@/lib/utils'
 import {
   ArrowLeft,
@@ -50,16 +50,15 @@ export function PlusScreen() {
   const summary = useMemo(() => buildSmartReviewSummary(user), [user])
   const weeklyStats = useMemo(() => getWeeklyInsightStats(user, summary), [summary, user])
 
-  const startSmartReview = () => {
+  const startPractice = (practiceMode: PlusPracticeMode) => {
     if (!user || !plusActive) return
-    const lesson = createSmartReviewLesson(user, summary)
+    const lesson = createPlusPracticeLesson(user, summary, practiceMode)
     if (lesson) {
       startLesson(lesson)
       return
     }
     setActiveTab('review')
   }
-
   if (!user) return null
 
   return (
@@ -127,8 +126,8 @@ export function PlusScreen() {
           </div>
         </section>
 
-        {activeTab === 'practice' && <PracticeTab plusActive={plusActive} summary={summary} onStartReview={startSmartReview} />}
-        {activeTab === 'review' && <ReviewTab plusActive={plusActive} summary={summary} onStartReview={startSmartReview} />}
+        {activeTab === 'practice' && <PracticeTab plusActive={plusActive} summary={summary} onStartPractice={startPractice} />}
+        {activeTab === 'review' && <ReviewTab plusActive={plusActive} summary={summary} onStartReview={() => startPractice('smart-review')} />}
         {activeTab === 'chat' && <ChatTab plusActive={plusActive} />}
         {activeTab === 'insights' && <InsightsTab plusActive={plusActive} stats={weeklyStats} recommendation={summary.recommendation} />}
       </main>
@@ -136,16 +135,60 @@ export function PlusScreen() {
   )
 }
 
-function PracticeTab({ plusActive, summary, onStartReview }: { plusActive: boolean; summary: SmartReviewSummary; onStartReview: () => void }) {
-  const canStart = plusActive && summary.reviewQueue.length > 0
+function PracticeTab({ plusActive, summary, onStartPractice }: { plusActive: boolean; summary: SmartReviewSummary; onStartPractice: (practiceMode: PlusPracticeMode) => void }) {
+  const mistakeCount = getPlusPracticeWordCount(summary, 'mistake')
+  const listeningCount = getPlusPracticeWordCount(summary, 'listening')
+  const speakingCount = getPlusPracticeWordCount(summary, 'speaking')
+  const mixedCount = getPlusPracticeWordCount(summary, 'mixed')
+  const mistakeReward = getPlusPracticeReward(summary, 'mistake')
+  const listeningReward = getPlusPracticeReward(summary, 'listening')
+  const speakingReward = getPlusPracticeReward(summary, 'speaking')
+  const mixedReward = getPlusPracticeReward(summary, 'mixed')
 
   return (
     <section className="mt-4 space-y-3">
-      <PracticeCard icon={<Target className="size-6" />} title="Mistake Practice" detail={summary.weakWords.length > 0 ? `${summary.weakWords.length} weak words ready` : 'Uses mistakes as soon as they appear'} tone="orange" locked={!plusActive} disabled={plusActive && summary.reviewQueue.length === 0} onClick={onStartReview} />
-      <PracticeCard icon={<Headphones className="size-6" />} title="Listening Practice" detail="Audio-first drills with repeat mode" locked={!plusActive} />
-      <PracticeCard icon={<Mic className="size-6" />} title="Speaking Practice" detail="Pronunciation attempts and score ring" locked={!plusActive} />
-      <PracticeCard icon={<Shuffle className="size-6" />} title="Mixed Practice" detail={canStart ? `${summary.reviewQueue.length} words in a focus workout` : 'Learns from completed lessons'} locked={!plusActive} disabled={plusActive && summary.reviewQueue.length === 0} onClick={onStartReview} />
-      <PracticeCard icon={<Timer className="size-6" />} title="Timed Challenge" detail="Speed rounds, combos, XP multipliers" locked tone="gold" />
+      <PracticeCard
+        icon={<Target className="size-6" />}
+        title="Mistake Practice"
+        detail={mistakeCount > 0 ? 'Repair missed and weak words first' : 'Uses mistakes as soon as they appear'}
+        badge={mistakeCount > 0 ? String(mistakeCount) + ' words' : 'No misses yet'}
+        reward={'+' + mistakeReward.xp + ' XP'}
+        tone="orange"
+        locked={!plusActive}
+        disabled={plusActive && mistakeCount === 0}
+        onClick={() => onStartPractice('mistake')}
+      />
+      <PracticeCard
+        icon={<Headphones className="size-6" />}
+        title="Listening Practice"
+        detail={listeningCount > 0 ? 'Sentence audio, repeat, and recognition' : 'Needs example sentences from completed lessons'}
+        badge={listeningCount > 0 ? String(listeningCount) + ' audio drills' : 'Building'}
+        reward={'+' + listeningReward.xp + ' XP'}
+        locked={!plusActive}
+        disabled={plusActive && listeningCount === 0}
+        onClick={() => onStartPractice('listening')}
+      />
+      <PracticeCard
+        icon={<Mic className="size-6" />}
+        title="Speaking Practice"
+        detail={speakingCount > 0 ? 'Microphone attempts with score rings' : 'Needs speakable phrases'}
+        badge={speakingCount > 0 ? String(speakingCount) + ' phrases' : 'Building'}
+        reward={'+' + speakingReward.xp + ' XP'}
+        locked={!plusActive}
+        disabled={plusActive && speakingCount === 0}
+        onClick={() => onStartPractice('speaking')}
+      />
+      <PracticeCard
+        icon={<Shuffle className="size-6" />}
+        title="Mixed Practice"
+        detail={mixedCount > 0 ? 'Listening, grammar, speaking, and translation' : 'Learns from completed lessons'}
+        badge={mixedCount > 0 ? String(mixedCount) + ' focus words' : 'Building'}
+        reward={'+' + mixedReward.xp + ' XP'}
+        locked={!plusActive}
+        disabled={plusActive && mixedCount === 0}
+        onClick={() => onStartPractice('mixed')}
+      />
+      <PracticeCard icon={<Timer className="size-6" />} title="Timed Challenge" detail="Speed rounds, combos, XP multipliers" badge="Coming next" locked tone="gold" />
     </section>
   )
 }
@@ -271,8 +314,8 @@ function InsightsTab({ plusActive, stats, recommendation }: { plusActive: boolea
   )
 }
 
-function PracticeCard({ icon, title, detail, locked, disabled, tone = 'green', onClick }: { icon: React.ReactNode; title: string; detail: string; locked?: boolean; disabled?: boolean; tone?: 'green' | 'orange' | 'gold'; onClick?: () => void }) {
-  const unavailable = Boolean(disabled || locked)
+function PracticeCard({ icon, title, detail, badge, reward, locked, disabled, tone = 'green', onClick }: { icon: React.ReactNode; title: string; detail: string; badge?: string; reward?: string; locked?: boolean; disabled?: boolean; tone?: 'green' | 'orange' | 'gold'; onClick?: () => void }) {
+  const unavailable = Boolean(disabled || locked || !onClick)
 
   return (
     <button
@@ -291,6 +334,12 @@ function PracticeCard({ icon, title, detail, locked, disabled, tone = 'green', o
       <div className={cn('min-w-0 flex-1', locked && 'blur-[1.5px]')}>
         <p className="font-black">{title}</p>
         <p className="text-sm font-semibold text-muted-foreground">{detail}</p>
+        {(badge || reward) && (
+          <div className="mt-2 flex flex-wrap gap-1.5 text-[10px] font-black uppercase tracking-[0.12em]">
+            {badge && <span className="rounded-full bg-emerald-50 px-2 py-1 text-emerald-700">{badge}</span>}
+            {reward && <span className="rounded-full bg-amber-50 px-2 py-1 text-amber-700">{reward}</span>}
+          </div>
+        )}
       </div>
       {locked ? <Lock className="size-5 text-muted-foreground" /> : <ChevronRight className="size-5 text-muted-foreground" />}
     </button>

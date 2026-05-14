@@ -27,7 +27,16 @@ export interface LessonExercise {
 
 const MAX_LESSON_EXERCISES = 15
 const MAX_REVIEW_EXERCISES = 20
+const MAX_PRACTICE_SESSION_EXERCISES = 12
 const PRACTICE_SECTION_ORDER: LessonExerciseType[] = ['translation', 'listening', 'grammar', 'sentence-builder', 'pronunciation']
+
+function getPracticeSectionOrder(lesson: Lesson): LessonExerciseType[] {
+  if (lesson.practiceMode === 'listening') return ['listening', 'listening', 'translation', 'pronunciation']
+  if (lesson.practiceMode === 'speaking') return ['pronunciation', 'pronunciation', 'listening', 'translation']
+  if (lesson.practiceMode === 'mistake') return ['translation', 'grammar', 'sentence-builder', 'listening', 'pronunciation']
+  if (lesson.practiceMode === 'mixed') return ['listening', 'translation', 'grammar', 'sentence-builder', 'pronunciation']
+  return PRACTICE_SECTION_ORDER
+}
 
 function wordCount(value: string) {
   return value.trim().split(/\s+/).filter(Boolean).length
@@ -210,7 +219,7 @@ export function buildLessonExercises(
 ): LessonExercise[] {
   const words = uniqueWords(lesson.words)
   const isUzToEn = true
-  const maxExercises = lesson.isReview ? MAX_REVIEW_EXERCISES : MAX_LESSON_EXERCISES
+  const maxExercises = lesson.isPracticeSession ? MAX_PRACTICE_SESSION_EXERCISES : lesson.isReview ? MAX_REVIEW_EXERCISES : MAX_LESSON_EXERCISES
   const today = new Date().toISOString().split('T')[0]
   const reviewSortedWords = seededSort(words, `lesson-${lesson.id}-${isUzToEn ? 'uz-en' : 'en-uz'}`).sort((a, b) => {
     const aReview = wordReviews[a.id]
@@ -363,9 +372,10 @@ export function buildLessonExercises(
   const practiceExercises: LessonExercise[] = []
   const usedPracticeWordIds = new Set<string>()
   const targetPracticeCount = Math.max(0, maxExercises - vocabularyCards.length)
+  const practiceSectionOrder = getPracticeSectionOrder(lesson)
 
   for (let pass = 0; practiceExercises.length < targetPracticeCount && pass < 4; pass += 1) {
-    for (const type of PRACTICE_SECTION_ORDER) {
+    for (const type of practiceSectionOrder) {
       if (practiceExercises.length >= targetPracticeCount) break
 
       const pool = seededSort(practiceSourceWords, `${lesson.id}-${type}-pool-${pass}`)

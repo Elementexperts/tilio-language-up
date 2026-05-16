@@ -1,5 +1,6 @@
 import type { Metadata, Viewport } from 'next'
 import Script from 'next/script'
+import { SpeedInsights } from '@vercel/speed-insights/next'
 import './globals.css'
 
 export const metadata: Metadata = {
@@ -51,6 +52,7 @@ export default function RootLayout({
         <div className="min-h-screen max-w-lg mx-auto">
           {children}
         </div>
+        <SpeedInsights />
       </body>
     </html>
   )

@@ -348,6 +348,7 @@ input, textarea {
 .tilio-shell {
   position: relative;
   min-height: 100vh;
+  isolation: isolate;
   background:
     radial-gradient(circle at 8% 16%, oklch(0.95 0.06 130 / 0.85), transparent 11rem),
     radial-gradient(circle at 88% 3%, oklch(0.92 0.07 92 / 0.75), transparent 12rem),
@@ -359,6 +360,7 @@ input, textarea {
   content: "";
   position: fixed;
   inset: 0;
+  z-index: 0;
   pointer-events: none;
   opacity: 0.34;
   background-image:
@@ -366,6 +368,25 @@ input, textarea {
     radial-gradient(circle at 10% 85%, oklch(0.64 0.11 145 / 0.16) 0 0.22rem, transparent 0.24rem),
     radial-gradient(circle at 90% 30%, oklch(0.75 0.13 86 / 0.16) 0 0.18rem, transparent 0.2rem);
   background-size: 5.5rem 5.5rem, 3.4rem 3.4rem, 4rem 4rem;
+}
+
+.tilio-shell::after {
+  content: "";
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  opacity: 0;
+  background: none;
+  filter: saturate(1.03) brightness(1.02);
+}
+
+html:not([data-wallpaper]) .tilio-shell::after,
+html[data-wallpaper="classic-green"] .tilio-shell::after {
+  opacity: 0.42;
+  background:
+    linear-gradient(180deg, rgb(255 255 255 / 0.78), rgb(255 255 255 / 0.32) 38%, rgb(239 255 222 / 0.66)),
+    url("/wallpapers/tilio-premium-garden.png") center top / cover no-repeat;
 }
 
 html[data-wallpaper="wallpaper-samarqand-morning"] .tilio-shell {
@@ -434,6 +455,21 @@ html[data-wallpaper="wallpaper-cotton-sky"] .tilio-shell::before {
     radial-gradient(ellipse at 82% 76%, oklch(0.74 0.08 190 / 0.18) 0 1rem, transparent 1.1rem);
 }
 
+html[data-wallpaper="wallpaper-tilio-garden"] .tilio-shell::after {
+  opacity: 0.72;
+  background:
+    linear-gradient(180deg, rgb(9 69 42 / 0.12), rgb(255 255 255 / 0.16) 24%, rgb(242 255 225 / 0.54)),
+    url("/wallpapers/tilio-premium-garden.png") center top / cover no-repeat;
+}
+
+html[data-wallpaper="wallpaper-tilio-garden"] .tilio-shell::before {
+  opacity: 0.18;
+  background-image:
+    radial-gradient(circle at 12% 18%, rgb(255 245 162 / 0.32) 0 0.18rem, transparent 0.22rem),
+    radial-gradient(circle at 88% 22%, rgb(255 245 162 / 0.24) 0 0.16rem, transparent 0.2rem),
+    linear-gradient(135deg, transparent 0 46%, oklch(0.72 0.12 145 / 0.08) 46% 54%, transparent 54%);
+}
+
 .tilio-container {
   position: relative;
   z-index: 1;
@@ -456,20 +492,49 @@ html[data-wallpaper="wallpaper-cotton-sky"] .tilio-shell::before {
 }
 
 .premium-card {
-  border: 1px solid rgb(255 255 255 / 0.72);
+  position: relative;
+  border: 1px solid rgb(255 255 255 / 0.76);
   background:
-    linear-gradient(135deg, rgb(255 255 255 / 0.92), rgb(247 255 235 / 0.78)),
-    radial-gradient(circle at 92% 12%, rgb(255 230 150 / 0.28), transparent 9rem);
-  box-shadow: 0 22px 52px oklch(0.36 0.08 145 / 0.13), inset 0 1px 0 rgb(255 255 255 / 0.84);
-  backdrop-filter: blur(18px);
+    linear-gradient(135deg, rgb(255 255 255 / 0.9), rgb(246 255 231 / 0.78)),
+    radial-gradient(circle at 92% 10%, rgb(255 232 148 / 0.32), transparent 9rem),
+    radial-gradient(circle at 8% 100%, rgb(85 190 120 / 0.14), transparent 10rem);
+  box-shadow: 0 24px 58px oklch(0.32 0.08 145 / 0.15), inset 0 1px 0 rgb(255 255 255 / 0.88);
+  backdrop-filter: blur(20px) saturate(1.1);
 }
 
 .premium-hero {
-  border: 1px solid rgb(255 255 255 / 0.76);
+  border: 1px solid rgb(255 255 255 / 0.78);
   background:
-    linear-gradient(180deg, rgb(255 255 255 / 0.36), rgb(255 255 255 / 0.1)),
-    url("/wallpapers/orchard-garden.png") center / cover no-repeat,
+    linear-gradient(180deg, rgb(255 255 255 / 0.32), rgb(255 255 255 / 0.1)),
+    url("/wallpapers/tilio-premium-garden.png") center top / cover no-repeat,
     linear-gradient(135deg, oklch(0.99 0.03 106), oklch(0.9 0.08 136));
+  box-shadow: 0 26px 64px oklch(0.28 0.09 145 / 0.16), inset 0 1px 0 rgb(255 255 255 / 0.82);
+}
+
+/* Plus keeps the premium garden layer even when another wallpaper is equipped. */
+.tilio-shell.tilio-shell-premium::after {
+  opacity: 0.64;
+  background:
+    linear-gradient(180deg, rgb(8 48 32 / 0.18), rgb(255 255 255 / 0.18) 26%, rgb(239 255 222 / 0.58)),
+    url("/wallpapers/tilio-premium-garden.png") center top / cover no-repeat;
+}
+
+.plus-hero-card {
+  border: 1px solid rgb(210 255 190 / 0.32);
+  background:
+    linear-gradient(135deg, rgb(3 45 34 / 0.9), rgb(10 91 55 / 0.76) 48%, rgb(118 171 59 / 0.58)),
+    url("/wallpapers/tilio-premium-garden.png") center top / cover no-repeat;
+  box-shadow: 0 28px 72px oklch(0.24 0.09 145 / 0.3), inset 0 1px 0 rgb(255 255 255 / 0.24);
+}
+
+.plus-hero-card::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background:
+    radial-gradient(circle at 76% 14%, rgb(255 244 163 / 0.3), transparent 9rem),
+    linear-gradient(180deg, transparent, rgb(0 45 28 / 0.22));
 }
 
 .tilio-button {

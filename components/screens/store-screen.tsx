@@ -57,6 +57,15 @@ const wallpaperItems: StoreItem[] = [
     icon: 'cloud',
     preview: 'cotton',
   },
+  {
+    id: 'wallpaper-tilio-garden',
+    name: 'Tilio Garden',
+    description: 'Premium green valley theme with soft glow and Uzbek skyline depth.',
+    type: 'wallpaper',
+    price: 220,
+    icon: 'garden',
+    preview: 'tilio-garden',
+  },
 ]
 
 const itemIcons = {
@@ -74,6 +83,7 @@ const wallpaperPreviewClass: Record<string, string> = {
   'wallpaper-silk-road': 'from-amber-100 via-lime-50 to-emerald-100',
   'wallpaper-orchard': 'from-green-100 via-emerald-50 to-lime-200',
   'wallpaper-cotton-sky': 'from-sky-100 via-white to-emerald-100',
+  'wallpaper-tilio-garden': 'from-emerald-900 via-lime-100 to-emerald-200',
 }
 
 const wallpaperImage: Record<string, string> = {
@@ -82,6 +92,7 @@ const wallpaperImage: Record<string, string> = {
   'wallpaper-silk-road': '/wallpapers/silk-road-path.png',
   'wallpaper-orchard': '/wallpapers/orchard-garden.png',
   'wallpaper-cotton-sky': '/wallpapers/cotton-sky.png',
+  'wallpaper-tilio-garden': '/wallpapers/tilio-premium-garden.png',
 }
 
 const wallpaperIcon: Record<string, ElementType> = {
@@ -207,7 +218,7 @@ export function StoreScreen() {
           </div>
         </section>
 
-        <section className="mb-5 overflow-hidden rounded-[2rem] border border-emerald-900/20 bg-gradient-to-br from-emerald-950 via-emerald-900 to-lime-800 p-5 text-white shadow-2xl shadow-emerald-950/20">
+        <section className="plus-hero-card mb-5 overflow-hidden rounded-[2rem] p-5 text-white">
           <div className="flex items-start justify-between gap-4">
             <div className="min-w-0">
               <p className="text-xs font-extrabold uppercase tracking-[0.18em] text-lime-200">Premium bundle</p>

@@ -26,6 +26,7 @@ import {
   MessageCircle,
   Mic,
   RefreshCcw,
+  Send,
   Share2,
   ShieldCheck,
   Shuffle,
@@ -239,97 +240,61 @@ function ReviewTab({ plusActive, summary, onStartReview }: { plusActive: boolean
 }
 
 function ChatTab({ plusActive }: { plusActive: boolean }) {
-  const [messages, setMessages] = useState<
-    Array<{
-      id: string
-      role: 'user' | 'assistant'
-      text: string
-    }>
-  >([])
-
+  const user = useAppStore((state) => state.user)
+  const [messages, setMessages] = useState<Array<{ id: string; role: 'user' | 'assistant'; text: string }>>([])
   const [input, setInput] = useState('')
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
 
-  const courseId = 'uz-en'
+  const courseId = user?.selectedCourse ?? user?.learningPath ?? 'uz-en'
+  const tutorLabel = courseId === 'uz-ko' ? 'Korean tutor' : 'English tutor'
+  const targetLanguage = courseId === 'uz-ko' ? 'koreyscha' : 'inglizcha'
 
   const scenarios = [
-    {
-      label: 'Salomlashish',
-      prompt: 'Salomlashishni mashq qilamiz.',
-    },
-    {
-      label: 'Kafe',
-      prompt: 'Kafeda buyurtma berishni mashq qilamiz.',
-    },
-    {
-      label: 'Sayohat',
-      prompt: 'Sayohat uchun oddiy dialog qilamiz.',
-    },
-    {
-      label: 'Maktab',
-      prompt: 'Maktab haqida oddiy suhbat qilamiz.',
-    },
-    {
-      label: 'Do‘kon',
-      prompt: 'Do‘konda xarid qilishni mashq qilamiz.',
-    },
+    { label: 'Salomlashish', prompt: 'Salomlashishni ' + targetLanguage + ' mashq qilamiz.' },
+    { label: 'Kafe', prompt: 'Kafeda buyurtma berishni ' + targetLanguage + ' mashq qilamiz.' },
+    { label: 'Sayohat', prompt: 'Sayohat uchun oddiy dialogni ' + targetLanguage + ' mashq qilamiz.' },
+    { label: 'Maktab', prompt: 'Maktab haqida oddiy suhbatni ' + targetLanguage + ' mashq qilamiz.' },
+    { label: 'Do\u2018kon', prompt: 'Do\u2018konda xarid qilishni ' + targetLanguage + ' mashq qilamiz.' },
   ]
 
-  const createId = () =>
-    `${Date.now()}-${Math.random().toString(36).slice(2)}`
+  const createId = () => String(Date.now()) + '-' + Math.random().toString(36).slice(2)
 
   const sendMessage = async (message: string) => {
     const trimmed = message.trim()
-
     if (!trimmed || loading) return
 
     setError('')
-
-    const userMessage = {
-      id: createId(),
-      role: 'user' as const,
-      text: trimmed,
-    }
-
-    setMessages((prev) => [...prev, userMessage])
-
     setInput('')
+    setMessages((prev) => [...prev, { id: createId(), role: 'user', text: trimmed }])
     setLoading(true)
 
     try {
       const response = await fetch('/api/ai-tutor', {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          message:
-            trimmed +
-            '\n\nKeep response beginner-friendly and short.',
+          message: trimmed + '\n\nKeep response beginner-friendly and short.',
           courseId,
         }),
       })
+      const data = (await response.json().catch(() => ({}))) as { text?: string; error?: string }
 
       if (!response.ok) {
-        throw new Error('AI tutor failed')
+        throw new Error(data.error || 'AI tutor failed')
       }
 
-      const data = await response.json()
-
-      const aiMessage = {
-        id: createId(),
-        role: 'assistant' as const,
-        text: data.text || 'No response',
-      }
-
-      setMessages((prev) => [...prev, aiMessage])
+      setMessages((prev) => [
+        ...prev,
+        {
+          id: createId(),
+          role: 'assistant',
+          text: data.text?.trim() || 'Hozircha javob yo\u2018q. Yana bir bor urinib ko\u2018ring.',
+        },
+      ])
     } catch (err) {
       console.error(err)
-
-      setError(
-        'Xatolik yuz berdi. Internetni tekshirib qayta urinib ko‘ring.',
-      )
+      setError('Xatolik yuz berdi. Internetni tekshirib qayta urinib ko\u2018ring.')
     } finally {
       setLoading(false)
     }
@@ -342,27 +307,16 @@ function ChatTab({ plusActive }: { plusActive: boolean }) {
           <div className="flex size-12 items-center justify-center rounded-2xl bg-emerald-950 text-lime-200">
             <MessageCircle className="size-6" />
           </div>
-
           <div className="min-w-0 flex-1">
-            <p className="text-xs font-extrabold uppercase tracking-[0.16em] text-primary">
-              AI Conversation
-            </p>
-
-            <h2 className="text-xl font-black">
-              Guided roleplay tutor
-            </h2>
+            <p className="text-xs font-extrabold uppercase tracking-[0.16em] text-primary">AI Conversation</p>
+            <h2 className="text-xl font-black">Guided roleplay tutor</h2>
+            <p className="mt-0.5 text-[11px] font-black uppercase tracking-[0.14em] text-muted-foreground">{tutorLabel}</p>
           </div>
         </div>
-
-        <p className="mt-3 text-sm font-semibold text-muted-foreground">
-          Beginner-safe conversations with short replies,
-          corrections, and better phrase suggestions.
-        </p>
-
+        <p className="mt-3 text-sm font-semibold text-muted-foreground">Beginner-safe conversations with short replies, gentle corrections, and one better phrase suggestion.</p>
         <div className="mt-4 rounded-2xl border border-lime-200 bg-lime-50 px-4 py-3 text-sm font-semibold text-emerald-950">
           Free: 3 AI messages/day. Plus: more practice.
         </div>
-
         {!plusActive && <LockedHint />}
       </div>
 
@@ -379,29 +333,16 @@ function ChatTab({ plusActive }: { plusActive: boolean }) {
         ))}
       </div>
 
-      <div className="space-y-3 rounded-[1.75rem] border border-white/70 bg-white/80 p-4 shadow-lg shadow-emerald-950/5">
+      <div className="max-h-[46vh] space-y-3 overflow-y-auto rounded-[1.75rem] border border-white/70 bg-white/80 p-4 shadow-lg shadow-emerald-950/5">
         {messages.length === 0 && (
           <div className="rounded-2xl bg-emerald-50 p-4 text-sm font-semibold text-emerald-950">
-            Xabar yuboring yoki scenario tanlang.
+            Xabar yuboring yoki scenario tanlang. Tilio qisqa va oson javob beradi.
           </div>
         )}
 
         {messages.map((message) => (
-          <div
-            key={message.id}
-            className={`flex ${
-              message.role === 'user'
-                ? 'justify-end'
-                : 'justify-start'
-            }`}
-          >
-            <div
-              className={`max-w-[85%] rounded-[1.4rem] px-4 py-3 text-sm font-semibold leading-6 ${
-                message.role === 'user'
-                  ? 'bg-primary text-white'
-                  : 'bg-emerald-50 text-emerald-950'
-              }`}
-            >
+          <div key={message.id} className={cn('flex', message.role === 'user' ? 'justify-end' : 'justify-start')}>
+            <div className={cn('max-w-[85%] rounded-[1.4rem] px-4 py-3 text-sm font-semibold leading-6', message.role === 'user' ? 'bg-primary text-white' : 'bg-emerald-50 text-emerald-950')}>
               {message.text}
             </div>
           </div>
@@ -434,14 +375,10 @@ function ChatTab({ plusActive }: { plusActive: boolean }) {
           onChange={(e) => setInput(e.target.value)}
           disabled={loading}
           placeholder="Xabar yozing..."
-          className="h-12 flex-1 rounded-2xl bg-emerald-50 px-4 text-sm font-semibold outline-none"
+          className="h-12 min-w-0 flex-1 rounded-2xl bg-emerald-50 px-4 text-sm font-semibold outline-none"
         />
-
-        <Button
-          type="submit"
-          disabled={!input.trim() || loading}
-          className="h-12 rounded-2xl px-5"
-        >
+        <Button type="submit" disabled={!input.trim() || loading} className="h-12 shrink-0 rounded-2xl px-4" aria-label="Send AI message">
+          <Send className="size-4" />
           Send
         </Button>
       </form>

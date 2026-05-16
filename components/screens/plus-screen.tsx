@@ -3,7 +3,6 @@
 import { useMemo, useState } from 'react'
 import { Button } from '@/components/ui/button'
 import { Progress } from '@/components/ui/progress'
-import { SparrowMascot } from '@/components/sparrow-mascot'
 import { useAppStore } from '@/lib/store'
 import { buildSmartReviewSummary, createPlusPracticeLesson, getPlusPracticeReward, getPlusPracticeWordCount, getWeeklyInsightStats, hasTilioPlus, type PlusPracticeMode, type ReviewWordInsight, type SmartReviewSummary, type WeeklyInsightSummary } from '@/lib/plus'
 import { cn } from '@/lib/utils'
@@ -103,7 +102,7 @@ export function PlusScreen() {
                 <span className="rounded-full bg-white/12 px-2.5 py-1">{summary.reviewQueue.length} ready</span>
               </div>
             </div>
-            <SparrowMascot branded mood="celebrating" size="lg" className="shrink-0 rounded-[1.6rem]" />
+            <img src="/images/tilio-logo-1.png" alt="Tilio Plus logo" className="size-28 shrink-0 rounded-[1.6rem] object-cover shadow-2xl shadow-lime-300/20 ring-1 ring-white/25" />
           </div>
           {!plusActive && (
             <Button className="relative z-10 mt-5 h-12 w-full rounded-2xl bg-white text-emerald-950 hover:bg-lime-50" onClick={() => setScreen('store')}>

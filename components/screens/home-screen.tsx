@@ -109,7 +109,7 @@ export function HomeScreen() {
           <div className="absolute -right-10 top-8 h-44 w-44 rounded-full bg-lime-200/30 blur-3xl" />
           <div className="relative z-10 mb-5 flex items-center justify-center">
             <div className="inline-flex items-center gap-2 rounded-full border border-white/60 bg-white/70 px-4 py-2 shadow-lg shadow-emerald-950/5 backdrop-blur-xl">
-              <SparrowMascot branded size="sm" mood="waving" className="size-10 rounded-xl shadow-none" />
+              <img src="/images/tilio-logo-1.png" alt="Tilio" className="size-10 rounded-xl object-cover shadow-sm" />
               <div>
                 <p className="text-3xl font-black leading-none text-emerald-900">Tilio</p>
                 <p className="text-[10px] font-extrabold uppercase tracking-[0.18em] text-emerald-700/75">Har kuni o's</p>
@@ -127,7 +127,7 @@ export function HomeScreen() {
               </h1>
               <p className="mt-3 text-sm font-medium leading-5 text-emerald-900/75">{motivationalMessage}</p>
             </div>
-            <SparrowMascot branded size="lg" mood="waving" className="shrink-0 rounded-[1.6rem]" />
+            <img src="/images/tilio-logo-1.png" alt="Tilio mascot logo" className="size-28 shrink-0 rounded-[1.6rem] object-cover shadow-2xl shadow-emerald-950/12" />
           </div>
           {nextLesson && (
             <Button

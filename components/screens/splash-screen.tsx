@@ -1,7 +1,6 @@
 'use client'
 
 import { useEffect } from 'react'
-import { SparrowMascot } from '@/components/sparrow-mascot'
 import { useAppStore } from '@/lib/store'
 import { useTelegram } from '@/hooks/use-telegram'
 import { playIntroSound } from '@/lib/sound'
@@ -46,7 +45,7 @@ export function SplashScreen() {
 
       <div className="relative z-10 flex w-full max-w-sm flex-col items-center text-center">
         <div className="mb-7 flex items-center gap-3 rounded-full border border-white/25 bg-white/14 px-4 py-2 shadow-2xl shadow-emerald-950/25 backdrop-blur-xl">
-          <SparrowMascot size="sm" mood="happy" branded className="rounded-2xl shadow-none" />
+          <img src="/images/tilio-logo-1.png" alt="Tilio" className="size-12 rounded-2xl object-cover shadow-none" />
           <div className="text-left">
             <p className="text-3xl font-black leading-none tracking-normal">Tilio</p>
             <p className="mt-1 text-xs font-bold uppercase tracking-[0.18em] text-lime-100/85">O'rgan. Mashq qil. So'zla.</p>

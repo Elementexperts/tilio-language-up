@@ -4,7 +4,6 @@ import { useEffect } from 'react'
 import type { ElementType } from 'react'
 import { Card } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
-import { SparrowMascot } from '@/components/sparrow-mascot'
 import { useAppStore } from '@/lib/store'
 import { useTelegram } from '@/hooks/use-telegram'
 import { storeItemsData } from '@/lib/data/lessons'
@@ -200,7 +199,7 @@ export function StoreScreen() {
       <main className="tilio-container flex-1 overflow-y-auto px-4 py-4 pb-24">
         <section className="mb-4 overflow-hidden rounded-[2rem] bg-gradient-to-br from-emerald-50 to-lime-100 p-5 shadow-xl shadow-emerald-950/8">
           <div className="flex items-center gap-4">
-            <SparrowMascot branded size="lg" mood="waving" />
+            <img src="/images/tilio-logo-1.png" alt="Tilio Plus logo" className="size-24 shrink-0 rounded-[1.6rem] object-cover shadow-xl shadow-emerald-950/10" />
             <div className="min-w-0 flex-1">
               <p className="text-xs font-extrabold uppercase tracking-[0.16em] text-primary">Tilio Plus</p>
               <h2 className="text-2xl font-black leading-tight">Practice deeper. Keep streaks safer.</h2>

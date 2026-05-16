@@ -4,15 +4,19 @@ import { useEffect, useState } from 'react'
 import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
 import { SparrowMascot } from '@/components/sparrow-mascot'
+import { AchievementBadge } from '@/components/achievement-badge'
 import { useAppStore } from '@/lib/store'
 import { useTelegram } from '@/hooks/use-telegram'
 import { cn } from '@/lib/utils'
+import { getUserAchievementProgress } from '@/lib/achievements'
 import { playLessonCompleteSound } from '@/lib/sound'
 import { Zap, Star, Target, ArrowRight, RotateCcw, Home } from 'lucide-react'
 
 export function ResultScreen() {
   const currentLesson = useAppStore((state) => state.currentLesson)
+  const user = useAppStore((state) => state.user)
   const exerciseAnswers = useAppStore((state) => state.exerciseAnswers)
+  const lessonAchievementPopups = useAppStore((state) => state.lessonAchievementPopups)
   const setScreen = useAppStore((state) => state.setScreen)
   const resetExercise = useAppStore((state) => state.resetExercise)
   const startLesson = useAppStore((state) => state.startLesson)
@@ -36,6 +40,12 @@ export function ResultScreen() {
   const accuracy = total > 0 ? Math.round((correct / total) * 100) : 0
   const xpEarned = Math.max(0, (currentLesson?.xpReward || 0) - incorrect)
   const isPracticeSession = Boolean(currentLesson?.isPracticeSession)
+  const unlockedLessonAchievements = (() => {
+    if (!user || !currentLesson || lessonAchievementPopups.length === 0) return []
+    const courseId = currentLesson.courseId ?? user.selectedCourse ?? user.learningPath ?? 'uz-en'
+    const achievementIds = new Set(lessonAchievementPopups.map((popup) => popup.achievementId))
+    return getUserAchievementProgress(user, courseId).filter((achievement) => achievementIds.has(achievement.id))
+  })()
 
   const isPerfect = accuracy === 100
   const isGood = accuracy >= 80
@@ -197,6 +207,21 @@ export function ResultScreen() {
             </div>
           </Card>
         </div>
+
+        {unlockedLessonAchievements.length > 0 && (
+          <Card className="mt-4 w-full max-w-sm overflow-hidden rounded-[1.75rem] border-amber-200/80 bg-gradient-to-br from-white via-amber-50 to-lime-50 p-5 shadow-2xl shadow-amber-900/10 animate-soft-pop">
+            <div className="relative">
+              <p className="text-xs font-extrabold uppercase tracking-[0.16em] text-primary">Nishon ochildi</p>
+              <h2 className="mt-1 text-2xl font-black text-foreground">New achievement unlocked!</h2>
+              <p className="mt-1 text-sm font-semibold text-muted-foreground">Great work. This badge is now visible in your profile.</p>
+              <div className="mt-4 grid grid-cols-3 gap-3">
+                {unlockedLessonAchievements.slice(0, 3).map((achievement) => (
+                  <AchievementBadge key={achievement.id} achievement={achievement} compact />
+                ))}
+              </div>
+            </div>
+          </Card>
+        )}
 
         {/* Motivational message */}
         {accuracy < 80 && (

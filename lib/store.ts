@@ -107,13 +107,17 @@ const withNormalizedCourseProgress = (user: User): User => {
 const claimableAchievementRewards = (user: User, courseId: CourseId) => {
   const courseProgress = getProgressForCourse(user, courseId)
   const unlocked = getAchievementsForCourse(courseId).filter((achievement) => {
-    const unlockedIds = achievement.courseId ? courseProgress.achievements : user.achievements
+    const allAchievementIds = [
+      ...(user.achievements ?? []),
+      ...Object.values(user.courseProgress ?? {}).flatMap((progress) => progress?.achievements ?? []),
+    ]
+    const unlockedIds = achievement.courseId ? courseProgress.achievements : allAchievementIds
     if (unlockedIds.includes(achievement.id)) return false
     switch (achievement.requirement.type) {
       case 'xp':
         return user.xp >= achievement.requirement.value
       case 'streak':
-        return user.streak >= achievement.requirement.value
+        return Math.max(user.streak, user.maxStreak ?? 0) >= achievement.requirement.value
       case 'lessons':
         return courseProgress.completedLessons.length >= achievement.requirement.value
       case 'referrals':
@@ -182,6 +186,7 @@ const buildAchievementPopups = (ids: string[]): AchievementPopup[] =>
     .filter((achievement): achievement is NonNullable<typeof achievement> => Boolean(achievement))
     .map((achievement) => ({
       id: `${achievement.id}-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
+      achievementId: achievement.id,
       title: achievement.titleUz || achievement.title,
       description: achievement.descriptionUz || achievement.description,
       icon: achievement.icon,
@@ -237,6 +242,7 @@ export const useAppStore = create<AppState>()(
       cloudSession: null,
       xpPopups: [],
       achievementPopups: [],
+      lessonAchievementPopups: [],
       showStreakSavedModal: false,
       showLevelUpModal: false,
       newLevel: 1,
@@ -340,6 +346,7 @@ export const useAppStore = create<AppState>()(
         currentLesson: lesson,
         currentExerciseIndex: 0,
         exerciseAnswers: { correct: 0, incorrect: 0, missedWordIds: [] },
+        lessonAchievementPopups: [],
         currentScreen: 'exercise',
       }),
 
@@ -480,6 +487,7 @@ export const useAppStore = create<AppState>()(
             achievements: [...activeProgress.achievements, ...achievementRewards.unlockedIds],
           },
         }
+        const lessonAchievementPopups = buildAchievementPopups(achievementRewards.unlockedIds)
 
         set({
           user: {
@@ -517,8 +525,9 @@ export const useAppStore = create<AppState>()(
           newLevel: finalLevel,
           achievementPopups: [
             ...state.achievementPopups,
-            ...buildAchievementPopups(achievementRewards.unlockedIds),
+            ...lessonAchievementPopups,
           ],
+          lessonAchievementPopups,
         })
 
         get().addXpPopup(totalXpEarned, 'xp', multiplier > 1 ? `${multiplier}x XP active` : undefined)

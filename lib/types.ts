@@ -221,6 +221,7 @@ export interface XpPopup {
 
 export interface AchievementPopup {
   id: string
+  achievementId: string
   title: string
   description: string
   icon: string
@@ -261,6 +262,7 @@ export interface AppState {
   cloudSession: CloudAuthSession | null
   xpPopups: XpPopup[]
   achievementPopups: AchievementPopup[]
+  lessonAchievementPopups: AchievementPopup[]
   showStreakSavedModal: boolean
   showLevelUpModal: boolean
   newLevel: number

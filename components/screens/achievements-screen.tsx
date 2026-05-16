@@ -2,24 +2,12 @@
 
 import { useEffect, useMemo } from 'react'
 import { Card } from '@/components/ui/card'
-import { Progress } from '@/components/ui/progress'
 import { useAppStore } from '@/lib/store'
 import { useTelegram } from '@/hooks/use-telegram'
-import { getAchievementsForCourse } from '@/lib/data/lessons'
+import { getUserAchievementProgress } from '@/lib/achievements'
 import { cn } from '@/lib/utils'
-import { ArrowLeft, Book, Crown, Feather, Flame, GraduationCap, Lock, Medal, PartyPopper, Star, Trophy, Users, Zap } from 'lucide-react'
-
-const iconMap: Record<string, React.ElementType> = {
-  star: Star,
-  zap: Zap,
-  flame: Flame,
-  book: Book,
-  trophy: Trophy,
-  medal: Medal,
-  crown: Crown,
-  users: Users,
-  'graduation-cap': GraduationCap,
-}
+import { AchievementBadge } from '@/components/achievement-badge'
+import { ArrowLeft, Feather, PartyPopper, Star, Trophy } from 'lucide-react'
 
 export function AchievementsScreen() {
   const user = useAppStore((state) => state.user)
@@ -37,39 +25,7 @@ export function AchievementsScreen() {
   const achievements = useMemo(() => {
     if (!user) return []
     const selectedCourse = user.selectedCourse ?? user.learningPath ?? 'uz-en'
-    const completedLessons = user.courseProgress?.[selectedCourse]?.completedLessons ?? user.completedLessons
-    const unlockedIds = user.courseProgress?.[selectedCourse]?.achievements ?? user.achievements
-    return getAchievementsForCourse(selectedCourse).map((achievement) => {
-      let current = 0
-      const target = achievement.requirement.value
-      switch (achievement.requirement.type) {
-        case 'xp':
-          current = user.xp
-          break
-        case 'streak':
-          current = user.streak
-          break
-        case 'lessons':
-          current = completedLessons.length
-          break
-        case 'referrals':
-          current = user.referralCount
-          break
-        case 'feathers':
-          current = user.feathers
-          break
-        case 'level':
-          current = user.userLevel
-          break
-      }
-
-      return {
-        ...achievement,
-        current,
-        progress: Math.min((current / target) * 100, 100),
-        isUnlocked: unlockedIds.includes(achievement.id) || current >= target,
-      }
-    })
+    return getUserAchievementProgress(user, selectedCourse)
   }, [user])
 
   if (!user) return null
@@ -118,50 +74,37 @@ export function AchievementsScreen() {
         </section>
 
         <div className="grid grid-cols-2 gap-3">
-          {achievements.map((achievement) => {
-            const IconComponent = iconMap[achievement.icon] || Star
-            const title = achievement.title
-            const description = achievement.description
-
-            return (
-              <Card
-                key={achievement.id}
-                className={cn(
-                  'tilio-pressed gap-0 rounded-[1.55rem] p-4 transition-all duration-200',
-                  achievement.isUnlocked ? 'border-primary/20 bg-white/90 shadow-xl shadow-primary/10' : 'border-white/70 bg-white/55 opacity-85',
+          {achievements.map((achievement) => (
+            <Card
+              key={achievement.id}
+              className={cn(
+                'tilio-pressed gap-0 rounded-[1.55rem] p-4 transition-all duration-200',
+                achievement.isUnlocked ? 'border-primary/20 bg-white/90 shadow-xl shadow-primary/10' : 'border-white/70 bg-white/55 opacity-85',
+              )}
+            >
+              <AchievementBadge achievement={achievement} showProgress />
+              <p className="mt-3 min-h-10 text-center text-xs font-semibold leading-4 text-muted-foreground">{achievement.description}</p>
+              <div className="mt-3 flex justify-center gap-1.5 text-xs font-black">
+                <span className={achievement.isUnlocked ? 'text-primary' : 'text-muted-foreground'}>+{achievement.xpReward} XP</span>
+                {!!achievement.featherReward && (
+                  <span className={cn('inline-flex items-center gap-1', achievement.isUnlocked ? 'text-emerald-700' : 'text-muted-foreground')}>
+                    <Feather className="size-3" />
+                    +{achievement.featherReward}
+                  </span>
                 )}
-              >
-                <div className={cn('mb-3 flex size-14 items-center justify-center rounded-2xl', achievement.isUnlocked ? 'bg-primary text-primary-foreground shadow-lg shadow-primary/25' : 'bg-muted text-muted-foreground')}>
-                  {achievement.isUnlocked ? <IconComponent className="size-7" /> : <Lock className="size-6" />}
+              </div>
+              {achievement.isUnlocked ? (
+                <div className="mx-auto mt-3 inline-flex items-center gap-1 rounded-full bg-primary/10 px-2.5 py-1 text-xs font-black text-primary">
+                  <Star className="size-3 fill-current" />
+                  Unlocked
                 </div>
-                <h3 className={cn('font-black leading-tight', achievement.isUnlocked ? 'text-foreground' : 'text-muted-foreground')}>{title}</h3>
-                <p className="mt-2 min-h-10 text-xs font-semibold leading-4 text-muted-foreground">{description}</p>
-                <div className="mt-3 flex flex-wrap gap-1.5 text-xs font-black">
-                  <span className={achievement.isUnlocked ? 'text-primary' : 'text-muted-foreground'}>+{achievement.xpReward} XP</span>
-                  {!!achievement.featherReward && (
-                    <span className={cn('inline-flex items-center gap-1', achievement.isUnlocked ? 'text-emerald-700' : 'text-muted-foreground')}>
-                      <Feather className="size-3" />
-                      +{achievement.featherReward}
-                    </span>
-                  )}
+              ) : (
+                <div className="mt-3 text-center text-xs font-bold text-muted-foreground">
+                  {achievement.current}/{achievement.requirement.value}
                 </div>
-                {!achievement.isUnlocked ? (
-                  <div className="mt-3">
-                    <div className="mb-1 flex items-center justify-between text-xs font-bold text-muted-foreground">
-                      <span>Progress</span>
-                      <span>{achievement.current}/{achievement.requirement.value}</span>
-                    </div>
-                    <Progress value={achievement.progress} className="h-2" />
-                  </div>
-                ) : (
-                  <div className="mt-3 inline-flex items-center gap-1 rounded-full bg-primary/10 px-2.5 py-1 text-xs font-black text-primary">
-                    <Star className="size-3 fill-current" />
-                    Unlocked
-                  </div>
-                )}
-              </Card>
-            )
-          })}
+              )}
+            </Card>
+          ))}
         </div>
       </main>
     </div>

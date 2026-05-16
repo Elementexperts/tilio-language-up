@@ -6,8 +6,10 @@ import { Button } from '@/components/ui/button'
 import { Progress } from '@/components/ui/progress'
 import { useAppStore } from '@/lib/store'
 import { useTelegram } from '@/hooks/use-telegram'
-import { courseOptions, getAchievementsForCourse, getCourseOption, getLessonsForCourse } from '@/lib/data/lessons'
+import { courseOptions, getCourseOption, getLessonsForCourse } from '@/lib/data/lessons'
+import { getUserAchievementProgress } from '@/lib/achievements'
 import { cn } from '@/lib/utils'
+import { AchievementBadge } from '@/components/achievement-badge'
 import { 
   ArrowLeft, 
   Zap, 
@@ -21,7 +23,6 @@ import {
   ChevronRight,
   LogOut,
   Feather,
-  Sparkles,
   Cloud,
   UserPlus,
 } from 'lucide-react'
@@ -48,23 +49,14 @@ export function ProfileScreen() {
   const selectedCourse = user.selectedCourse ?? user.learningPath ?? 'uz-en'
   const activeCourse = getCourseOption(selectedCourse)
   const courseCompletedLessons = user.courseProgress?.[selectedCourse]?.completedLessons ?? user.completedLessons
-  const courseAchievements = user.courseProgress?.[selectedCourse]?.achievements ?? user.achievements
   const completedLessons = courseCompletedLessons.length
   const totalLessons = getLessonsForCourse(selectedCourse).length
   const progressPercent = (completedLessons / totalLessons) * 100
   const avatarSrc = user.photoUrl ?? (user.avatarStyle === 'girl' ? '/avatars/tilio-girl-avatar.png' : '/avatars/tilio-boy-avatar.png')
 
-  const activeAchievements = getAchievementsForCourse(selectedCourse)
-  const unlockedAchievements = activeAchievements.filter((a) => {
-    switch (a.requirement.type) {
-      case 'xp': return user.xp >= a.requirement.value
-      case 'streak': return user.streak >= a.requirement.value
-      case 'lessons': return completedLessons >= a.requirement.value
-      case 'referrals': return user.referralCount >= a.requirement.value
-      default: return false
-    }
-  }).length
-  const unlockedBadges = activeAchievements.filter((a) => courseAchievements.includes(a.id))
+  const activeAchievements = getUserAchievementProgress(user, selectedCourse)
+  const unlockedBadges = activeAchievements.filter((a) => a.isUnlocked)
+  const unlockedAchievements = unlockedBadges.length
 
   const joinDate = (() => {
     const parsed = new Date(user.joinedAt)
@@ -198,19 +190,21 @@ export function ProfileScreen() {
 
         {/* Badges */}
         <Card className="tilio-card rounded-[1.75rem] p-4 mb-6">
-          <h3 className="font-medium text-foreground mb-3">Nishonlar to‘plami</h3>
+          <div className="mb-3 flex items-center justify-between gap-3">
+            <div>
+              <h3 className="font-black text-foreground">Nishonlar toplami</h3>
+              <p className="text-xs font-semibold text-muted-foreground">Ochilgan Tilio badge rewardlari</p>
+            </div>
+            <span className="rounded-full bg-primary/10 px-3 py-1 text-xs font-black text-primary">{unlockedBadges.length}/{activeAchievements.length}</span>
+          </div>
           {unlockedBadges.length > 0 ? (
-            <div className="grid grid-cols-2 gap-2">
-              {unlockedBadges.slice(0, 6).map((badge) => (
-                <div key={badge.id} className="rounded-xl bg-primary/10 border border-primary/20 px-3 py-2">
-                  <Sparkles className="mb-1 size-4 text-accent" />
-                  <p className="text-sm font-semibold">{badge.title}</p>
-                  <p className="text-xs text-muted-foreground">Ochilgan</p>
-                </div>
+            <div className="grid grid-cols-3 gap-3">
+              {unlockedBadges.slice(0, 9).map((badge) => (
+                <AchievementBadge key={badge.id} achievement={badge} compact />
               ))}
             </div>
           ) : (
-            <p className="text-sm text-muted-foreground">Birinchi nishonni ochish uchun kunlik vazifani bajaring.</p>
+            <p className="rounded-2xl bg-emerald-50/80 p-3 text-sm font-semibold text-muted-foreground">Birinchi nishonni ochish uchun 3 kunlik streak, 10 dars yoki 500 XP sari harakat qiling.</p>
           )}
         </Card>
 

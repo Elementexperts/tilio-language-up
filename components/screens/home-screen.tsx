@@ -12,7 +12,7 @@ import { getCourseOption, getLessonsForCourse, getNextLesson } from '@/lib/data/
 import { buildSmartReviewSummary, createSmartReviewLesson, hasTilioPlus } from '@/lib/plus'
 import { getXpProgress, getXpToNextLevel } from '@/lib/types'
 import { cn } from '@/lib/utils'
-import { ArrowRight, BookOpen, ChevronRight, Flame, Feather, Gift, Headphones, Home, Medal, MessageCircle, Play, ShoppingBag, Sparkles, Target, Trophy, UserRound, Users, Zap } from 'lucide-react'
+import { ArrowRight, BookOpen, ChevronRight, Clock3, Flame, Feather, Gift, Headphones, Home, Medal, Mic, Play, ShoppingBag, Sparkles, Target, Trophy, UserRound, Users, Zap } from 'lucide-react'
 
 export function HomeScreen() {
   const user = useAppStore((state) => state.user)
@@ -66,6 +66,24 @@ export function HomeScreen() {
   const avatarSrc = user.photoUrl ?? (user.avatarStyle === 'girl' ? '/avatars/tilio-girl-avatar.png' : '/avatars/tilio-boy-avatar.png')
   const plusActive = hasTilioPlus(user)
   const smartReview = buildSmartReviewSummary(user)
+  const skillDashboard = useMemo(() => {
+    const completedSet = new Set(courseCompletedLessons)
+    const completedLessons = courseLessons.filter((lesson) => completedSet.has(lesson.id))
+    const countBySkill = (skill: string) => completedLessons.filter((lesson) => lesson.skillFocus === skill).length
+    const totalBySkill = (skill: string) => Math.max(1, courseLessons.filter((lesson) => lesson.skillFocus === skill).length)
+
+    return {
+      wordsPercent: Math.round(progressPercent),
+      listeningPercent: Math.round((countBySkill('listening') / totalBySkill('listening')) * 100),
+      speakingPercent: Math.round((countBySkill('speaking') / totalBySkill('speaking')) * 100),
+    }
+  }, [courseCompletedLessons, courseLessons, progressPercent])
+
+  const dashboardRecommendation = smartReview.reviewQueue.length > 0
+    ? `${smartReview.reviewQueue.length} ta so'z takrorlashga tayyor. ${smartReview.estimatedMinutes} daqiqalik Smart Review qiling.`
+    : nextLesson
+      ? `Keyingi dars: ${nextLesson.title}. +${nextLesson.xpReward} XP va +${nextLesson.featherReward ?? 5} pat.`
+      : 'Kurs yakunlandi. Endi Plus Review orqali bilimni mustahkamlang.'
   const handleSmartReview = () => {
     if (plusActive && smartReview.reviewQueue.length > 0) {
       const lesson = createSmartReviewLesson(user, smartReview)
@@ -269,19 +287,89 @@ export function HomeScreen() {
           </section>
         )}
 
-        <section className="mt-4 grid grid-cols-3 gap-3 rounded-[1.6rem] border border-white/60 bg-emerald-950/90 p-3 text-white shadow-2xl shadow-emerald-950/18">
-          <QuickMode icon={<BookOpen className="size-6" />} label="So'zlar" />
-          <QuickMode icon={<Headphones className="size-6" />} label="Tingla" />
-          <QuickMode icon={<MessageCircle className="size-6" />} label="So'zla" />
-        </section>
-
-        <section className="tilio-card mt-4 rounded-[1.75rem] p-4">
-          <div className="mb-3 flex items-center justify-between">
-            <h2 className="text-lg font-black">Course Progress</h2>
-            <span className="rounded-full bg-primary/10 px-3 py-1 text-xs font-black text-primary">{completedCount}/{totalLessons}</span>
+        <section className="premium-card mt-4 overflow-hidden rounded-[1.75rem] p-4">
+          <div className="mb-4 flex items-start justify-between gap-3">
+            <div>
+              <p className="text-xs font-extrabold uppercase tracking-[0.16em] text-primary">Learning dashboard</p>
+              <h2 className="mt-1 text-xl font-black leading-tight text-foreground">Bugungi eng yaxshi qadam</h2>
+            </div>
+            <span className="shrink-0 rounded-full bg-primary/10 px-3 py-1 text-xs font-black text-primary">{completedCount}/{totalLessons}</span>
           </div>
-          <Progress value={progressPercent} className="tilio-progress h-4" />
-          <p className="mt-2 text-sm font-semibold text-muted-foreground">{Math.round(progressPercent)}% complete. {totalLessons - completedCount} lessons to go.</p>
+
+          <div className="grid grid-cols-3 gap-2">
+            <LearningShortcut
+              icon={<BookOpen className="size-5" />}
+              label="So'zlar"
+              detail={smartReview.reviewQueue.length > 0 ? `${smartReview.reviewQueue.length} ready` : `${nextLesson?.words.length ?? 0} new`}
+              progress={skillDashboard.wordsPercent}
+              onClick={handleSmartReview}
+            />
+            <LearningShortcut
+              icon={<Headphones className="size-5" />}
+              label="Tingla"
+              detail={`${skillDashboard.listeningPercent}% skill`}
+              progress={skillDashboard.listeningPercent}
+              tone="blue"
+              onClick={() => {
+                hapticFeedback('light')
+                setScreen('plus')
+              }}
+            />
+            <LearningShortcut
+              icon={<Mic className="size-5" />}
+              label="So'zla"
+              detail={`${skillDashboard.speakingPercent}% skill`}
+              progress={skillDashboard.speakingPercent}
+              tone="gold"
+              onClick={() => {
+                hapticFeedback('light')
+                setScreen('plus')
+              }}
+            />
+          </div>
+
+          <div className="mt-4 rounded-[1.35rem] border border-emerald-100 bg-white/74 p-3 shadow-inner shadow-emerald-950/4">
+            <div className="mb-2 flex items-center justify-between gap-3">
+              <h3 className="font-black text-foreground">Course Progress</h3>
+              <span className="rounded-full bg-emerald-100 px-2.5 py-1 text-[11px] font-black text-primary">{Math.round(progressPercent)}%</span>
+            </div>
+            <Progress value={progressPercent} className="tilio-progress h-4" />
+            <div className="mt-3 flex items-center justify-between gap-3">
+              <div className="min-w-0">
+                <p className="truncate text-sm font-black text-foreground">{nextLesson ? nextLesson.title : 'Course complete'}</p>
+                <p className="text-xs font-semibold text-muted-foreground">{totalLessons - completedCount} lessons to go</p>
+              </div>
+              {nextLesson && (
+                <Button
+                  className="h-10 shrink-0 rounded-2xl px-4 font-black"
+                  onClick={() => {
+                    hapticFeedback('medium')
+                    startLesson(nextLesson)
+                  }}
+                >
+                  Continue
+                </Button>
+              )}
+            </div>
+          </div>
+
+          <button
+            className="tilio-pressed mt-3 flex w-full items-center gap-3 rounded-[1.35rem] border border-lime-200/80 bg-lime-50/80 p-3 text-left"
+            onClick={smartReview.reviewQueue.length > 0 ? handleSmartReview : () => {
+              hapticFeedback('medium')
+              if (nextLesson) startLesson(nextLesson)
+              else setScreen('plus')
+            }}
+          >
+            <span className="flex size-10 shrink-0 items-center justify-center rounded-2xl bg-primary/10 text-primary">
+              {smartReview.reviewQueue.length > 0 ? <Sparkles className="size-5" /> : <Clock3 className="size-5" />}
+            </span>
+            <span className="min-w-0 flex-1">
+              <span className="block text-sm font-black text-foreground">Smart recommendation</span>
+              <span className="block text-xs font-semibold leading-4 text-muted-foreground">{dashboardRecommendation}</span>
+            </span>
+            <ChevronRight className="size-5 shrink-0 text-muted-foreground" />
+          </button>
         </section>
 
         <section className="mt-6">
@@ -339,13 +427,23 @@ function MetricCard({ label, value, icon, tone = 'green' }: { label: string; val
   )
 }
 
-function QuickMode({ icon, label }: { icon: React.ReactNode; label: string }) {
+function LearningShortcut({ icon, label, detail, progress, tone = 'green', onClick }: { icon: React.ReactNode; label: string; detail: string; progress: number; tone?: 'green' | 'blue' | 'gold'; onClick: () => void }) {
+  const toneClass = tone === 'blue'
+    ? 'from-sky-300 to-cyan-500 text-sky-950 shadow-sky-400/15'
+    : tone === 'gold'
+      ? 'from-amber-200 to-yellow-500 text-amber-950 shadow-amber-400/15'
+      : 'from-lime-300 to-emerald-500 text-emerald-950 shadow-lime-400/15'
+
   return (
-    <button className="tilio-pressed flex flex-col items-center gap-2 rounded-[1.25rem] bg-white/8 px-2 py-3 text-xs font-black text-lime-50">
-      <span className="flex size-12 items-center justify-center rounded-full bg-gradient-to-br from-lime-300 to-emerald-500 text-emerald-950 shadow-lg shadow-lime-400/15">
+    <button onClick={onClick} className="tilio-pressed min-w-0 rounded-[1.25rem] border border-white/70 bg-white/70 p-2.5 text-center shadow-lg shadow-emerald-950/5">
+      <span className={cn('mx-auto flex size-12 items-center justify-center rounded-full bg-gradient-to-br shadow-lg', toneClass)}>
         {icon}
       </span>
-      <span className="truncate">{label}</span>
+      <span className="mt-2 block truncate text-xs font-black text-foreground">{label}</span>
+      <span className="mt-0.5 block truncate text-[10px] font-extrabold text-muted-foreground">{detail}</span>
+      <span className="mt-2 block h-1.5 overflow-hidden rounded-full bg-emerald-950/10">
+        <span className="block h-full rounded-full bg-primary" style={{ width: `${Math.min(progress, 100)}%` }} />
+      </span>
     </button>
   )
 }

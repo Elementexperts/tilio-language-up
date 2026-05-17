@@ -12,7 +12,7 @@ import { getCourseOption, getLessonsForCourse, getNextLesson } from '@/lib/data/
 import { buildSmartReviewSummary, createSmartReviewLesson, hasTilioPlus } from '@/lib/plus'
 import { getXpProgress, getXpToNextLevel } from '@/lib/types'
 import { cn } from '@/lib/utils'
-import { ArrowRight, BookOpen, ChevronRight, Clock3, Flame, Feather, Gift, Headphones, Home, Medal, Mic, Play, ShoppingBag, Sparkles, Target, Trophy, UserRound, Users, Zap } from 'lucide-react'
+import { ArrowRight, BookOpen, CheckCircle2, ChevronRight, Clock3, Flame, Feather, Gift, Headphones, Home, Medal, Mic, Play, ShoppingBag, Sparkles, Target, Trophy, UserRound, Users, Zap } from 'lucide-react'
 
 export function HomeScreen() {
   const user = useAppStore((state) => state.user)
@@ -63,6 +63,11 @@ export function HomeScreen() {
   const xpProgress = getXpProgress(user.xp)
   const xpToNext = getXpToNextLevel(user.xp)
   const chestReady = hasMounted ? canClaimChest() : false
+  const todayKey = hasMounted ? new Date().toISOString().split('T')[0] : ''
+  const todayXpEarned = todayKey ? user.activityLog?.[todayKey]?.xpEarned ?? 0 : 0
+  const dailyXpGoal = Math.max(20, user.dailyGoal * 2)
+  const dailyGoalProgress = Math.min((todayXpEarned / dailyXpGoal) * 100, 100)
+  const dailyGoalComplete = todayXpEarned >= dailyXpGoal
   const avatarSrc = user.photoUrl ?? (user.avatarStyle === 'girl' ? '/avatars/tilio-girl-avatar.png' : '/avatars/tilio-boy-avatar.png')
   const plusActive = hasTilioPlus(user)
   const smartReview = buildSmartReviewSummary(user)
@@ -182,6 +187,29 @@ export function HomeScreen() {
             <div className="mt-2 flex justify-between text-xs font-bold text-muted-foreground">
               <span>{xpProgress}/100 XP</span>
               <span>{xpToNext} XP to next level</span>
+            </div>
+          </div>
+        </section>
+
+        <section className={cn('premium-card mt-4 rounded-[1.75rem] p-4', dailyGoalComplete && 'animate-reward-glow')}>
+          <div className="flex items-start gap-3">
+            <div className={cn('flex size-14 shrink-0 items-center justify-center rounded-2xl shadow-lg', dailyGoalComplete ? 'bg-gradient-to-br from-amber-200 to-lime-300 text-emerald-950 shadow-lime-300/20' : 'bg-primary/10 text-primary')}>
+              {dailyGoalComplete ? <CheckCircle2 className="size-7" /> : <Target className="size-7" />}
+            </div>
+            <div className="min-w-0 flex-1">
+              <div className="flex items-center justify-between gap-2">
+                <p className="text-xs font-extrabold uppercase tracking-[0.16em] text-primary">Daily goal</p>
+                <span className="rounded-full bg-primary/10 px-2.5 py-1 text-[11px] font-black text-primary">{todayXpEarned}/{dailyXpGoal} XP</span>
+              </div>
+              <h2 className="mt-1 text-lg font-black">Bugungi maqsad: {dailyXpGoal} XP</h2>
+              <p className="mt-1 text-sm font-semibold text-muted-foreground">
+                {dailyGoalComplete ? "Maqsad bajarildi. Mukofot ritmi zo'r!" : "Yana ozgina qoldi - streak'ingizni saqlang!"}
+              </p>
+              <Progress value={dailyGoalProgress} className="tilio-progress mt-3 h-3" />
+              <div className="mt-3 flex items-center justify-between gap-3 text-xs font-black">
+                <span className="inline-flex items-center gap-1 rounded-full bg-amber-50 px-2.5 py-1 text-amber-700"><Sparkles className="size-3.5" /> +10 XP bonus</span>
+                <span className="inline-flex items-center gap-1 text-orange-600"><Flame className="size-3.5" /> Streak reminder</span>
+              </div>
             </div>
           </div>
         </section>

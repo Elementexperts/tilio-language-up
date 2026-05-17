@@ -2,7 +2,7 @@
 
 import { cn } from '@/lib/utils'
 
-type SparrowMood = 'happy' | 'thinking' | 'celebrating' | 'sad' | 'waving'
+type SparrowMood = 'happy' | 'proud' | 'thinking' | 'encouraging' | 'celebrating' | 'sad' | 'waving'
 
 interface SparrowMascotProps {
   size?: 'sm' | 'md' | 'lg' | 'xl'
@@ -21,8 +21,10 @@ const sizeClasses = {
 
 const moodClasses: Record<SparrowMood, string> = {
   happy: 'from-emerald-50 to-lime-100',
+  proud: 'from-amber-50 to-lime-100',
   thinking: 'from-sky-50 to-emerald-100',
   celebrating: 'from-amber-50 to-lime-100',
+  encouraging: 'from-lime-50 to-emerald-100',
   sad: 'from-rose-50 to-emerald-50',
   waving: 'from-emerald-50 to-lime-100',
 }
@@ -36,6 +38,14 @@ function MoodReaction({ mood }: { mood: SparrowMood }) {
         <span className="size-2.5 rounded-full bg-emerald-700/25" />
       </div>
     )
+  }
+
+  if (mood === 'proud') {
+    return <span className="absolute right-3 top-3 flex size-7 items-center justify-center rounded-full bg-amber-300 text-[13px] font-black text-amber-950 shadow-sm">!</span>
+  }
+
+  if (mood === 'encouraging') {
+    return <span className="absolute left-3 top-3 h-5 w-5 rounded-full border-4 border-primary/35 animate-pulse-glow" />
   }
 
   if (mood === 'celebrating') {

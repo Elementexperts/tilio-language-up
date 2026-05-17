@@ -13,7 +13,7 @@ export const courseOptions: Array<{
     id: 'uz-en',
     title: 'Uzbek to English',
     titleUz: "O'zbekcha -> Inglizcha",
-    descriptionUz: "Ingliz tilini kundalik so'zlar, iboralar va mashqlar orqali o'rganing.",
+    descriptionUz: "Ingliz tilini kunlik so'zlar, iboralar va interaktiv mashqlar orqali o'rganing.",
     fromFlag: '🇺🇿',
     toFlag: '🇬🇧',
     badge: 'EN',

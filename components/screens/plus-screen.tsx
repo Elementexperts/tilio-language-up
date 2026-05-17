@@ -2,6 +2,7 @@
 
 import { useMemo, useState } from 'react'
 import { Button } from '@/components/ui/button'
+import { SparrowMascot } from '@/components/sparrow-mascot'
 import { Progress } from '@/components/ui/progress'
 import { useAppStore } from '@/lib/store'
 import { buildSmartReviewSummary, createPlusPracticeLesson, getPlusPracticeReward, getPlusPracticeWordCount, getWeeklyInsightStats, hasTilioPlus, type PlusPracticeMode, type ReviewWordInsight, type SmartReviewSummary, type WeeklyInsightSummary } from '@/lib/plus'
@@ -208,8 +209,8 @@ function ReviewTab({ plusActive, summary, onStartReview }: { plusActive: boolean
             <Brain className="size-6" />
           </div>
           <div className="min-w-0 flex-1">
-            <p className="text-xs font-extrabold uppercase tracking-[0.16em] text-primary">Smart Review Ready</p>
-            <h2 className="text-xl font-black">{summary.reviewQueue.length} words in queue</h2>
+            <p className="text-xs font-extrabold uppercase tracking-[0.16em] text-primary">Bugungi review tayyor</p>
+            <h2 className="text-xl font-black">{summary.reviewQueue.length} so'z review navbatida</h2>
             <p className="text-sm font-semibold text-muted-foreground">{summary.nextReviewLabel} · Estimated {summary.estimatedMinutes} min</p>
           </div>
         </div>
@@ -220,7 +221,7 @@ function ReviewTab({ plusActive, summary, onStartReview }: { plusActive: boolean
         </div>
         <Button disabled={!canStart} onClick={onStartReview} className="tilio-button mt-4 h-12 w-full rounded-2xl">
           <RefreshCcw className="size-5" />
-          {plusActive ? summary.reviewQueue.length > 0 ? `Start ${summary.reviewQueue.length}-word review` : 'Complete a lesson first' : 'Unlock to start'}
+          {plusActive ? summary.reviewQueue.length > 0 ? 'Start Smart Review' : 'Bir nechta darsni yakunlang' : 'Unlock to start'}
         </Button>
         {!plusActive && <LockedHint />}
       </div>
@@ -231,9 +232,9 @@ function ReviewTab({ plusActive, summary, onStartReview }: { plusActive: boolean
         <ReviewEmptyState readiness={summary.readiness} />
       )}
 
-      <InsightList title="Weak Words" icon={<Flame className="size-5 text-orange-500" />} items={summary.weakWords.slice(0, 5)} empty="No weak words yet. Mistakes will appear here automatically." />
-      <InsightList title="Recently Missed" icon={<Target className="size-5 text-red-500" />} items={summary.recentlyMissed.slice(0, 5)} empty="Recent mistakes will appear here." />
-      <InsightList title="Almost Mastered" icon={<CheckCircle2 className="size-5 text-primary" />} items={summary.almostMastered.slice(0, 5)} empty="Keep practicing to move words into mastery." />
+      <InsightList title="Weak words" icon={<Flame className="size-5 text-orange-500" />} items={summary.weakWords.slice(0, 5)} empty="No weak words yet. Mistakes will appear here automatically." />
+      <InsightList title="Recently missed" icon={<Target className="size-5 text-red-500" />} items={summary.recentlyMissed.slice(0, 5)} empty="Recent mistakes will appear here." />
+      <InsightList title="Almost mastered" icon={<CheckCircle2 className="size-5 text-primary" />} items={summary.almostMastered.slice(0, 5)} empty="Keep practicing to move words into mastery." />
     </section>
   )
 }
@@ -244,6 +245,7 @@ function ChatTab({ plusActive }: { plusActive: boolean }) {
   const [input, setInput] = useState('')
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
+  const [retryMessage, setRetryMessage] = useState('')
 
   const courseId = user?.selectedCourse ?? user?.learningPath ?? 'uz-en'
   const tutorLabel = courseId === 'uz-ko' ? 'Korean tutor' : 'English tutor'
@@ -264,6 +266,7 @@ function ChatTab({ plusActive }: { plusActive: boolean }) {
     if (!trimmed || loading) return
 
     setError('')
+    setRetryMessage('')
     setInput('')
     setMessages((prev) => [...prev, { id: createId(), role: 'user', text: trimmed }])
     setLoading(true)
@@ -312,9 +315,9 @@ function ChatTab({ plusActive }: { plusActive: boolean }) {
             <p className="mt-0.5 text-[11px] font-black uppercase tracking-[0.14em] text-muted-foreground">{tutorLabel}</p>
           </div>
         </div>
-        <p className="mt-3 text-sm font-semibold text-muted-foreground">Beginner-safe conversations with short replies, gentle corrections, and one better phrase suggestion.</p>
+        <p className="mt-3 text-sm font-semibold text-muted-foreground">Tilio Tutor qisqa javob beradi, xatolarni muloyim tuzatadi va tabiiyroq iborani taklif qiladi.</p>
         <div className="mt-4 rounded-2xl border border-lime-200 bg-lime-50 px-4 py-3 text-sm font-semibold text-emerald-950">
-          Free: 3 AI messages/day. Plus: more practice.
+          Free: 3 AI xabar / kun. Plus: ko'proq AI mashqlar.
         </div>
         {!plusActive && <LockedHint />}
       </div>
@@ -334,8 +337,10 @@ function ChatTab({ plusActive }: { plusActive: boolean }) {
 
       <div className="max-h-[46vh] space-y-3 overflow-y-auto rounded-[1.75rem] border border-white/70 bg-white/80 p-4 shadow-lg shadow-emerald-950/5">
         {messages.length === 0 && (
-          <div className="rounded-2xl bg-emerald-50 p-4 text-sm font-semibold text-emerald-950">
-            Xabar yuboring yoki scenario tanlang. Tilio qisqa va oson javob beradi.
+          <div className="rounded-[1.5rem] bg-gradient-to-br from-emerald-50 to-lime-50 p-4 text-center text-sm font-semibold text-emerald-950">
+            <SparrowMascot size="sm" mood="encouraging" branded className="mx-auto mb-3" />
+            <h3 className="text-lg font-black">AI tutor bilan mashq qiling</h3>
+            <p className="mt-1 text-muted-foreground">Scenario tanlang yoki o'zingiz xabar yozing. Tilio qisqa, sodda va boshlovchilar uchun qulay javob beradi.</p>
           </div>
         )}
 
@@ -350,14 +355,17 @@ function ChatTab({ plusActive }: { plusActive: boolean }) {
         {loading && (
           <div className="flex justify-start">
             <div className="rounded-[1.4rem] bg-emerald-50 px-4 py-3 text-sm font-semibold text-emerald-950">
-              AI yozmoqda...
+              Tilio Tutor yozmoqda...
             </div>
           </div>
         )}
 
         {error && (
           <div className="rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-sm font-semibold text-red-600">
-            {error}
+            <div className="flex items-center justify-between gap-3">
+              <span>{error}</span>
+              <button type="button" onClick={() => sendMessage(retryMessage)} disabled={!retryMessage || loading} className="shrink-0 rounded-full bg-white px-3 py-1 text-xs font-black text-red-600 shadow-sm disabled:opacity-50">Retry</button>
+            </div>
           </div>
         )}
       </div>
@@ -652,15 +660,9 @@ function ReviewQueueList({ items }: { items: ReviewWordInsight[] }) {
 function ReviewEmptyState({ readiness }: { readiness: SmartReviewSummary['readiness'] }) {
   return (
     <div className="rounded-[1.75rem] border border-white/70 bg-white/78 p-5 text-center shadow-lg shadow-emerald-950/5">
-      <div className="mx-auto mb-3 flex size-14 items-center justify-center rounded-2xl bg-primary/10 text-primary">
-        <BookOpen className="size-7" />
-      </div>
-      <h3 className="text-lg font-black">{readiness === 'empty' ? 'Review is warming up' : 'Review data is building'}</h3>
-      <p className="mx-auto mt-2 max-w-xs text-sm font-semibold text-muted-foreground">
-        {readiness === 'empty'
-          ? 'Complete one lesson and Tilio Plus will build a personal queue from your learned words.'
-          : 'Keep answering a few questions. Weak words and due words will appear automatically.'}
-      </p>
+      <SparrowMascot size="md" mood={readiness === 'empty' ? 'thinking' : 'encouraging'} branded className="mx-auto mb-3" />
+      <h3 className="text-lg font-black">Hozircha review uchun so'zlar yo'q</h3>
+      <p className="mx-auto mt-2 max-w-xs text-sm font-semibold text-muted-foreground">Bir nechta darsni yakunlang. Keyin Tilio xatolar, sust so'zlar va esdan chiqayotgan iboralar uchun review navbatini tayyorlaydi.</p>
     </div>
   )
 }

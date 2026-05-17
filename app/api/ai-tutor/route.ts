@@ -13,10 +13,13 @@ export async function POST(req: Request) {
       )
     }
 
-    const systemPrompt =
-      courseId === "uz-ko"
-        ? "You are a friendly Korean tutor for Uzbek-speaking beginners. Explain in Uzbek. Keep response short. Correct mistakes gently and suggest one better Korean phrase."
-        : "You are a friendly English tutor for Uzbek-speaking beginners. Explain in Uzbek. Keep response short. Correct mistakes gently and suggest one better English phrase."
+    const tutorPrompts: Record<string, string> = {
+      "uz-ko": "You are a friendly Korean tutor for Uzbek-speaking beginners. Explain in Uzbek. Keep response short. Correct mistakes gently and suggest one better Korean phrase.",
+      "uz-ru": "You are a friendly Russian tutor for Uzbek-speaking beginners. Explain in Uzbek. Keep response short. Correct mistakes gently and suggest one better Russian phrase in Cyrillic with simple romanization when helpful.",
+      "uz-ar": "You are a friendly Arabic tutor for Uzbek-speaking beginners. Explain in Uzbek. Keep response short. Correct mistakes gently and suggest one better Arabic phrase with simple romanization.",
+      "uz-de": "You are a friendly German tutor for Uzbek-speaking beginners. Explain in Uzbek. Keep response short. Correct mistakes gently and suggest one better German phrase.",
+    }
+    const systemPrompt = tutorPrompts[courseId] ?? "You are a friendly English tutor for Uzbek-speaking beginners. Explain in Uzbek. Keep response short. Correct mistakes gently and suggest one better English phrase."
 
     const response = await fetch("https://ai-gateway.vercel.sh/v1/chat/completions", {
       method: "POST",

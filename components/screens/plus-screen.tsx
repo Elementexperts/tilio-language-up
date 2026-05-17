@@ -248,8 +248,8 @@ function ChatTab({ plusActive }: { plusActive: boolean }) {
   const [retryMessage, setRetryMessage] = useState('')
 
   const courseId = user?.selectedCourse ?? user?.learningPath ?? 'uz-en'
-  const tutorLabel = courseId === 'uz-ko' ? 'Korean tutor' : 'English tutor'
-  const targetLanguage = courseId === 'uz-ko' ? 'koreyscha' : 'inglizcha'
+  const tutorLabel = courseId === 'uz-ko' ? 'Korean tutor' : courseId === 'uz-ru' ? 'Russian tutor' : courseId === 'uz-ar' ? 'Arabic tutor' : courseId === 'uz-de' ? 'German tutor' : 'English tutor'
+  const targetLanguage = courseId === 'uz-ko' ? 'koreyscha' : courseId === 'uz-ru' ? 'ruscha' : courseId === 'uz-ar' ? 'arabcha' : courseId === 'uz-de' ? 'nemischa' : 'inglizcha'
 
   const scenarios = [
     { label: 'Salomlashish', prompt: 'Salomlashishni ' + targetLanguage + ' mashq qilamiz.' },

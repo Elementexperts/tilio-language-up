@@ -70,6 +70,9 @@ export function AuthScreen() {
       courseProgress: {
         'uz-en': { completedLessons: [], achievements: [] },
         'uz-ko': { completedLessons: [], achievements: [] },
+        'uz-ru': { completedLessons: [], achievements: [] },
+        'uz-ar': { completedLessons: [], achievements: [] },
+        'uz-de': { completedLessons: [], achievements: [] },
       },
       referralCount: 0,
       claimedReferralMilestones: [],

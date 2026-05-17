@@ -27,6 +27,17 @@ export const achievementBadgeTone: Record<string, BadgeTone> = {
   'ko-travel-ready': 'navy',
   'ko-topik-starter': 'purple',
   'ko-course-complete': 'amber',
+  'ru-first-hello': 'blue',
+  'ru-word-collector': 'teal',
+  'ru-grammar-starter': 'gold',
+  'ru-travel-ready': 'navy',
+  'ru-course-complete': 'amber',
+  'ar-first-hello': 'blue',
+  'ar-word-collector': 'teal',
+  'ar-course-complete': 'amber',
+  'de-first-hello': 'blue',
+  'de-word-collector': 'teal',
+  'de-course-complete': 'amber',
 }
 
 export const achievementBadgeIcon: Record<string, LucideIcon> = {
@@ -46,6 +57,17 @@ export const achievementBadgeIcon: Record<string, LucideIcon> = {
   'ko-travel-ready': Trophy,
   'ko-topik-starter': GraduationCap,
   'ko-course-complete': Crown,
+  'ru-first-hello': Star,
+  'ru-word-collector': BookOpen,
+  'ru-grammar-starter': GraduationCap,
+  'ru-travel-ready': Trophy,
+  'ru-course-complete': Crown,
+  'ar-first-hello': Star,
+  'ar-word-collector': BookOpen,
+  'ar-course-complete': Crown,
+  'de-first-hello': Star,
+  'de-word-collector': BookOpen,
+  'de-course-complete': Crown,
 }
 
 export function getAchievementCurrent(user: User, achievement: Achievement, courseId: CourseId) {

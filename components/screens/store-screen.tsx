@@ -118,7 +118,7 @@ const plusFeatureCards = [
   },
   {
     title: 'AI Conversation Practice',
-    description: 'Guided Uzbek, English, and Korean conversations with a Tilio tutor.',
+    description: 'Guided Uzbek, English, Korean, Russian, Arabic, and German conversations with a Tilio tutor.',
     icon: MessageCircle,
     status: 'Next',
   },

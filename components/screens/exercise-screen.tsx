@@ -88,7 +88,10 @@ export function ExerciseScreen() {
   const progressPercent = totalExercises > 0 ? (displayedExerciseIndex / totalExercises) * 100 : 0
   const isUzToEn = true
   const isKoreanCourse = currentLesson?.courseId === 'uz-ko'
-  const targetSpeechLang = isKoreanCourse ? 'ko-KR' : 'en-US'
+  const isRussianCourse = currentLesson?.courseId === 'uz-ru'
+  const isArabicCourse = currentLesson?.courseId === 'uz-ar'
+  const isGermanCourse = currentLesson?.courseId === 'uz-de'
+  const targetSpeechLang = isKoreanCourse ? 'ko-KR' : isRussianCourse ? 'ru-RU' : isArabicCourse ? 'ar-SA' : isGermanCourse ? 'de-DE' : 'en-US'
 
   const playRemoteTts = useCallback((text: string, lang: string) => {
     if (typeof window === 'undefined' || !text.trim()) return
@@ -107,17 +110,17 @@ export function ExerciseScreen() {
   const speakText = useCallback((text: string, lang = 'uz-UZ') => {
     if (typeof window === 'undefined' || !text.trim()) return
     if (!('speechSynthesis' in window)) {
-      if (lang.startsWith('ko')) playRemoteTts(text, lang)
+      if (lang.startsWith('ko') || lang.startsWith('ru') || lang.startsWith('ar') || lang.startsWith('de')) playRemoteTts(text, lang)
       return
     }
 
     window.speechSynthesis.cancel()
     const utterance = new SpeechSynthesisUtterance(text)
     utterance.lang = lang
-    utterance.rate = lang.startsWith('ko') ? 0.82 : lang.startsWith('uz') ? 0.86 : 0.92
+    utterance.rate = lang.startsWith('ko') || lang.startsWith('ar') ? 0.82 : lang.startsWith('uz') ? 0.86 : 0.92
     utterance.pitch = 1.05
     const voice = getPreferredVoice(lang)
-    if (lang.startsWith('ko') && !voice) {
+    if ((lang.startsWith('ko') || lang.startsWith('ru') || lang.startsWith('ar') || lang.startsWith('de')) && !voice) {
       playRemoteTts(text, lang)
       return
     }
@@ -361,6 +364,9 @@ export function ExerciseScreen() {
             onContinue={handleVocabContinue}
             isSpeaking={isSpeaking}
             isKoreanCourse={isKoreanCourse}
+            isRussianCourse={isRussianCourse}
+            isArabicCourse={isArabicCourse}
+            isGermanCourse={isGermanCourse}
             onSpeak={() => speakNewWord(currentExercise.word, isUzToEn)}
           />
         )}
@@ -510,26 +516,31 @@ interface VocabularyCardProps {
   onContinue: () => void
   isSpeaking: boolean
   isKoreanCourse: boolean
+  isRussianCourse: boolean
+  isArabicCourse: boolean
+  isGermanCourse: boolean
   onSpeak: () => void
 }
 
-function VocabularyCard({ word, isUzToEn, onContinue, isSpeaking, isKoreanCourse, onSpeak }: VocabularyCardProps) {
+function VocabularyCard({ word, isUzToEn, onContinue, isSpeaking, isKoreanCourse, isRussianCourse, isArabicCourse, isGermanCourse, onSpeak }: VocabularyCardProps) {
   const newWord = isUzToEn ? word.english : word.uzbek
   const meaning = isUzToEn ? word.uzbek : word.english
   const example = isUzToEn ? word.example?.english : word.example?.uzbek
   const translatedExample = isUzToEn ? word.example?.uzbek : word.example?.english
+  const isRomanizedCourse = isKoreanCourse || isRussianCourse || isArabicCourse || isGermanCourse
+  const newWordLabel = isKoreanCourse ? 'Korean New Word' : isRussianCourse ? 'Russian New Word' : isArabicCourse ? 'Arabic New Word' : isGermanCourse ? 'German New Word' : isUzToEn ? 'English New Word' : 'New Word'
 
   return (
     <div className="flex flex-1 flex-col items-center justify-center animate-soft-pop">
       <div className="mb-4 flex items-center gap-2">
-        <ExerciseSectionPill section="vocabulary" label={isKoreanCourse ? 'Korean New Word' : isUzToEn ? 'English New Word' : 'New Word'} />
+        <ExerciseSectionPill section="vocabulary" label={newWordLabel} />
         <Sparkles className="size-3.5 text-primary" />
       </div>
       
       <Card className="tilio-card w-full max-w-sm rounded-[2rem] p-7 text-center">
         <SparrowMascot size="sm" mood="thinking" branded className="mx-auto mb-4" />
         <div className="mb-4 flex items-center justify-center gap-3">
-          <div className={cn('font-black leading-none text-emerald-950', isKoreanCourse ? 'text-4xl' : 'text-5xl')}>
+          <div className={cn('font-black leading-none text-emerald-950', isRomanizedCourse ? 'text-4xl' : 'text-5xl')}>
             {newWord}
           </div>
           <button
@@ -542,11 +553,11 @@ function VocabularyCard({ word, isUzToEn, onContinue, isSpeaking, isKoreanCourse
             aria-label="Play pronunciation"
           >
             <Volume2 className="size-5" />
-            <span className="text-sm font-black">{isKoreanCourse ? 'Eshitish' : 'Listen'}</span>
+            <span className="text-sm font-black">{isRomanizedCourse ? 'Eshitish' : 'Listen'}</span>
           </button>
         </div>
 
-        {isKoreanCourse && word.romanization && (
+        {isRomanizedCourse && word.romanization && (
           <p className="mb-3 text-lg font-black text-emerald-700">
             <span className="text-xs font-extrabold uppercase tracking-[0.12em] text-muted-foreground">Talaffuz </span>
             {word.romanization}
@@ -571,7 +582,7 @@ function VocabularyCard({ word, isUzToEn, onContinue, isSpeaking, isKoreanCourse
           </div>
         )}
 
-        {isKoreanCourse && word.uzbekExplanation && (
+        {isRomanizedCourse && word.uzbekExplanation && (
           <div className="mt-4 rounded-2xl bg-amber-50/90 p-4 text-left">
             <p className="text-sm font-semibold leading-5 text-amber-950">{word.uzbekExplanation}</p>
           </div>
@@ -582,7 +593,7 @@ function VocabularyCard({ word, isUzToEn, onContinue, isSpeaking, isKoreanCourse
         onClick={onContinue}
         className="tilio-button mt-8 h-14 rounded-2xl px-12 text-lg font-black"
       >
-        {isKoreanCourse ? 'Tushundim!' : 'Got it!'}
+        {isRomanizedCourse ? 'Tushundim!' : 'Got it!'}
         <ArrowRight className="w-5 h-5 ml-2" />
       </Button>
     </div>

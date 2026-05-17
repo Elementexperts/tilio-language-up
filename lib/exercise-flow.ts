@@ -212,6 +212,23 @@ function getKoreanGrammarNote(word: Word, sourceText: string, correctAnswer: str
   return `${romanization}${explanation}"${sourceText}" koreyscha shakl bo‘lib, o‘zbekcha ma’nosi "${correctAnswer}". Avval eshiting, keyin ovoz chiqarib takrorlang.`
 }
 
+function getRussianGrammarNote(word: Word, sourceText: string, correctAnswer: string) {
+  const romanization = word.romanization ? `Talaffuz: ${word.romanization}. ` : ''
+  const explanation = word.uzbekExplanation ? `${word.uzbekExplanation} ` : ''
+
+  if (word.category === 'ru-grammar') {
+    return `${romanization}${explanation}"${sourceText}" iborasining o'zbekcha ma'nosi "${correctAnswer}". Rus tilida so'z tartibi va fe'l shakliga e'tibor bering.`
+  }
+
+  return `${romanization}${explanation}"${sourceText}" ruscha shakl bo'lib, o'zbekcha ma'nosi "${correctAnswer}". Avval kirill yozuvini tanib, keyin ovoz chiqarib takrorlang.`
+}
+
+function getCourseGrammarNote(word: Word, sourceText: string, correctAnswer: string, languageLabel: string, focus: string) {
+  const romanization = word.romanization ? `Talaffuz: ${word.romanization}. ` : ''
+  const explanation = word.uzbekExplanation ? `${word.uzbekExplanation} ` : ''
+  return `${romanization}${explanation}"${sourceText}" ${languageLabel} shakl bo'lib, o'zbekcha ma'nosi "${correctAnswer}". ${focus}`
+}
+
 export function buildLessonExercises(
   lesson: Lesson,
   _learningPath: User['learningPath'] | undefined,
@@ -266,7 +283,7 @@ export function buildLessonExercises(
 
     if (type === 'sentence-builder' && !hasSentence) return null
     if ((type === 'listening' || type === 'pronunciation' || type === 'grammar') && !example) return null
-    if (type === 'grammar' && lesson.courseId !== 'uz-ko' && example && !new RegExp(escapeRegExp(sourceText), 'i').test(example)) {
+    if (type === 'grammar' && lesson.courseId !== 'uz-ko' && lesson.courseId !== 'uz-ru' && lesson.courseId !== 'uz-ar' && lesson.courseId !== 'uz-de' && example && !new RegExp(escapeRegExp(sourceText), 'i').test(example)) {
       return null
     }
 
@@ -290,7 +307,13 @@ export function buildLessonExercises(
     if (type === 'grammar' && example) {
       const grammarPattern = lesson.courseId === 'uz-ko'
         ? { questionText: sourceText, rule: getKoreanGrammarNote(word, sourceText, correctAnswer) }
-        : getGrammarPattern(word, sourceText, example, translatedExample)
+        : lesson.courseId === 'uz-ru'
+          ? { questionText: sourceText, rule: getRussianGrammarNote(word, sourceText, correctAnswer) }
+          : lesson.courseId === 'uz-ar'
+            ? { questionText: sourceText, rule: getCourseGrammarNote(word, sourceText, correctAnswer, 'arabcha', 'Arab yozuvi o\'ngdan chapga o\'qiladi; avval shaklni tanib, keyin talaffuzni takrorlang.') }
+            : lesson.courseId === 'uz-de'
+              ? { questionText: sourceText, rule: getCourseGrammarNote(word, sourceText, correctAnswer, 'nemischa', 'Nemis tilida bosh harf, fe\'l joyi va sodda gap qolipiga e\'tibor bering.') }
+          : getGrammarPattern(word, sourceText, example, translatedExample)
 
       return {
         type,

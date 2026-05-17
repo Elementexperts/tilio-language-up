@@ -1,5 +1,5 @@
 // User types
-export type CourseId = 'uz-en' | 'uz-ko'
+export type CourseId = 'uz-en' | 'uz-ko' | 'uz-ru' | 'uz-ar' | 'uz-de'
 export type PracticeMode = 'smart-review' | 'mistake' | 'listening' | 'speaking' | 'mixed'
 export type SkillFocus = 'reading' | 'writing' | 'listening' | 'speaking' | 'grammar' | 'mixed'
 
@@ -72,6 +72,9 @@ export interface Word {
   id: string
   uzbek: string
   english: string
+  russian?: string
+  arabic?: string
+  german?: string
   korean?: string
   romanization?: string
   uzbekExplanation?: string

@@ -140,6 +140,9 @@ export function OnboardingScreen() {
       courseProgress: {
         'uz-en': { completedLessons: [], achievements: [] },
         'uz-ko': { completedLessons: [], achievements: [] },
+        'uz-ru': { completedLessons: [], achievements: [] },
+        'uz-ar': { completedLessons: [], achievements: [] },
+        'uz-de': { completedLessons: [], achievements: [] },
       },
       referralCount: 0,
       claimedReferralMilestones: [],
@@ -206,7 +209,7 @@ export function OnboardingScreen() {
               {telegramUser ? `Salom, ${telegramUser.first_name}!` : 'Xush kelibsiz!'}
             </h1>
             <p className="tilio-body mt-3 max-w-xs text-base">
-              O‘zbekcha va inglizchani o‘yinli darslar orqali o‘rganamiz. Avval profilingizni sozlaymiz.
+              Inglizcha, koreyscha, ruscha, arabcha yoki nemischa yo‘nalishda o‘yinli darslar orqali o‘rganamiz. Avval profilingizni sozlaymiz.
             </p>
             <div className="mt-8 flex items-center gap-4">
               <div className="flex items-center gap-2 text-sm text-muted-foreground">

@@ -1,7 +1,13 @@
 import type { CloudAuthSession, CloudProgressSnapshot, DailyChallenge, User } from '@/lib/types'
 import { supabaseFetch } from '@/lib/supabase'
 
-const normalizeCourseId = (courseId?: string) => (courseId === 'uz-ko' ? 'uz-ko' : 'uz-en')
+const normalizeCourseId = (courseId?: string) => {
+  if (courseId === 'uz-ko') return 'uz-ko'
+  if (courseId === 'uz-ru') return 'uz-ru'
+  if (courseId === 'uz-ar') return 'uz-ar'
+  if (courseId === 'uz-de') return 'uz-de'
+  return 'uz-en'
+}
 
 export function buildProgressSnapshot(params: {
   user: User
@@ -22,6 +28,18 @@ export function buildProgressSnapshot(params: {
           achievements: params.user.achievements ?? [],
         },
         'uz-ko': {
+          completedLessons: [],
+          achievements: [],
+        },
+        'uz-ru': {
+          completedLessons: [],
+          achievements: [],
+        },
+        'uz-ar': {
+          completedLessons: [],
+          achievements: [],
+        },
+        'uz-de': {
           completedLessons: [],
           achievements: [],
         },

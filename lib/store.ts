@@ -66,7 +66,13 @@ const getYesterday = () => {
   return yesterday.toISOString().split('T')[0]
 }
 
-const normalizeCourseId = (courseId?: string): CourseId => (courseId === 'uz-ko' ? 'uz-ko' : 'uz-en')
+const normalizeCourseId = (courseId?: string): CourseId => {
+  if (courseId === 'uz-ko') return 'uz-ko'
+  if (courseId === 'uz-ru') return 'uz-ru'
+  if (courseId === 'uz-ar') return 'uz-ar'
+  if (courseId === 'uz-de') return 'uz-de'
+  return 'uz-en'
+}
 
 const getProgressForCourse = (user: User, courseId: CourseId): CourseProgress => {
   const selected = user.courseProgress?.[courseId]
@@ -89,7 +95,18 @@ const withNormalizedCourseProgress = (user: User): User => {
   const selectedCourse = normalizeCourseId(user.selectedCourse ?? user.learningPath)
   const englishProgress = getProgressForCourse(user, 'uz-en')
   const koreanProgress = getProgressForCourse(user, 'uz-ko')
-  const selectedProgress = selectedCourse === 'uz-ko' ? koreanProgress : englishProgress
+  const russianProgress = getProgressForCourse(user, 'uz-ru')
+  const arabicProgress = getProgressForCourse(user, 'uz-ar')
+  const germanProgress = getProgressForCourse(user, 'uz-de')
+  const selectedProgress = selectedCourse === 'uz-ko'
+    ? koreanProgress
+    : selectedCourse === 'uz-ru'
+      ? russianProgress
+      : selectedCourse === 'uz-ar'
+        ? arabicProgress
+        : selectedCourse === 'uz-de'
+          ? germanProgress
+          : englishProgress
 
   return {
     ...user,
@@ -100,6 +117,9 @@ const withNormalizedCourseProgress = (user: User): User => {
     courseProgress: {
       'uz-en': englishProgress,
       'uz-ko': koreanProgress,
+      'uz-ru': russianProgress,
+      'uz-ar': arabicProgress,
+      'uz-de': germanProgress,
     },
   }
 }

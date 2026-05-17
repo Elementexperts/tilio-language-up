@@ -146,7 +146,7 @@ export function HomeScreen() {
                 {activeCourse.fromFlag} → {activeCourse.toFlag} {activeCourse.badge}
               </div>
               <h1 className="text-3xl font-black leading-[1.02] tracking-normal text-emerald-950">
-                {selectedCourse === 'uz-ko' ? 'Koreyscha tingla. O‘qi. So‘zla.' : 'O‘rgan. Mashq qil. So‘zla.'}
+                {selectedCourse === 'uz-ko' ? 'Koreyscha tingla. O‘qi. So‘zla.' : selectedCourse === 'uz-ru' ? 'Ruscha o‘qi. Tingla. Gapir.' : selectedCourse === 'uz-ar' ? 'Arabcha o‘qi. Eshit. Ayta ol.' : selectedCourse === 'uz-de' ? 'Nemischa tingla. O‘qi. Gapir.' : 'O‘rgan. Mashq qil. So‘zla.'}
               </h1>
               <p className="mt-3 text-sm font-medium leading-5 text-emerald-900/75">{motivationalMessage}</p>
             </div>

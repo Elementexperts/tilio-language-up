@@ -32,8 +32,8 @@ export const courseOptions: Array<{
     title: 'Uzbek to Russian',
     titleUz: "O'zbekcha -> Ruscha",
     descriptionUz: "Rus tilini kundalik iboralar, kirill yozuvi va qisqa dialoglar orqali o'rganing.",
-    fromFlag: 'рџ‡єрџ‡ї',
-    toFlag: 'рџ‡·рџ‡є',
+    fromFlag: '🇺🇿',
+    toFlag: '🇷🇺',
     badge: 'RU',
   },
   {
@@ -41,8 +41,8 @@ export const courseOptions: Array<{
     title: 'Uzbek to Arabic',
     titleUz: "O'zbekcha -> Arabcha",
     descriptionUz: "Arab tilini salomlashuv, kundalik iboralar va sodda yozuv orqali o'rganing.",
-    fromFlag: 'рџ‡єрџ‡ї',
-    toFlag: 'рџ‡ёрџ‡¦',
+    fromFlag: '🇺🇿',
+    toFlag: '🇸🇦',
     badge: 'AR',
   },
   {
@@ -50,12 +50,11 @@ export const courseOptions: Array<{
     title: 'Uzbek to German',
     titleUz: "O'zbekcha -> Nemischa",
     descriptionUz: "Nemis tilini tanishuv, sayohat va kundalik suhbatlar orqali o'rganing.",
-    fromFlag: 'рџ‡єрџ‡ї',
-    toFlag: 'рџ‡©рџ‡Є',
-    badge: 'DE',
+    fromFlag: '🇺🇿',
+    toFlag: '🇩🇪',
+    badge: 'DE',  
   },
 ]
-
 export const getCourseOption = (courseId: CourseId = 'uz-en') =>
   courseOptions.find((course) => course.id === courseId) ?? courseOptions[0]
 

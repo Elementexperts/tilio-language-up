@@ -21,15 +21,19 @@ type TelegramEntity = {
   type: string
   offset: number
   length: number
+  url?: string
 }
 
 type TelegramMessage = {
   message_id: number
   text?: string
+  caption?: string
   chat: TelegramChat
   from?: TelegramUser
   entities?: TelegramEntity[]
+  caption_entities?: TelegramEntity[]
   reply_to_message?: TelegramMessage
+  new_chat_members?: TelegramUser[]
 }
 
 type TelegramUpdate = {
@@ -55,6 +59,11 @@ type TelegramSendMessageOptions = {
 type TelegramSendMessagePayload = TelegramSendMessageOptions & {
   chat_id: number
   text: string
+}
+
+type TelegramDeleteMessagePayload = {
+  chat_id: number
+  message_id: number
 }
 
 const appButtonMarkup = {
@@ -105,9 +114,17 @@ function isReplyToTilioBot(message: TelegramMessage) {
 }
 
 function shouldHandleGroupMessage(message: TelegramMessage) {
-  const text = message.text?.trim() ?? ''
+  const text = getMessageText(message).trim()
   if (!text) return false
   return text.startsWith('/') || hasMentionEntity(message) || isReplyToTilioBot(message)
+}
+
+function isGroupChat(chat: TelegramChat) {
+  return chat.type === 'group' || chat.type === 'supergroup'
+}
+
+function getMessageText(message: TelegramMessage) {
+  return message.text ?? message.caption ?? ''
 }
 
 function stripBotMention(text: string) {
@@ -157,6 +174,51 @@ function getQuickTutorReply(text: string) {
   return null
 }
 
+function hasUrlEntity(message: TelegramMessage) {
+  return Boolean(
+    [...(message.entities ?? []), ...(message.caption_entities ?? [])].some((entity) => (
+      entity.type === 'url' || entity.type === 'text_link'
+    )),
+  )
+}
+
+function isLikelyAdMessage(message: TelegramMessage) {
+  if (!isGroupChat(message.chat)) return false
+
+  const text = getMessageText(message).toLowerCase()
+  if (!text.trim()) return false
+
+  const hasLink = hasUrlEntity(message) || /https?:\/\/|www\.|t\.me\/|telegram\.me\/|bit\.ly|tinyurl|wa\.me\//i.test(text)
+  const hasPromoWords = [
+    'reklama',
+    'реклама',
+    'advertising',
+    'promo',
+    'aksiya',
+    'скидка',
+    'chegirma',
+    'discount',
+    'earn money',
+    'tez pul',
+    'заработ',
+    'crypto',
+    'airdrop',
+    'casino',
+    'betting',
+    'ставк',
+    'obuna bo',
+    'подпис',
+    'канал',
+    'join',
+    'kiring',
+    'buy now',
+    'sotiladi',
+  ].some((term) => text.includes(term))
+  const hasContactPush = /@\w{5,}|(\+?\d[\d\s().-]{8,}\d)/.test(text)
+
+  return (hasLink && (hasPromoWords || hasContactPush)) || (hasPromoWords && hasContactPush)
+}
+
 async function sendTelegramMessage(chatId: number, text: string, options: TelegramSendMessageOptions = {}) {
   const botToken = getEnv('TELEGRAM_BOT_TOKEN')
   if (!botToken) {
@@ -185,6 +247,38 @@ async function sendTelegramMessage(chatId: number, text: string, options: Telegr
     }
   } catch {
     console.error('Telegram sendMessage request failed')
+  } finally {
+    clearTimeout(timeout)
+  }
+}
+
+async function deleteTelegramMessage(chatId: number, messageId: number) {
+  const botToken = getEnv('TELEGRAM_BOT_TOKEN')
+  if (!botToken) {
+    console.error('Telegram bot token is not configured')
+    return
+  }
+
+  const controller = new AbortController()
+  const timeout = setTimeout(() => controller.abort(), TELEGRAM_TIMEOUT_MS)
+  const payload: TelegramDeleteMessagePayload = {
+    chat_id: chatId,
+    message_id: messageId,
+  }
+
+  try {
+    const response = await fetch(`${TELEGRAM_API_BASE}/bot${botToken}/deleteMessage`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload),
+      signal: controller.signal,
+    })
+
+    if (!response.ok) {
+      console.error('Telegram deleteMessage failed', response.status)
+    }
+  } catch {
+    console.error('Telegram deleteMessage request failed')
   } finally {
     clearTimeout(timeout)
   }
@@ -231,6 +325,28 @@ async function askAiTutor(message: string) {
   } finally {
     clearTimeout(timeout)
   }
+}
+
+async function handleNewMembers(message: TelegramMessage) {
+  if (!isGroupChat(message.chat)) return
+
+  const newMembers = message.new_chat_members?.filter((member) => !member.is_bot) ?? []
+  if (newMembers.length === 0) return
+
+  const names = newMembers
+    .slice(0, 3)
+    .map((member) => member.first_name?.trim() || 'do\'st')
+    .join(', ')
+  const suffix = newMembers.length > 3 ? ' va boshqalar' : ''
+
+  await sendTelegramMessage(
+    message.chat.id,
+    `Xush kelibsiz, ${names}${suffix}! Tilio bilan har kuni kichik dars, yangi so'z va oson mashq. Boshlash uchun /app ni bosing.`,
+    {
+      reply_markup: appButtonMarkup,
+      reply_to_message_id: message.message_id,
+    },
+  )
 }
 
 async function handleCommand(message: TelegramMessage, command: string) {
@@ -298,7 +414,7 @@ async function handleCommand(message: TelegramMessage, command: string) {
 
 async function handleMention(message: TelegramMessage) {
   const chatId = message.chat.id
-  const cleanText = stripBotMention(message.text ?? '')
+  const cleanText = stripBotMention(getMessageText(message))
   const prompt = cleanText || "Qisqa til o'rganish maslahati ber."
 
   if (isLikelySensitiveOrHarmful(prompt)) {
@@ -328,11 +444,25 @@ export async function POST(req: Request) {
     const update = (await req.json()) as TelegramUpdate
     const message = update.message
 
-    if (!message?.chat?.id || !message.text) {
+    if (!message?.chat?.id) {
       return jsonOk()
     }
 
-    const command = getCommand(message.text)
+    if (message.new_chat_members?.length) {
+      await handleNewMembers(message)
+      return jsonOk()
+    }
+
+    if (isLikelyAdMessage(message)) {
+      await deleteTelegramMessage(message.chat.id, message.message_id)
+      return jsonOk()
+    }
+
+    if (!getMessageText(message)) {
+      return jsonOk()
+    }
+
+    const command = getCommand(getMessageText(message))
     const isPrivate = message.chat.type === 'private'
 
     if (!isPrivate && !shouldHandleGroupMessage(message)) {

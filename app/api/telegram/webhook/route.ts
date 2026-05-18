@@ -4,6 +4,9 @@ const TILIO_APP_URL = 'https://www.tilio.online'
 const TELEGRAM_API_BASE = 'https://api.telegram.org'
 const AI_TIMEOUT_MS = 4500
 const TELEGRAM_TIMEOUT_MS = 4500
+const MAX_TUTOR_REPLIES_PER_USER_PER_DAY = 2
+
+const tutorReplyCounts = new Map<string, { date: string; count: number }>()
 
 type TelegramChat = {
   id: number
@@ -66,6 +69,13 @@ type TelegramDeleteMessagePayload = {
   message_id: number
 }
 
+type TelegramChatMemberResponse = {
+  ok: boolean
+  result?: {
+    status?: 'creator' | 'administrator' | 'member' | 'restricted' | 'left' | 'kicked'
+  }
+}
+
 const appButtonMarkup = {
   inline_keyboard: [
     [
@@ -83,6 +93,10 @@ function jsonOk() {
 
 function getEnv(name: string) {
   return process.env[name]?.trim() ?? ''
+}
+
+function getTodayKey() {
+  return new Date().toISOString().split('T')[0]
 }
 
 function getCommand(text: string) {
@@ -172,6 +186,34 @@ function getQuickTutorReply(text: string) {
   }
 
   return null
+}
+
+function consumeTutorReplySlot(message: TelegramMessage, isAdmin = false) {
+  if (isAdmin) return { allowed: true, count: 1 }
+
+  const userId = message.from?.id
+  if (!userId) return { allowed: true, count: 1 }
+
+  const today = getTodayKey()
+  const key = `${message.chat.id}:${userId}`
+  const current = tutorReplyCounts.get(key)
+  const currentCount = current?.date === today ? current.count : 0
+
+  if (currentCount >= MAX_TUTOR_REPLIES_PER_USER_PER_DAY) {
+    return { allowed: false, count: currentCount }
+  }
+
+  const nextCount = currentCount + 1
+  tutorReplyCounts.set(key, { date: today, count: nextCount })
+  return { allowed: true, count: nextCount }
+}
+
+function withTilioAppSuggestion(reply: string, replyCount: number) {
+  const suffix = replyCount >= MAX_TUTOR_REPLIES_PER_USER_PER_DAY
+    ? "Bu bugungi 2-javobim. Ko'proq mashq va darslar uchun Tilio ilovasida davom eting: /app"
+    : "Ko'proq misol va mashq uchun Tilio ilovasida davom eting: /app"
+
+  return `${reply}\n\n${suffix}`
 }
 
 function hasUrlEntity(message: TelegramMessage) {
@@ -279,6 +321,37 @@ async function deleteTelegramMessage(chatId: number, messageId: number) {
     }
   } catch {
     console.error('Telegram deleteMessage request failed')
+  } finally {
+    clearTimeout(timeout)
+  }
+}
+
+async function isMessageFromGroupAdmin(message: TelegramMessage) {
+  const botToken = getEnv('TELEGRAM_BOT_TOKEN')
+  const userId = message.from?.id
+
+  if (!botToken || !userId || !isGroupChat(message.chat)) return false
+
+  const controller = new AbortController()
+  const timeout = setTimeout(() => controller.abort(), TELEGRAM_TIMEOUT_MS)
+
+  try {
+    const response = await fetch(`${TELEGRAM_API_BASE}/bot${botToken}/getChatMember`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        chat_id: message.chat.id,
+        user_id: userId,
+      }),
+      signal: controller.signal,
+    })
+
+    if (!response.ok) return false
+    const data = (await response.json()) as TelegramChatMemberResponse
+    const status = data.result?.status
+    return status === 'creator' || status === 'administrator'
+  } catch {
+    return false
   } finally {
     clearTimeout(timeout)
   }
@@ -412,23 +485,36 @@ async function handleCommand(message: TelegramMessage, command: string) {
   await sendTelegramMessage(chatId, "Bu buyruqni hali bilmayman. /help orqali mavjud buyruqlarni ko'ring.")
 }
 
-async function handleMention(message: TelegramMessage) {
+async function handleMention(message: TelegramMessage, isAdmin = false) {
   const chatId = message.chat.id
   const cleanText = stripBotMention(getMessageText(message))
   const prompt = cleanText || "Qisqa til o'rganish maslahati ber."
+  const replySlot = consumeTutorReplySlot(message, isAdmin)
+
+  if (!replySlot.allowed) {
+    return
+  }
 
   if (isLikelySensitiveOrHarmful(prompt)) {
-    await sendTelegramMessage(chatId, "Bu mavzuda yordam bera olmayman. Til o'rganish bo'yicha savol bering.", {
-      reply_to_message_id: message.message_id,
-    })
+    await sendTelegramMessage(
+      chatId,
+      withTilioAppSuggestion("Bu mavzuda yordam bera olmayman. Til o'rganish bo'yicha savol bering.", replySlot.count),
+      {
+        reply_markup: appButtonMarkup,
+        reply_to_message_id: message.message_id,
+      },
+    )
     return
   }
 
   const aiReply = getQuickTutorReply(prompt) ?? await askAiTutor(prompt)
   await sendTelegramMessage(
     chatId,
-    aiReply ?? "Hozir javob berishda qiynaldim. Qisqaroq qilib yana so'rab ko'ring.",
-    { reply_to_message_id: message.message_id },
+    withTilioAppSuggestion(aiReply ?? "Hozir javob berishda qiynaldim. Qisqaroq qilib yana so'rab ko'ring.", replySlot.count),
+    {
+      reply_markup: appButtonMarkup,
+      reply_to_message_id: message.message_id,
+    },
   )
 }
 
@@ -453,7 +539,9 @@ export async function POST(req: Request) {
       return jsonOk()
     }
 
-    if (isLikelyAdMessage(message)) {
+    const isAdmin = await isMessageFromGroupAdmin(message)
+
+    if (!isAdmin && isLikelyAdMessage(message)) {
       await deleteTelegramMessage(message.chat.id, message.message_id)
       return jsonOk()
     }
@@ -475,12 +563,12 @@ export async function POST(req: Request) {
     }
 
     if (isPrivate) {
-      await handleMention(message)
+      await handleMention(message, isAdmin)
       return jsonOk()
     }
 
     if (hasMentionEntity(message) || isReplyToTilioBot(message)) {
-      await handleMention(message)
+      await handleMention(message, isAdmin)
     }
 
     return jsonOk()

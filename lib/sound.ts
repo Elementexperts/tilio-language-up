@@ -5,7 +5,7 @@ let audioUnlocked = false
 let pendingIntroSound = false
 
 const SOUND_ASSETS = {
-  intro: '/sounds/intro-bouncy-logo.mp3',
+  intro: '/sounds/tilio-intro-rise.mp3',
   correct: '/sounds/correct.mp3',
   reward: '/sounds/xp-reward.mp3',
   lessonComplete: '/sounds/level-up.mp3',

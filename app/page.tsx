@@ -100,6 +100,7 @@ export default function TilioApp() {
   const setScreen = useAppStore((state) => state.setScreen)
   const previousPopupCountRef = useRef(0)
   const previousAchievementCountRef = useRef(0)
+  const lastTapSoundAtRef = useRef(0)
 
   // Update streak on app load
   useEffect(() => {
@@ -165,16 +166,25 @@ export default function TilioApp() {
 
   useEffect(() => {
     if (!isSoundEnabled) return
-    const handleTap = (event: PointerEvent) => {
+    const handleTap = (event: Event) => {
       const target = event.target as HTMLElement | null
       if (target?.closest('button, a, [role="button"]')) {
+        const now = Date.now()
+        if (now - lastTapSoundAtRef.current < 120) return
+        lastTapSoundAtRef.current = now
         unlockAudio()
         if (target.closest('nav')) playNavigationSound()
         else playTapSound()
       }
     }
     window.addEventListener('pointerdown', handleTap, { passive: true })
-    return () => window.removeEventListener('pointerdown', handleTap)
+    window.addEventListener('touchstart', handleTap, { passive: true })
+    window.addEventListener('click', handleTap, { passive: true })
+    return () => {
+      window.removeEventListener('pointerdown', handleTap)
+      window.removeEventListener('touchstart', handleTap)
+      window.removeEventListener('click', handleTap)
+    }
   }, [isSoundEnabled])
 
   // Render current screen

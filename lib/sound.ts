@@ -2,6 +2,7 @@ type Wave = OscillatorType
 
 let sharedAudioContext: AudioContext | null = null
 let audioUnlocked = false
+let pendingIntroSound = false
 
 const SOUND_ASSETS = {
   intro: '/sounds/intro-bouncy-logo.mp3',
@@ -32,6 +33,10 @@ export function unlockAudio() {
     source.connect(ctx.destination)
     source.start(0)
     audioUnlocked = true
+    if (pendingIntroSound) {
+      pendingIntroSound = false
+      window.setTimeout(() => playIntroSound(), 30)
+    }
   }
 
   if (ctx.state === 'suspended') {
@@ -44,28 +49,21 @@ export function unlockAudio() {
 
 function playAsset(src: string, volume = 0.72) {
   if (typeof window === 'undefined') return false
+  if (!audioUnlocked) return false
 
   try {
     const audio = new Audio(src)
     audio.volume = volume
     audio.preload = 'auto'
     const playPromise = audio.play()
-    if (playPromise) {
-      playPromise.catch(() => undefined)
-    }
+    if (playPromise) playPromise.catch(() => undefined)
     return true
   } catch {
     return false
   }
 }
 
-function playTone(frequency: number, endFrequency: number, duration: number, type: Wave = 'sine', volume = 0.06, delay = 0) {
-  const ctx = getAudioContext()
-  if (!ctx) return
-  if (ctx.state === 'suspended') {
-    ctx.resume().catch(() => undefined)
-  }
-
+function scheduleTone(ctx: AudioContext, frequency: number, endFrequency: number, duration: number, type: Wave, volume: number, delay: number) {
   const startAt = ctx.currentTime + delay
   const oscillator = ctx.createOscillator()
   const gain = ctx.createGain()
@@ -78,6 +76,24 @@ function playTone(frequency: number, endFrequency: number, duration: number, typ
   gain.connect(ctx.destination)
   oscillator.start(startAt)
   oscillator.stop(startAt + duration)
+}
+
+function playTone(frequency: number, endFrequency: number, duration: number, type: Wave = 'sine', volume = 0.06, delay = 0) {
+  const ctx = getAudioContext()
+  if (!ctx) return
+
+  if (ctx.state === 'suspended') {
+    ctx.resume()
+      .then(() => {
+        audioUnlocked = true
+        scheduleTone(ctx, frequency, endFrequency, duration, type, volume, delay)
+      })
+      .catch(() => undefined)
+    return
+  }
+
+  audioUnlocked = true
+  scheduleTone(ctx, frequency, endFrequency, duration, type, volume, delay)
 }
 
 export function playRewardSound() {
@@ -115,11 +131,11 @@ export function playAchievementSound() {
 }
 
 export function playTapSound() {
-  playTone(360, 460, 0.045, 'sine', 0.018)
+  playTone(360, 520, 0.055, 'sine', 0.035)
 }
 
 export function playNavigationSound() {
-  playTone(420, 560, 0.07, 'triangle', 0.026)
+  playTone(420, 620, 0.075, 'triangle', 0.04)
 }
 
 export function playSuccessSound() {
@@ -145,6 +161,12 @@ export function playLessonPageSound() {
 }
 
 export function playIntroSound() {
+  const ctx = getAudioContext()
+  if (ctx?.state === 'suspended' && !audioUnlocked) {
+    pendingIntroSound = true
+    ctx.resume().catch(() => undefined)
+    return
+  }
   if (playAsset(SOUND_ASSETS.intro, 0.5)) return
   playTone(196, 392, 0.28, 'sine', 0.035)
   playTone(523, 784, 0.22, 'triangle', 0.03, 0.18)

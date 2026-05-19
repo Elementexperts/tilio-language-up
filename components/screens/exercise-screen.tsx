@@ -46,6 +46,10 @@ function getPreferredVoice(lang: string) {
   return voices.find((voice) => voice.lang.toLowerCase().startsWith(languagePrefix)) ?? null
 }
 
+function shouldUseRemoteTts(lang: string) {
+  return lang.startsWith('ko') || lang.startsWith('ru') || lang.startsWith('ar') || lang.startsWith('de')
+}
+
 export function ExerciseScreen() {
   const currentLesson = useAppStore((state) => state.currentLesson)
   const currentExerciseIndex = useAppStore((state) => state.currentExerciseIndex)
@@ -100,6 +104,7 @@ export function ExerciseScreen() {
     const audio = new Audio(
       `https://translate.google.com/translate_tts?ie=UTF-8&client=tw-ob&tl=${encodeURIComponent(lang.split('-')[0])}&q=${encodeURIComponent(text)}`,
     )
+    audio.preload = 'auto'
     fallbackAudioRef.current = audio
     audio.onplay = () => setIsSpeaking(true)
     audio.onended = () => setIsSpeaking(false)
@@ -109,8 +114,13 @@ export function ExerciseScreen() {
 
   const speakText = useCallback((text: string, lang = 'uz-UZ') => {
     if (typeof window === 'undefined' || !text.trim()) return
+    if (lang.startsWith('ar')) {
+      playRemoteTts(text, lang)
+      return
+    }
+    const useRemoteFallback = shouldUseRemoteTts(lang)
     if (!('speechSynthesis' in window)) {
-      if (lang.startsWith('ko') || lang.startsWith('ru') || lang.startsWith('ar') || lang.startsWith('de')) playRemoteTts(text, lang)
+      if (useRemoteFallback) playRemoteTts(text, lang)
       return
     }
 
@@ -120,13 +130,13 @@ export function ExerciseScreen() {
     utterance.rate = lang.startsWith('ko') || lang.startsWith('ar') ? 0.82 : lang.startsWith('uz') ? 0.86 : 0.92
     utterance.pitch = 1.05
     const voice = getPreferredVoice(lang)
-    if ((lang.startsWith('ko') || lang.startsWith('ru') || lang.startsWith('ar') || lang.startsWith('de')) && !voice) {
+    if (useRemoteFallback && !voice) {
       playRemoteTts(text, lang)
       return
     }
     if (voice) utterance.voice = voice
     let started = false
-    const fallbackTimer = lang.startsWith('ko')
+    const fallbackTimer = useRemoteFallback
       ? window.setTimeout(() => {
           if (!started) playRemoteTts(text, lang)
         }, 650)
@@ -142,7 +152,7 @@ export function ExerciseScreen() {
     }
     utterance.onerror = () => {
       if (fallbackTimer) window.clearTimeout(fallbackTimer)
-      if (lang.startsWith('ko')) {
+      if (useRemoteFallback) {
         playRemoteTts(text, lang)
         return
       }

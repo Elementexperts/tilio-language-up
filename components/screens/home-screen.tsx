@@ -8,7 +8,7 @@ import { LessonMap } from '@/components/lesson-map'
 import { useAppStore } from '@/lib/store'
 import { useTelegram } from '@/hooks/use-telegram'
 import { useHasMounted } from '@/hooks/use-has-mounted'
-import { getCourseOption, getLessonsForCourse, getNextLesson } from '@/lib/data/lessons'
+import { courseOptions, getCourseOption, getLessonsForCourse, getNextLesson } from '@/lib/data/lessons'
 import { buildSmartReviewSummary, createSmartReviewLesson, hasTilioPlus } from '@/lib/plus'
 import { getXpProgress, getXpToNextLevel } from '@/lib/types'
 import { cn } from '@/lib/utils'
@@ -19,6 +19,7 @@ export function HomeScreen() {
   const dailyChallenges = useAppStore((state) => state.dailyChallenges)
   const setScreen = useAppStore((state) => state.setScreen)
   const startLesson = useAppStore((state) => state.startLesson)
+  const setSelectedCourse = useAppStore((state) => state.setSelectedCourse)
   const canClaimChest = useAppStore((state) => state.canClaimChest)
   const { hapticFeedback } = useTelegram()
   const hasMounted = useHasMounted()
@@ -104,7 +105,156 @@ export function HomeScreen() {
   }
 
   return (
-    <div className="tilio-shell flex flex-col">
+    <div className="tilio-shell flex min-h-screen flex-col lg:block">
+      <div className="hidden min-h-screen lg:flex">
+        <aside className="relative z-10 flex w-64 shrink-0 flex-col border-r border-emerald-100/80 bg-white/82 px-5 py-6 shadow-2xl shadow-emerald-950/5 backdrop-blur-xl">
+          <button className="mb-7 flex items-center gap-3 text-left" onClick={() => setScreen('home')} aria-label="Tilio home">
+            <img src="/images/tilio-logo-1.png" alt="Tilio" className="size-12 rounded-2xl object-cover shadow-sm" />
+            <div>
+              <p className="text-3xl font-black leading-none text-emerald-950">tilio</p>
+              <p className="text-[10px] font-extrabold text-muted-foreground">Smarter language learning</p>
+            </div>
+          </button>
+
+          <div className="space-y-1">
+            <DesktopSideButton icon={<Home className="size-5" />} label="Home" active onClick={() => setScreen('home')} />
+            <DesktopSideButton icon={<BookOpen className="size-5" />} label="Lessons" onClick={() => setScreen('home')} />
+            <DesktopSideButton icon={<Sparkles className="size-5" />} label="AI Tutor" onClick={() => setScreen('plus')} />
+            <DesktopSideButton icon={<Headphones className="size-5" />} label="Review" onClick={handleSmartReview} />
+            <DesktopSideButton icon={<Mic className="size-5" />} label="Practice" onClick={() => setScreen('plus')} />
+            <DesktopSideButton icon={<Target className="size-5" />} label="Goals" onClick={() => setScreen('daily-challenges')} />
+            <DesktopSideButton icon={<Trophy className="size-5" />} label="Rewards" onClick={() => setScreen('achievements')} />
+            <DesktopSideButton icon={<Medal className="size-5" />} label="Progress" onClick={() => setScreen('profile')} />
+            <DesktopSideButton icon={<ShoppingBag className="size-5" />} label="Plus" onClick={() => setScreen('store')} />
+          </div>
+
+          <button
+            className="tilio-pressed mt-auto rounded-2xl border border-emerald-100 bg-emerald-50/90 p-4 text-left"
+            onClick={() => setScreen('account')}
+          >
+            <div className="flex items-center gap-3">
+              <img src={avatarSrc} alt={user.firstName} className="size-11 rounded-2xl object-cover" />
+              <div className="min-w-0">
+                <p className="truncate font-black">{user.firstName}</p>
+                <p className="text-xs font-bold text-muted-foreground">Level {user.userLevel}</p>
+              </div>
+            </div>
+          </button>
+        </aside>
+
+        <main className="relative z-10 flex-1 overflow-y-auto px-8 py-7">
+          <div className="mx-auto max-w-6xl">
+            <header className="mb-6 flex items-start justify-between gap-5">
+              <div>
+                <h1 className="text-3xl font-black leading-tight text-emerald-950">Salom, {user.firstName}!</h1>
+                <p className="mt-1 text-base font-bold text-muted-foreground">Bugungi maqsadingizga erishing.</p>
+              </div>
+              <div className="flex items-center gap-3">
+                <button className="tilio-pressed flex size-11 items-center justify-center rounded-full border border-emerald-100 bg-white/85 text-emerald-950 shadow-sm" onClick={() => setScreen('daily-challenges')} aria-label="Daily goals">
+                  <Target className="size-5" />
+                </button>
+                <button className="tilio-pressed flex size-11 items-center justify-center rounded-full border border-emerald-100 bg-white/85 text-emerald-950 shadow-sm" onClick={() => setScreen('profile')} aria-label="Profile">
+                  <UserRound className="size-5" />
+                </button>
+              </div>
+            </header>
+
+            <section className="grid grid-cols-[1fr_1.25fr] gap-5 rounded-[1.4rem] border border-emerald-100/80 bg-gradient-to-br from-white via-emerald-50/72 to-lime-50/60 p-5 shadow-xl shadow-emerald-950/6">
+              <div className="flex items-center gap-4">
+                <div className="grid w-full max-w-xs grid-cols-2 overflow-hidden rounded-2xl border border-emerald-100 bg-white/85 shadow-sm">
+                  <DesktopStat icon={<Flame className={cn('size-5', user.streak > 0 && 'text-orange-500')} />} value={user.streak} label="Streak" />
+                  <DesktopStat icon={<Zap className="size-5 text-emerald-600" />} value={user.xp} label="XP" />
+                </div>
+              </div>
+              <div className="flex min-h-24 items-center justify-end gap-5">
+                <SparrowMascot branded size="md" mood="celebrating" />
+                <div className="rounded-2xl border border-white/80 bg-white/78 px-7 py-5 text-center shadow-lg shadow-emerald-950/5">
+                  <p className="text-lg font-black text-emerald-950">Ajoyib!</p>
+                  <p className="text-sm font-extrabold text-muted-foreground">Davom eting!</p>
+                </div>
+              </div>
+            </section>
+
+            <section className="mt-5 grid grid-cols-[1.25fr_1fr_.8fr] gap-4">
+              <div className="rounded-[1.25rem] border border-emerald-100 bg-white/86 p-5 shadow-lg shadow-emerald-950/5">
+                <p className="text-sm font-black text-emerald-950">Bugungi dars</p>
+                <h2 className="mt-3 text-xl font-black leading-tight">{nextLesson?.title ?? 'Course complete'}</h2>
+                <p className="mt-1 min-h-10 text-sm font-semibold text-muted-foreground">{nextLesson?.description ?? 'Smart Review orqali bilimni mustahkamlang.'}</p>
+                <Button
+                  className="tilio-button mt-5 h-11 rounded-2xl px-5 font-black"
+                  onClick={() => {
+                    hapticFeedback('medium')
+                    if (nextLesson) startLesson(nextLesson)
+                    else setScreen('plus')
+                  }}
+                >
+                  Darsni boshlash
+                </Button>
+              </div>
+
+              <div className="rounded-[1.25rem] border border-amber-200/80 bg-amber-50/82 p-5 shadow-lg shadow-emerald-950/5">
+                <div className="flex items-center justify-between gap-3">
+                  <p className="text-sm font-black text-emerald-950">Kunlik maqsad</p>
+                  <span className="text-xs font-black text-muted-foreground">{user.dailyGoal} min</span>
+                </div>
+                <p className="mt-4 text-sm font-extrabold text-muted-foreground">XP maqsad</p>
+                <div className="mt-1 flex items-end gap-1">
+                  <span className="text-3xl font-black text-emerald-950">{todayXpEarned}</span>
+                  <span className="pb-1 text-sm font-black text-muted-foreground">/ {dailyXpGoal} XP</span>
+                </div>
+                <Progress value={dailyGoalProgress} className="tilio-progress mt-5 h-3" />
+              </div>
+
+              <div className="rounded-[1.25rem] border border-amber-200/80 bg-white/86 p-5 shadow-lg shadow-emerald-950/5">
+                <p className="text-sm font-black text-emerald-950">So'zlar</p>
+                <div className="mt-6">
+                  <span className="text-3xl font-black text-emerald-950">{completedCount}</span>
+                  <span className="text-base font-black text-muted-foreground"> / {totalLessons}</span>
+                </div>
+                <Progress value={progressPercent} className="tilio-progress mt-5 h-3" />
+              </div>
+            </section>
+
+            <section className="mt-5">
+              <h2 className="mb-3 text-lg font-black text-emerald-950">Tezkor kirish</h2>
+              <div className="grid grid-cols-4 gap-3">
+                <DesktopQuickAction icon={<Sparkles className="size-5" />} title="AI Tutor" detail="AI bilan mashq qiling" tone="purple" onClick={() => setScreen('plus')} />
+                <DesktopQuickAction icon={<Headphones className="size-5" />} title="Smart Review" detail="Xatolaringizni takrorlang" tone="blue" onClick={handleSmartReview} />
+                <DesktopQuickAction icon={<Mic className="size-5" />} title="Practice" detail="Mashq qiling" onClick={() => setScreen('plus')} />
+                <DesktopQuickAction icon={<BookOpen className="size-5" />} title="Vocabulary" detail="So'zlaringizni saqlang" tone="gold" onClick={() => setScreen('profile')} />
+              </div>
+            </section>
+
+            <section className="mt-6">
+              <div className="mb-3 flex items-center justify-between">
+                <h2 className="text-lg font-black text-emerald-950">Til tanlash</h2>
+                <span className="rounded-full bg-white/80 px-3 py-1 text-xs font-black text-muted-foreground">{activeCourse.badge}</span>
+              </div>
+              <div className="grid grid-cols-5 gap-3">
+                {courseOptions.map((course) => (
+                  <button
+                    key={course.id}
+                    className={cn(
+                      'tilio-pressed rounded-[1.15rem] border bg-white/82 p-4 text-left shadow-lg shadow-emerald-950/5',
+                      course.id === selectedCourse ? 'border-primary/40 bg-emerald-50 ring-2 ring-primary/15' : 'border-emerald-100',
+                    )}
+                    onClick={() => {
+                      hapticFeedback('light')
+                      setSelectedCourse(course.id)
+                    }}
+                  >
+                    <span className="flex size-10 items-center justify-center rounded-full bg-emerald-100 text-sm font-black text-emerald-800">{course.badge}</span>
+                    <span className="mt-3 block truncate font-black text-emerald-950">{course.title.replace('Uzbek to ', '')}</span>
+                    <span className="mt-1 block text-xs font-bold text-muted-foreground">{course.badge === 'EN' ? 'English' : course.badge === 'KO' ? 'Korean' : course.badge === 'RU' ? 'Russian' : course.badge === 'AR' ? 'Arabic' : 'German'}</span>
+                  </button>
+                ))}
+              </div>
+            </section>
+          </div>
+        </main>
+      </div>
+
+      <div className="flex min-h-screen flex-col lg:hidden">
       <header className="sticky top-0 z-20 safe-area-top">
         <div className="tilio-container px-4 pt-3">
           <div className="flex items-center justify-between rounded-[1.6rem] border border-white/70 bg-white/75 px-3 py-2 shadow-lg shadow-emerald-950/5 backdrop-blur-xl">
@@ -424,6 +574,7 @@ export function HomeScreen() {
           </div>
         </div>
       </nav>
+      </div>
     </div>
   )
 }
@@ -441,6 +592,54 @@ function StatPill({ icon, value, onClick }: { icon: React.ReactNode; value: numb
   return (
     <button className="tilio-pressed flex items-center gap-1.5 rounded-full bg-emerald-50 px-3 py-2 text-emerald-950" onClick={onClick}>
       {content}
+    </button>
+  )
+}
+
+function DesktopSideButton({ icon, label, active, onClick }: { icon: React.ReactNode; label: string; active?: boolean; onClick: () => void }) {
+  return (
+    <button
+      onClick={onClick}
+      className={cn(
+        'tilio-pressed flex w-full items-center gap-3 rounded-xl px-4 py-3 text-left text-sm font-black transition-colors',
+        active ? 'bg-emerald-100 text-emerald-950 shadow-sm' : 'text-emerald-950/78 hover:bg-emerald-50 hover:text-emerald-950',
+      )}
+    >
+      {icon}
+      <span>{label}</span>
+    </button>
+  )
+}
+
+function DesktopStat({ icon, value, label }: { icon: React.ReactNode; value: number; label: string }) {
+  return (
+    <div className="flex items-center gap-3 border-r border-emerald-100 px-5 py-4 last:border-r-0">
+      <span className="flex size-10 items-center justify-center rounded-2xl bg-emerald-50 text-emerald-700">{icon}</span>
+      <span>
+        <span className="block text-2xl font-black leading-none text-emerald-950">{value}</span>
+        <span className="mt-1 block text-xs font-extrabold text-muted-foreground">{label}</span>
+      </span>
+    </div>
+  )
+}
+
+function DesktopQuickAction({ icon, title, detail, tone = 'green', onClick }: { icon: React.ReactNode; title: string; detail: string; tone?: 'green' | 'blue' | 'gold' | 'purple'; onClick: () => void }) {
+  const toneClass = tone === 'blue'
+    ? 'bg-sky-100 text-sky-700'
+    : tone === 'gold'
+      ? 'bg-amber-100 text-amber-700'
+      : tone === 'purple'
+        ? 'bg-violet-100 text-violet-700'
+        : 'bg-emerald-100 text-emerald-700'
+
+  return (
+    <button className="tilio-pressed flex min-w-0 items-center gap-3 rounded-[1.15rem] border border-emerald-100 bg-white/84 p-4 text-left shadow-lg shadow-emerald-950/5" onClick={onClick}>
+      <span className={cn('flex size-11 shrink-0 items-center justify-center rounded-2xl', toneClass)}>{icon}</span>
+      <span className="min-w-0 flex-1">
+        <span className="block truncate font-black text-emerald-950">{title}</span>
+        <span className="block truncate text-xs font-bold text-muted-foreground">{detail}</span>
+      </span>
+      <ChevronRight className="size-4 shrink-0 text-muted-foreground" />
     </button>
   )
 }

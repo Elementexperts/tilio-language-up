@@ -156,7 +156,7 @@ function isReplyToTilioBot(message: TelegramMessage) {
 function shouldHandleGroupMessage(message: TelegramMessage) {
   const text = getMessageText(message).trim()
   if (!text) return false
-  return text.startsWith('/') || hasMentionEntity(message) || isReplyToTilioBot(message)
+  return text.startsWith('/') || hasMentionEntity(message) || isReplyToTilioBot(message) || isLikelyLanguageQuestion(text)
 }
 
 function isGroupChat(chat: TelegramChat) {
@@ -187,6 +187,35 @@ function isLikelySensitiveOrHarmful(text: string) {
     'nude',
   ]
   return blockedTerms.some((term) => normalized.includes(term))
+}
+
+function isLikelyLanguageQuestion(text: string) {
+  const normalized = text.toLowerCase().trim()
+  if (!normalized) return false
+
+  const questionPatterns = [
+    'nima degani',
+    'nima?',
+    'qanday aytiladi',
+    'qanday yoziladi',
+    'tarjima',
+    'translate',
+    'meaning',
+    'means',
+    'degani nima',
+    'inglizcha',
+    'koreyscha',
+    'ruscha',
+    'arabcha',
+    'nemischa',
+    'english',
+    'korean',
+    'russian',
+    'arabic',
+    'german',
+  ]
+
+  return questionPatterns.some((pattern) => normalized.includes(pattern))
 }
 
 function getQuickTutorReply(text: string) {
@@ -665,7 +694,7 @@ export async function POST(req: Request) {
       await sendFallbackWelcome(message)
     }
 
-    if (!isPrivate && !shouldHandleGroupMessage(message)) {
+    if (!isPrivate && (!shouldHandleGroupMessage(message) || (isAdmin && !command && !hasMentionEntity(message) && !isReplyToTilioBot(message)))) {
       return jsonOk()
     }
 

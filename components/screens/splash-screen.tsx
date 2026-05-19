@@ -14,6 +14,7 @@ export function SplashScreen() {
   useEffect(() => {
     if (!isReady) return
     if (isSoundEnabled) playIntroSound()
+    const isDesktop = typeof window !== 'undefined' && window.matchMedia('(min-width: 1024px)').matches
 
     const timer = setTimeout(() => {
       if (storedUser) {
@@ -23,7 +24,7 @@ export function SplashScreen() {
         // New user, show onboarding
         setScreen('onboarding')
       }
-    }, 2000)
+    }, isDesktop ? 5200 : 3000)
 
     return () => clearTimeout(timer)
   }, [isReady, isSoundEnabled, storedUser, setScreen])
@@ -44,7 +45,7 @@ export function SplashScreen() {
         className="absolute inset-0 hidden h-full w-full object-cover opacity-88 lg:block"
         src="/videos/tilio-opening-desktop.mp4"
         autoPlay
-        muted
+        muted={false}
         loop
         playsInline
         preload="auto"

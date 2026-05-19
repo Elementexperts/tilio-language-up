@@ -7,6 +7,7 @@ const TELEGRAM_TIMEOUT_MS = 4500
 const MAX_TUTOR_REPLIES_PER_USER_PER_DAY = 2
 
 const tutorReplyCounts = new Map<string, { date: string; count: number }>()
+const welcomedGroupUsers = new Map<string, string>()
 
 type TelegramChat = {
   id: number
@@ -234,6 +235,39 @@ function withTilioAppSuggestion(reply: string, replyCount: number) {
     : "Ko'proq misol va mashq uchun Tilio ilovasida davom eting: /app"
 
   return `${reply}\n\n${suffix}`
+}
+
+function shouldSendFallbackWelcome(message: TelegramMessage, isAdmin: boolean) {
+  if (isAdmin || !isGroupChat(message.chat) || !message.from || message.from.is_bot) return false
+
+  const text = getMessageText(message).toLowerCase().trim()
+  if (!text) return false
+
+  const command = getCommand(text)
+  if (command) return false
+
+  const key = `${message.chat.id}:${message.from.id}`
+  if (welcomedGroupUsers.has(key)) return false
+
+  const greetingPattern = /\b(salom|assalomu|hello|hi|hey|privet|привет|здравствуйте|hallo|مرحبا|السلام)\b/i
+  return greetingPattern.test(text)
+}
+
+async function sendFallbackWelcome(message: TelegramMessage) {
+  const user = message.from
+  if (!user) return
+
+  const key = `${message.chat.id}:${user.id}`
+  welcomedGroupUsers.set(key, getTodayKey())
+
+  await sendTelegramMessage(
+    message.chat.id,
+    `Xush kelibsiz, ${user.first_name?.trim() || 'do\'st'}! Tilio guruhda til o'rganishga yordam beradi. Savol berish uchun botni mention qiling yoki /app orqali darslarni oching.`,
+    {
+      reply_markup: appButtonMarkup,
+      reply_to_message_id: message.message_id,
+    },
+  )
 }
 
 function hasUrlEntity(message: TelegramMessage) {
@@ -611,6 +645,10 @@ export async function POST(req: Request) {
 
     const command = getCommand(getMessageText(message))
     const isPrivate = message.chat.type === 'private'
+
+    if (shouldSendFallbackWelcome(message, isAdmin)) {
+      await sendFallbackWelcome(message)
+    }
 
     if (!isPrivate && !shouldHandleGroupMessage(message)) {
       return jsonOk()

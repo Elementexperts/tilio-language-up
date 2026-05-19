@@ -39,9 +39,29 @@ type TelegramMessage = {
   new_chat_members?: TelegramUser[]
 }
 
+type TelegramChatMember = {
+  user: TelegramUser
+  status: 'creator' | 'administrator' | 'member' | 'restricted' | 'left' | 'kicked'
+}
+
+type TelegramChatMemberUpdated = {
+  chat: TelegramChat
+  from?: TelegramUser
+  old_chat_member: TelegramChatMember
+  new_chat_member: TelegramChatMember
+}
+
+type TelegramChatJoinRequest = {
+  chat: TelegramChat
+  from: TelegramUser
+}
+
 type TelegramUpdate = {
   message?: TelegramMessage
   edited_message?: TelegramMessage
+  chat_member?: TelegramChatMemberUpdated
+  my_chat_member?: TelegramChatMemberUpdated
+  chat_join_request?: TelegramChatJoinRequest
 }
 
 type TelegramInlineKeyboardButton = {
@@ -422,6 +442,34 @@ async function handleNewMembers(message: TelegramMessage) {
   )
 }
 
+async function sendGroupWelcome(chat: TelegramChat, users: TelegramUser[]) {
+  if (!isGroupChat(chat)) return
+
+  const newMembers = users.filter((member) => !member.is_bot)
+  if (newMembers.length === 0) return
+
+  const names = newMembers
+    .slice(0, 3)
+    .map((member) => member.first_name?.trim() || 'do\'st')
+    .join(', ')
+  const suffix = newMembers.length > 3 ? ' va boshqalar' : ''
+
+  await sendTelegramMessage(
+    chat.id,
+    `Xush kelibsiz, ${names}${suffix}! Tilio bilan har kuni kichik dars, yangi so'z va oson mashq. Boshlash uchun /app ni bosing.`,
+    { reply_markup: appButtonMarkup },
+  )
+}
+
+async function handleChatMemberUpdate(chatMember: TelegramChatMemberUpdated) {
+  const oldStatus = chatMember.old_chat_member.status
+  const newStatus = chatMember.new_chat_member.status
+  const joined = (oldStatus === 'left' || oldStatus === 'kicked') && (newStatus === 'member' || newStatus === 'restricted')
+
+  if (!joined) return
+  await sendGroupWelcome(chatMember.chat, [chatMember.new_chat_member.user])
+}
+
 async function handleCommand(message: TelegramMessage, command: string) {
   const chatId = message.chat.id
 
@@ -528,6 +576,17 @@ export async function POST(req: Request) {
 
   try {
     const update = (await req.json()) as TelegramUpdate
+
+    if (update.chat_member) {
+      await handleChatMemberUpdate(update.chat_member)
+      return jsonOk()
+    }
+
+    if (update.chat_join_request) {
+      await sendGroupWelcome(update.chat_join_request.chat, [update.chat_join_request.from])
+      return jsonOk()
+    }
+
     const message = update.message
 
     if (!message?.chat?.id) {

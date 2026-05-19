@@ -581,6 +581,14 @@ async function handleMention(message: TelegramMessage, isAdmin = false) {
   const replySlot = consumeTutorReplySlot(message, isAdmin)
 
   if (!replySlot.allowed) {
+    await sendTelegramMessage(
+      chatId,
+      "Bugungi bepul guruh javoblaringiz tugadi. Ko'proq o'rganish va mashq qilish uchun Tilio ilovasida davom eting: /app",
+      {
+        reply_markup: appButtonMarkup,
+        reply_to_message_id: message.message_id,
+      },
+    )
     return
   }
 

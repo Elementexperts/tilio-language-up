@@ -116,6 +116,10 @@ function getEnv(name: string) {
   return process.env[name]?.trim() ?? ''
 }
 
+function getBotUsername() {
+  return getEnv('TELEGRAM_BOT_USERNAME').replace(/^@/, '').toLowerCase() || 'tilio_app_bot'
+}
+
 function getTodayKey() {
   return new Date().toISOString().split('T')[0]
 }
@@ -132,11 +136,12 @@ function getEntityText(text: string, entity: TelegramEntity) {
 
 function hasMentionEntity(message: TelegramMessage) {
   const text = message.text ?? ''
+  const botUsername = `@${getBotUsername()}`
   return Boolean(
     message.entities?.some((entity) => {
       if (entity.type !== 'mention' && entity.type !== 'text_mention') return false
       const mention = getEntityText(text, entity).toLowerCase()
-      return mention.includes('tilio')
+      return mention === botUsername
     }),
   )
 }
@@ -163,7 +168,8 @@ function getMessageText(message: TelegramMessage) {
 }
 
 function stripBotMention(text: string) {
-  return text.replace(/@\w*tilio\w*/gi, '').trim()
+  const botUsername = getBotUsername().replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
+  return text.replace(new RegExp(`@${botUsername}`, 'gi'), '').trim()
 }
 
 function isLikelySensitiveOrHarmful(text: string) {
@@ -506,6 +512,7 @@ async function handleChatMemberUpdate(chatMember: TelegramChatMemberUpdated) {
 
 async function handleCommand(message: TelegramMessage, command: string) {
   const chatId = message.chat.id
+  const botUsername = getBotUsername()
 
   if (command === '/start') {
     await sendTelegramMessage(
@@ -527,7 +534,7 @@ async function handleCommand(message: TelegramMessage, command: string) {
         '/plus - Tilio Plus haqida',
         '/privacy - maxfiylik siyosati',
         '',
-        "Guruhda meni mention qiling: @TilioBot book nima?",
+        `Guruhda meni mention qiling: @${botUsername} book nima?`,
       ].join('\n'),
     )
     return

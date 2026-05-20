@@ -27,3 +27,6 @@ yarn-error.log*
 next-env.d.ts
 .vercel
 .env*.local
+
+# Local-only archives and unrelated experiments
+_local_archive/

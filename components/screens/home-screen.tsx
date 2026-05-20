@@ -105,9 +105,9 @@ export function HomeScreen() {
   }
 
   return (
-    <div className="tilio-shell flex min-h-screen flex-col lg:block">
-      <div className="hidden min-h-screen lg:flex">
-        <aside className="relative z-10 flex w-64 shrink-0 flex-col border-r border-emerald-100/80 bg-white/82 px-5 py-6 shadow-2xl shadow-emerald-950/5 backdrop-blur-xl">
+    <div className="tilio-shell flex min-h-screen flex-col overflow-x-hidden lg:block lg:h-screen lg:overflow-hidden">
+      <div className="hidden min-h-screen w-full min-w-0 lg:flex">
+        <aside className="relative z-10 flex w-56 shrink-0 flex-col border-r border-emerald-100/80 bg-white/82 px-4 py-6 shadow-2xl shadow-emerald-950/5 backdrop-blur-xl xl:w-64 xl:px-5">
           <button className="mb-7 flex items-center gap-3 text-left" onClick={() => setScreen('home')} aria-label="Tilio home">
             <img src="/images/tilio-logo-1.png" alt="Tilio" className="size-12 rounded-2xl object-cover shadow-sm" />
             <div>
@@ -142,8 +142,8 @@ export function HomeScreen() {
           </button>
         </aside>
 
-        <main className="relative z-10 flex-1 overflow-y-auto px-8 py-7">
-          <div className="mx-auto max-w-6xl">
+        <main className="relative z-10 min-w-0 flex-1 overflow-y-auto overflow-x-hidden px-5 py-6 xl:px-8 xl:py-7">
+          <div className="mx-auto w-full max-w-6xl">
             <header className="mb-6 flex items-start justify-between gap-5">
               <div>
                 <h1 className="text-3xl font-black leading-tight text-emerald-950">Salom, {user.firstName}!</h1>
@@ -159,7 +159,7 @@ export function HomeScreen() {
               </div>
             </header>
 
-            <section className="grid grid-cols-[1fr_1.25fr] gap-5 rounded-[1.4rem] border border-emerald-100/80 bg-gradient-to-br from-white via-emerald-50/72 to-lime-50/60 p-5 shadow-xl shadow-emerald-950/6">
+            <section className="grid grid-cols-1 gap-5 rounded-[1.4rem] border border-emerald-100/80 bg-gradient-to-br from-white via-emerald-50/72 to-lime-50/60 p-5 shadow-xl shadow-emerald-950/6 xl:grid-cols-[1fr_1.25fr]">
               <div className="flex items-center gap-4">
                 <div className="grid w-full max-w-xs grid-cols-2 overflow-hidden rounded-2xl border border-emerald-100 bg-white/85 shadow-sm">
                   <DesktopStat icon={<Flame className={cn('size-5', user.streak > 0 && 'text-orange-500')} />} value={user.streak} label="Streak" />
@@ -175,7 +175,7 @@ export function HomeScreen() {
               </div>
             </section>
 
-            <section className="mt-5 grid grid-cols-[1.25fr_1fr_.8fr] gap-4">
+            <section className="mt-5 grid grid-cols-1 gap-4 xl:grid-cols-[1.25fr_1fr_.8fr]">
               <div className="rounded-[1.25rem] border border-emerald-100 bg-white/86 p-5 shadow-lg shadow-emerald-950/5">
                 <p className="text-sm font-black text-emerald-950">Bugungi dars</p>
                 <h2 className="mt-3 text-xl font-black leading-tight">{nextLesson?.title ?? 'Course complete'}</h2>
@@ -217,7 +217,7 @@ export function HomeScreen() {
 
             <section className="mt-5">
               <h2 className="mb-3 text-lg font-black text-emerald-950">Tezkor kirish</h2>
-              <div className="grid grid-cols-4 gap-3">
+              <div className="grid grid-cols-2 gap-3 xl:grid-cols-4">
                 <DesktopQuickAction icon={<Sparkles className="size-5" />} title="AI Tutor" detail="AI bilan mashq qiling" tone="purple" onClick={() => setScreen('plus')} />
                 <DesktopQuickAction icon={<Headphones className="size-5" />} title="Smart Review" detail="Xatolaringizni takrorlang" tone="blue" onClick={handleSmartReview} />
                 <DesktopQuickAction icon={<Mic className="size-5" />} title="Practice" detail="Mashq qiling" onClick={() => setScreen('plus')} />
@@ -230,7 +230,7 @@ export function HomeScreen() {
                 <h2 className="text-lg font-black text-emerald-950">Til tanlash</h2>
                 <span className="rounded-full bg-white/80 px-3 py-1 text-xs font-black text-muted-foreground">{activeCourse.badge}</span>
               </div>
-              <div className="grid grid-cols-5 gap-3">
+              <div className="grid grid-cols-3 gap-3 xl:grid-cols-5">
                 {courseOptions.map((course) => (
                   <button
                     key={course.id}

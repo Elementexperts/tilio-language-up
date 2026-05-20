@@ -317,6 +317,11 @@ html {
   -webkit-touch-callout: none;
   -webkit-user-select: none;
   user-select: none;
+  overflow-x: hidden;
+}
+
+body {
+  overflow-x: hidden;
 }
 
 input, textarea {

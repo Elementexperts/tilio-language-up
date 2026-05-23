@@ -56,9 +56,22 @@ export function UpgradeScreen() {
         },
         body: JSON.stringify({ plan: 'monthly_plus', periodDays: 30 }),
       })
-      const payload = await response.json()
+
+      const rawPayload = await response.text()
+      let payload: { invoiceLink?: string; message?: string } = {}
+      try {
+        payload = rawPayload ? JSON.parse(rawPayload) : {}
+      } catch {
+        setCheckoutMessage(
+          rawPayload
+            ? `Checkout returned HTTP ${response.status}: ${rawPayload.slice(0, 140)}`
+            : `Checkout returned HTTP ${response.status} with an empty response. Check Vercel function logs.`,
+        )
+        return
+      }
+
       if (!response.ok || !payload.invoiceLink) {
-        setCheckoutMessage(payload.message ?? 'Could not create Telegram Stars invoice.')
+        setCheckoutMessage(payload.message ?? `Could not create Telegram Stars invoice. HTTP ${response.status}`)
         return
       }
 
@@ -83,8 +96,8 @@ export function UpgradeScreen() {
 
       window.open(payload.invoiceLink, '_blank', 'noopener,noreferrer')
       setCheckoutMessage('Invoice opened. Plus unlocks after Telegram confirms the payment.')
-    } catch {
-      setCheckoutMessage('Telegram Stars checkout is unavailable right now. Manual tester access still works.')
+    } catch (error) {
+      setCheckoutMessage(error instanceof Error ? error.message : 'Telegram Stars checkout is unavailable right now. Manual tester access still works.')
     }
   }
 

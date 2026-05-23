@@ -17,6 +17,21 @@ function createInvoicePayload(userId: string) {
   return `tilio_plus_30d:${userId}:${Date.now()}:${crypto.randomUUID()}`
 }
 
+export async function GET() {
+  return NextResponse.json({
+    ok: true,
+    provider: 'telegram_stars',
+    route: 'create',
+    configured: {
+      telegramBotToken: Boolean(process.env.TELEGRAM_BOT_TOKEN),
+      supabaseUrl: Boolean(process.env.SUPABASE_URL ?? process.env.NEXT_PUBLIC_SUPABASE_URL),
+      supabaseAnonKey: Boolean(process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY),
+      supabaseServiceRoleKey: Boolean(process.env.SUPABASE_SERVICE_ROLE_KEY),
+    },
+    message: 'Telegram Stars invoice route is deployed. Use POST from the Mini App to create an invoice.',
+  })
+}
+
 export async function POST(request: Request) {
   try {
     const { userId } = await requireCloudUser(request)
@@ -62,6 +77,7 @@ export async function POST(request: Request) {
       message: 'Telegram Stars invoice is ready.',
     })
   } catch (error) {
+    console.error('Telegram Stars invoice creation failed', error)
     return NextResponse.json(
       {
         ok: false,

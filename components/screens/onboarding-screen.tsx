@@ -7,9 +7,8 @@ import { SparrowMascot } from '@/components/sparrow-mascot'
 import { useAppStore } from '@/lib/store'
 import { useTelegram } from '@/hooks/use-telegram'
 import { cn } from '@/lib/utils'
-import { ArrowRight, Check, Cloud, LogIn, ShieldCheck, Target, UserPlus, Zap } from 'lucide-react'
-import { getLevel, type CourseId, type User } from '@/lib/types'
-import { courseOptions } from '@/lib/data/lessons'
+import { ArrowRight, Check, Cloud, ShieldCheck, Target, Zap } from 'lucide-react'
+import { getLevel, type User } from '@/lib/types'
 
 type OnboardingStep = 'welcome' | 'account' | 'avatar' | 'path' | 'level' | 'goal'
 
@@ -21,7 +20,7 @@ interface AvatarOption {
 }
 
 interface PathOption {
-  id: CourseId
+  id: 'uz-en' | 'en-uz'
   title: string
   description: string
   flag1: string
@@ -57,13 +56,20 @@ const avatarOptions: AvatarOption[] = [
 ]
 
 const pathOptions: PathOption[] = [
-  ...courseOptions.map((course) => ({
-    id: course.id,
-    title: course.titleUz,
-    description: course.descriptionUz,
-    flag1: course.fromFlag,
-    flag2: course.toFlag,
-  })),
+  {
+    id: 'uz-en',
+    title: 'O‘zbekchadan inglizchaga',
+    description: 'Men o‘zbek tilida gaplashaman va ingliz tilini o‘rganmoqchiman',
+    flag1: 'UZ',
+    flag2: 'EN',
+  },
+  {
+    id: 'en-uz',
+    title: 'Inglizchadan o‘zbekchaga',
+    description: 'I speak English and want to learn Uzbek',
+    flag1: 'EN',
+    flag2: 'UZ',
+  },
 ]
 
 const levelOptions: LevelOption[] = [
@@ -89,7 +95,7 @@ const goalOptions: GoalOption[] = [
 export function OnboardingScreen() {
   const [step, setStep] = useState<OnboardingStep>('welcome')
   const [selectedAvatar, setSelectedAvatar] = useState<'boy' | 'girl'>('boy')
-  const [selectedPath, setSelectedPath] = useState<CourseId>('uz-en')
+  const [selectedPath, setSelectedPath] = useState<'uz-en' | 'en-uz' | null>(null)
   const [selectedLevel, setSelectedLevel] = useState<'beginner' | 'intermediate' | null>(null)
   const [selectedGoal, setSelectedGoal] = useState<5 | 10 | 15 | 20 | null>(null)
 
@@ -105,7 +111,7 @@ export function OnboardingScreen() {
       setStep('avatar')
     } else if (step === 'avatar') {
       setStep('path')
-    } else if (step === 'path') {
+    } else if (step === 'path' && selectedPath) {
       setStep('level')
     } else if (step === 'level' && selectedLevel) {
       setStep('goal')
@@ -125,8 +131,7 @@ export function OnboardingScreen() {
       photoUrl: telegramUser?.photo_url,
       telegramId: telegramUser?.id?.toString(),
       avatarStyle: selectedAvatar,
-      learningPath: selectedPath,
-      selectedCourse: selectedPath,
+      learningPath: selectedPath!,
       level: selectedLevel!,
       dailyGoal: selectedGoal!,
       xp: 0,
@@ -137,15 +142,7 @@ export function OnboardingScreen() {
       lastActiveDate: new Date().toISOString().split('T')[0],
       completedLessons: [],
       achievements: [],
-      courseProgress: {
-        'uz-en': { completedLessons: [], achievements: [] },
-        'uz-ko': { completedLessons: [], achievements: [] },
-        'uz-ru': { completedLessons: [], achievements: [] },
-        'uz-ar': { completedLessons: [], achievements: [] },
-        'uz-de': { completedLessons: [], achievements: [] },
-      },
       referralCount: 0,
-      claimedReferralMilestones: [],
       joinedAt: new Date().toISOString(),
       lastChestClaim: null,
       userLevel: getLevel(0),
@@ -155,6 +152,11 @@ export function OnboardingScreen() {
       xpMultiplier: 1,
       xpMultiplierExpiresAt: null,
       wordReviews: {},
+      plan: 'free',
+      plusExpiresAt: null,
+      plusSource: null,
+      plusUpdatedAt: null,
+      plusChatUsage: { date: new Date().toISOString().split('T')[0], count: 0 },
       lastSyncedAt: null,
     }
 
@@ -170,7 +172,7 @@ export function OnboardingScreen() {
       case 'avatar':
         return true
       case 'path':
-        return true
+        return selectedPath !== null
       case 'level':
         return selectedLevel !== null
       case 'goal':
@@ -201,15 +203,15 @@ export function OnboardingScreen() {
         <div className="h-full bg-primary transition-all duration-500 ease-out" style={{ width: getProgressWidth() }} />
       </div>
 
-      <div className="tilio-container flex flex-1 flex-col overflow-y-auto px-6 pb-44 pt-8">
+      <div className="tilio-container flex flex-1 flex-col overflow-y-auto px-6 py-8">
         {step === 'welcome' && (
-          <div className="flex flex-1 flex-col items-center justify-center text-center animate-onboarding-step">
+          <div className="flex flex-1 flex-col items-center justify-center text-center animate-bounce-in">
             <SparrowMascot size="lg" mood="waving" branded />
-            <h1 className="tilio-title mt-6">
+            <h1 className="mt-6 text-3xl font-black text-foreground">
               {telegramUser ? `Salom, ${telegramUser.first_name}!` : 'Xush kelibsiz!'}
             </h1>
-            <p className="tilio-body mt-3 max-w-xs text-base">
-              Inglizcha, koreyscha, ruscha, arabcha yoki nemischa yo‘nalishda o‘yinli darslar orqali o‘rganamiz. Avval profilingizni sozlaymiz.
+            <p className="mt-3 max-w-xs text-lg text-muted-foreground">
+              O‘zbekcha va inglizchani o‘yinli darslar orqali o‘rganamiz. Avval profilingizni sozlaymiz.
             </p>
             <div className="mt-8 flex items-center gap-4">
               <div className="flex items-center gap-2 text-sm text-muted-foreground">
@@ -225,52 +227,31 @@ export function OnboardingScreen() {
         )}
 
         {step === 'account' && (
-          <div className="flex flex-1 flex-col items-center justify-center text-center animate-onboarding-step">
+          <div className="flex flex-1 flex-col items-center justify-center text-center animate-bounce-in">
             <div className="mb-5 flex size-24 items-center justify-center rounded-[2rem] bg-gradient-to-br from-emerald-100 to-lime-100 text-primary shadow-xl shadow-emerald-950/10">
               <Cloud className="size-11" />
             </div>
             <SparrowMascot size="md" mood="celebrating" branded />
-            <h2 className="tilio-title mt-5">Progressingiz saqlanadi</h2>
-            <p className="tilio-body mt-3 max-w-xs">
-              Ro'yxatdan o'tish orqali XP, streak, patlar, darslar va nishonlar bulutda saqlanadi.
+            <h2 className="mt-5 text-2xl font-black text-foreground">Progressingiz saqlanadi</h2>
+            <p className="mt-3 max-w-xs text-muted-foreground">
+              Telegram akkauntingiz orqali XP, streak, patlar, darslar va nishonlar bulutda saqlanadi.
             </p>
             <div className="mt-6 grid w-full gap-3">
-              <Button
-                className="tilio-button h-13 rounded-2xl text-base font-black"
-                onClick={() => {
-                  hapticFeedback('medium')
-                  setScreen('auth')
-                }}
-              >
-                <UserPlus className="mr-2 size-5" />
-                Progressni saqlash uchun ro'yxatdan o'ting
-              </Button>
-              <Button
-                variant="outline"
-                className="h-13 rounded-2xl border-primary/25 bg-white/80 text-base font-black"
-                onClick={() => {
-                  hapticFeedback('light')
-                  setScreen('auth')
-                }}
-              >
-                <LogIn className="mr-2 size-5" />
-                Kirish
-              </Button>
-              <Card className="tilio-surface rounded-[1.35rem] p-4 text-left">
+              <Card className="rounded-[1.35rem] border-emerald-100 bg-white/85 p-4 text-left shadow-sm">
                 <div className="flex items-center gap-3">
                   <ShieldCheck className="size-5 text-primary" />
                   <div>
-                    <p className="tilio-section-title text-base">Secure sign-in</p>
-                    <p className="tilio-body text-xs">No password needed inside the Mini App.</p>
+                    <p className="font-black">Secure Telegram sign-in</p>
+                    <p className="text-xs font-semibold text-muted-foreground">No password needed inside the Mini App.</p>
                   </div>
                 </div>
               </Card>
-              <Card className="tilio-surface rounded-[1.35rem] p-4 text-left">
+              <Card className="rounded-[1.35rem] border-emerald-100 bg-white/85 p-4 text-left shadow-sm">
                 <div className="flex items-center gap-3">
                   <Cloud className="size-5 text-primary" />
                   <div>
-                    <p className="tilio-section-title text-base">Continue anywhere</p>
-                    <p className="tilio-body text-xs">Ready for future Android and iOS apps.</p>
+                    <p className="font-black">Continue anywhere</p>
+                    <p className="text-xs font-semibold text-muted-foreground">Ready for future Android and iOS apps.</p>
                   </div>
                 </div>
               </Card>
@@ -279,11 +260,11 @@ export function OnboardingScreen() {
         )}
 
         {step === 'avatar' && (
-          <div className="flex flex-1 flex-col animate-onboarding-step">
+          <div className="flex flex-1 flex-col animate-bounce-in">
             <div className="mb-8 text-center">
               <SparrowMascot size="md" mood="happy" branded className="mx-auto" />
-              <h2 className="tilio-title mt-4">Profil qahramoningizni tanlang</h2>
-              <p className="tilio-body mt-2">Telegram rasmi bo‘lmasa, shu ikonka profilingizda ko‘rinadi.</p>
+              <h2 className="mt-4 text-2xl font-black text-foreground">Profil qahramoningizni tanlang</h2>
+              <p className="mt-2 text-muted-foreground">Telegram rasmi bo‘lmasa, shu ikonka profilingizda ko‘rinadi.</p>
             </div>
             <div className="grid grid-cols-2 gap-4">
               {avatarOptions.map((option) => (
@@ -301,8 +282,8 @@ export function OnboardingScreen() {
                   <div className="mx-auto mb-3 size-28 overflow-hidden rounded-[2rem] bg-emerald-50 ring-4 ring-white">
                     <img src={option.image} alt={option.title} className="h-full w-full object-cover" />
                   </div>
-                  <h3 className="tilio-section-title text-base">{option.title}</h3>
-                  <p className="tilio-body mt-1 text-xs">{option.description}</p>
+                  <h3 className="font-black text-foreground">{option.title}</h3>
+                  <p className="mt-1 text-xs font-semibold text-muted-foreground">{option.description}</p>
                   {selectedAvatar === option.id && (
                     <div className="mx-auto mt-3 flex size-7 items-center justify-center rounded-full bg-primary text-primary-foreground">
                       <Check className="size-4" />
@@ -315,11 +296,11 @@ export function OnboardingScreen() {
         )}
 
         {step === 'path' && (
-          <div className="flex flex-1 flex-col animate-onboarding-step">
+          <div className="flex flex-1 flex-col animate-bounce-in">
             <div className="mb-8 text-center">
               <SparrowMascot size="md" mood="thinking" branded className="mx-auto" />
-              <h2 className="tilio-title mt-4">Yo‘nalishni tanlang</h2>
-              <p className="tilio-body mt-2">Qaysi tilda mashq qilmoqchisiz?</p>
+              <h2 className="mt-4 text-2xl font-black text-foreground">Yo‘nalishni tanlang</h2>
+              <p className="mt-2 text-muted-foreground">Qaysi tilda mashq qilmoqchisiz?</p>
             </div>
             <div className="flex flex-col gap-4">
               {pathOptions.map((option) => (
@@ -341,8 +322,8 @@ export function OnboardingScreen() {
                       <span className="rounded-full bg-primary/10 px-2 py-1">{option.flag2}</span>
                     </div>
                     <div className="flex-1">
-                      <h3 className="tilio-section-title text-base">{option.title}</h3>
-                      <p className="tilio-body text-sm">{option.description}</p>
+                      <h3 className="font-black text-foreground">{option.title}</h3>
+                      <p className="text-sm text-muted-foreground">{option.description}</p>
                     </div>
                     {selectedPath === option.id && (
                       <div className="flex h-6 w-6 items-center justify-center rounded-full bg-primary">
@@ -357,11 +338,11 @@ export function OnboardingScreen() {
         )}
 
         {step === 'level' && (
-          <div className="flex flex-1 flex-col animate-onboarding-step">
+          <div className="flex flex-1 flex-col animate-bounce-in">
             <div className="mb-8 text-center">
               <SparrowMascot size="md" mood="happy" branded className="mx-auto" />
-              <h2 className="tilio-title mt-4">Darajangiz qanday?</h2>
-              <p className="tilio-body mt-2">Darslar sizga mos ravishda tavsiya qilinadi.</p>
+              <h2 className="mt-4 text-2xl font-black text-foreground">Darajangiz qanday?</h2>
+              <p className="mt-2 text-muted-foreground">Darslar sizga mos ravishda tavsiya qilinadi.</p>
             </div>
             <div className="flex flex-col gap-4">
               {levelOptions.map((option) => (
@@ -381,8 +362,8 @@ export function OnboardingScreen() {
                       {option.id === 'beginner' ? 'A1' : 'A2'}
                     </div>
                     <div className="flex-1">
-                      <h3 className="tilio-section-title text-base">{option.title}</h3>
-                      <p className="tilio-body text-sm">{option.description}</p>
+                      <h3 className="font-black text-foreground">{option.title}</h3>
+                      <p className="text-sm text-muted-foreground">{option.description}</p>
                     </div>
                     {selectedLevel === option.id && (
                       <div className="flex h-6 w-6 items-center justify-center rounded-full bg-primary">
@@ -397,11 +378,11 @@ export function OnboardingScreen() {
         )}
 
         {step === 'goal' && (
-          <div className="flex flex-1 flex-col animate-onboarding-step">
+          <div className="flex flex-1 flex-col animate-bounce-in">
             <div className="mb-8 text-center">
               <SparrowMascot size="md" mood="celebrating" branded className="mx-auto" />
-              <h2 className="tilio-title mt-4">Kunlik maqsadni belgilang</h2>
-              <p className="tilio-body mt-2">Har kuni necha daqiqa mashq qilasiz?</p>
+              <h2 className="mt-4 text-2xl font-black text-foreground">Kunlik maqsadni belgilang</h2>
+              <p className="mt-2 text-muted-foreground">Har kuni necha daqiqa mashq qilasiz?</p>
             </div>
             <div className="grid grid-cols-2 gap-4">
               {goalOptions.map((option) => (
@@ -417,27 +398,22 @@ export function OnboardingScreen() {
                   }}
                 >
                   <div className="mx-auto mb-2 flex size-11 items-center justify-center rounded-2xl bg-primary/10 text-sm font-black text-primary">{option.id}m</div>
-                  <h3 className="tilio-section-title text-base">{option.title}</h3>
-                  <p className="tilio-body text-sm">{option.description}</p>
-                  <p className="tilio-label mt-2 text-primary">{option.xpEstimate}</p>
+                  <h3 className="font-black text-foreground">{option.title}</h3>
+                  <p className="text-sm text-muted-foreground">{option.description}</p>
+                  <p className="mt-1 text-xs text-primary">{option.xpEstimate}</p>
                 </Card>
               ))}
             </div>
           </div>
         )}
       </div>
-      <div className="fixed inset-x-0 bottom-8 z-30 bg-gradient-to-t from-background via-background/95 to-background/0 px-5 pb-4 pt-8 safe-area-bottom">
-        <div className="tilio-container">
-          <Button onClick={handleNext} disabled={!canProceed()} className={cn('h-14 w-full rounded-2xl text-lg font-black touch-target', step === 'account' ? 'bg-emerald-100 text-primary shadow-md shadow-emerald-950/8 hover:bg-emerald-50' : 'tilio-button')} size="lg">
-            {step === 'goal' ? 'Boshlaymiz!' : step === 'account' ? 'Akkauntsiz davom etish' : 'Davom etish'}
-            <ArrowRight className="ml-2 h-5 w-5" />
-          </Button>
-        </div>
+
+      <div className="tilio-container p-6 safe-area-bottom">
+        <Button onClick={handleNext} disabled={!canProceed()} className="tilio-button h-14 w-full rounded-2xl text-lg font-black touch-target" size="lg">
+          {step === 'goal' ? 'Boshlaymiz!' : 'Davom etish'}
+          <ArrowRight className="ml-2 h-5 w-5" />
+        </Button>
       </div>
     </div>
   )
 }
-
-
-
-

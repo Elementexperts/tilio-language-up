@@ -1,6 +1,6 @@
 import { create } from 'zustand'
 import { persist } from 'zustand/middleware'
-import { achievementsData, getAchievementsForCourse, getLessonById } from './data/lessons'
+import { achievementsData, getLessonById } from './data/lessons'
 import {
   getLevel,
   type AppState,
@@ -10,12 +10,9 @@ import {
   type AchievementPopup,
   type CloudProgressSnapshot,
   type CloudAuthSession,
-  type CourseId,
-  type CourseProgress,
-  type SkillFocus,
   type SyncStatus,
-  type UserActivityDay,
 } from './types'
+import { getPlusChatUsage, isPlusActive } from './plus'
 
 const getToday = () => new Date().toISOString().split('T')[0]
 
@@ -59,6 +56,7 @@ const FEATHERS_FOR_STREAK_FREEZE = 50
 const MAX_STREAK_FREEZES = 2
 const REFERRAL_XP_REWARD = 35
 const REFERRAL_FEATHER_REWARD = 20
+const TESTER_PLUS_DAYS = [7, 30, 90] as const
 
 const getYesterday = () => {
   const yesterday = new Date()
@@ -66,80 +64,16 @@ const getYesterday = () => {
   return yesterday.toISOString().split('T')[0]
 }
 
-const normalizeCourseId = (courseId?: string): CourseId => {
-  if (courseId === 'uz-ko') return 'uz-ko'
-  if (courseId === 'uz-ru') return 'uz-ru'
-  if (courseId === 'uz-ar') return 'uz-ar'
-  if (courseId === 'uz-de') return 'uz-de'
-  return 'uz-en'
-}
-
-const getProgressForCourse = (user: User, courseId: CourseId): CourseProgress => {
-  const selected = user.courseProgress?.[courseId]
-  if (selected) {
-    return {
-      completedLessons: selected.completedLessons ?? [],
-      achievements: selected.achievements ?? [],
-    }
-  }
-  if (courseId === 'uz-en') {
-    return {
-      completedLessons: user.completedLessons ?? [],
-      achievements: user.achievements ?? [],
-    }
-  }
-  return { completedLessons: [], achievements: [] }
-}
-
-const withNormalizedCourseProgress = (user: User): User => {
-  const selectedCourse = normalizeCourseId(user.selectedCourse ?? user.learningPath)
-  const englishProgress = getProgressForCourse(user, 'uz-en')
-  const koreanProgress = getProgressForCourse(user, 'uz-ko')
-  const russianProgress = getProgressForCourse(user, 'uz-ru')
-  const arabicProgress = getProgressForCourse(user, 'uz-ar')
-  const germanProgress = getProgressForCourse(user, 'uz-de')
-  const selectedProgress = selectedCourse === 'uz-ko'
-    ? koreanProgress
-    : selectedCourse === 'uz-ru'
-      ? russianProgress
-      : selectedCourse === 'uz-ar'
-        ? arabicProgress
-        : selectedCourse === 'uz-de'
-          ? germanProgress
-          : englishProgress
-
-  return {
-    ...user,
-    learningPath: selectedCourse,
-    selectedCourse,
-    completedLessons: selectedProgress.completedLessons,
-    achievements: selectedProgress.achievements,
-    courseProgress: {
-      'uz-en': englishProgress,
-      'uz-ko': koreanProgress,
-      'uz-ru': russianProgress,
-      'uz-ar': arabicProgress,
-      'uz-de': germanProgress,
-    },
-  }
-}
-
-const claimableAchievementRewards = (user: User, courseId: CourseId) => {
-  const courseProgress = getProgressForCourse(user, courseId)
-  const unlocked = getAchievementsForCourse(courseId).filter((achievement) => {
-    const allAchievementIds = [
-      ...(user.achievements ?? []),
-      ...Object.values(user.courseProgress ?? {}).flatMap((progress) => progress?.achievements ?? []),
-    ]
-    const unlockedIds = achievement.courseId ? courseProgress.achievements : allAchievementIds
-    if (unlockedIds.includes(achievement.id)) return false
+const claimableAchievementRewards = (user: User) => {
+  const unlocked = achievementsData.filter((achievement) => {
+    if (user.achievements.includes(achievement.id)) return false
     switch (achievement.requirement.type) {
       case 'xp':
         return user.xp >= achievement.requirement.value
       case 'streak':
-        return Math.max(user.streak, user.maxStreak ?? 0) >= achievement.requirement.value
+        return user.streak >= achievement.requirement.value
       case 'lessons':
-        return courseProgress.completedLessons.length >= achievement.requirement.value
+        return user.completedLessons.length >= achievement.requirement.value
       case 'referrals':
         return user.referralCount >= achievement.requirement.value
       case 'feathers':
@@ -166,47 +100,12 @@ const getActiveXpMultiplier = (user: User) => {
   return new Date(user.xpMultiplierExpiresAt).getTime() > Date.now() ? user.xpMultiplier ?? 1 : 1
 }
 
-type ActivityUpdate = Pick<UserActivityDay, 'xpEarned' | 'feathersEarned' | 'lessonsCompleted' | 'practiceSessions' | 'studySessions' | 'newWordsLearned' | 'wordsReviewed' | 'correctAnswers' | 'incorrectAnswers' | 'missedWords'> & {
-  date: string
-  courseId: CourseId
-  skillFocus: SkillFocus
-}
-
-const updateActivityLog = (user: User, activity: ActivityUpdate): Record<string, UserActivityDay> => {
-  const existing = user.activityLog?.[activity.date]
-  const courseSessions: Partial<Record<CourseId, number>> = { ...(existing?.courseSessions ?? {}) }
-  const skillSessions: Partial<Record<SkillFocus, number>> = { ...(existing?.skillSessions ?? {}) }
-
-  courseSessions[activity.courseId] = (courseSessions[activity.courseId] ?? 0) + 1
-  skillSessions[activity.skillFocus] = (skillSessions[activity.skillFocus] ?? 0) + 1
-
-  return {
-    ...(user.activityLog ?? {}),
-    [activity.date]: {
-      date: activity.date,
-      xpEarned: (existing?.xpEarned ?? 0) + activity.xpEarned,
-      feathersEarned: (existing?.feathersEarned ?? 0) + activity.feathersEarned,
-      lessonsCompleted: (existing?.lessonsCompleted ?? 0) + activity.lessonsCompleted,
-      practiceSessions: (existing?.practiceSessions ?? 0) + activity.practiceSessions,
-      studySessions: (existing?.studySessions ?? 0) + activity.studySessions,
-      newWordsLearned: (existing?.newWordsLearned ?? 0) + activity.newWordsLearned,
-      wordsReviewed: (existing?.wordsReviewed ?? 0) + activity.wordsReviewed,
-      correctAnswers: (existing?.correctAnswers ?? 0) + activity.correctAnswers,
-      incorrectAnswers: (existing?.incorrectAnswers ?? 0) + activity.incorrectAnswers,
-      missedWords: (existing?.missedWords ?? 0) + activity.missedWords,
-      courseSessions,
-      skillSessions,
-    },
-  }
-}
-
 const buildAchievementPopups = (ids: string[]): AchievementPopup[] =>
   ids
     .map((id) => achievementsData.find((achievement) => achievement.id === id))
     .filter((achievement): achievement is NonNullable<typeof achievement> => Boolean(achievement))
     .map((achievement) => ({
       id: `${achievement.id}-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
-      achievementId: achievement.id,
       title: achievement.titleUz || achievement.title,
       description: achievement.descriptionUz || achievement.description,
       icon: achievement.icon,
@@ -253,7 +152,7 @@ export const useAppStore = create<AppState>()(
       currentScreen: 'splash',
       currentLesson: null,
       currentExerciseIndex: 0,
-      exerciseAnswers: { correct: 0, incorrect: 0, missedWordIds: [] },
+      exerciseAnswers: { correct: 0, incorrect: 0 },
       dailyChallenges: [],
       isLoading: false,
       isSoundEnabled: true,
@@ -262,7 +161,6 @@ export const useAppStore = create<AppState>()(
       cloudSession: null,
       xpPopups: [],
       achievementPopups: [],
-      lessonAchievementPopups: [],
       showStreakSavedModal: false,
       showLevelUpModal: false,
       newLevel: 1,
@@ -270,7 +168,7 @@ export const useAppStore = create<AppState>()(
       setUser: (user) =>
         set({
           user: user
-            ? withNormalizedCourseProgress({
+            ? {
                 ...user,
                 feathers: user.feathers ?? 0,
                 avatarStyle: user.avatarStyle ?? 'boy',
@@ -284,74 +182,38 @@ export const useAppStore = create<AppState>()(
                 xpMultiplier: user.xpMultiplier ?? 1,
                 xpMultiplierExpiresAt: user.xpMultiplierExpiresAt ?? null,
                 wordReviews: user.wordReviews ?? {},
-                activityLog: user.activityLog ?? {},
+                plan: user.plan ?? 'free',
+                plusExpiresAt: user.plusExpiresAt ?? null,
+                plusSource: user.plusSource ?? null,
+                plusUpdatedAt: user.plusUpdatedAt ?? null,
+                plusChatUsage: user.plusChatUsage ?? { date: getToday(), count: 0 },
                 cloudUserId: user.cloudUserId,
                 telegramId: user.telegramId,
-                learningPath: normalizeCourseId(user.selectedCourse ?? user.learningPath),
-                selectedCourse: normalizeCourseId(user.selectedCourse ?? user.learningPath),
-                claimedReferralMilestones: user.claimedReferralMilestones ?? [],
                 lastSyncedAt: user.lastSyncedAt ?? null,
-              })
+              }
             : null,
         }),
-
+      
       updateUser: (updates) => set((state) => ({
         user: state.user ? { ...state.user, ...updates } : null,
       })),
 
-      setSelectedCourse: (courseId) => set((state) => {
-        if (!state.user) return { user: null }
-        const selectedCourse = normalizeCourseId(courseId)
-        const currentCourse = normalizeCourseId(state.user.selectedCourse ?? state.user.learningPath)
-        const currentProgress: CourseProgress = {
-          completedLessons: state.user.completedLessons ?? [],
-          achievements: state.user.achievements ?? [],
-        }
-        const nextCourseProgress = {
-          ...state.user.courseProgress,
-          [currentCourse]: currentProgress,
-          [selectedCourse]: getProgressForCourse(
-            {
-              ...state.user,
-              courseProgress: {
-                ...state.user.courseProgress,
-                [currentCourse]: currentProgress,
-              },
-            },
-            selectedCourse,
-          ),
-        }
-        const selectedProgress = nextCourseProgress[selectedCourse] ?? { completedLessons: [], achievements: [] }
-
-        return {
-          user: {
-            ...state.user,
-            learningPath: selectedCourse,
-            selectedCourse,
-            completedLessons: selectedProgress.completedLessons,
-            achievements: selectedProgress.achievements,
-            courseProgress: nextCourseProgress,
-          },
-        }
-      }),
-
       hydrateCloudProgress: (snapshot: CloudProgressSnapshot) =>
         set((state) => ({
-          user: withNormalizedCourseProgress({
+          user: {
             ...snapshot.user,
-            learningPath: normalizeCourseId(snapshot.user.selectedCourse ?? snapshot.user.learningPath),
-            selectedCourse: normalizeCourseId(snapshot.user.selectedCourse ?? snapshot.user.learningPath),
             wordReviews: snapshot.user.wordReviews ?? {},
+            plan: state.user?.plan ?? snapshot.user.plan ?? 'free',
+            plusExpiresAt: state.user?.plusExpiresAt ?? snapshot.user.plusExpiresAt ?? null,
+            plusSource: state.user?.plusSource ?? snapshot.user.plusSource ?? null,
+            plusUpdatedAt: state.user?.plusUpdatedAt ?? snapshot.user.plusUpdatedAt ?? null,
+            plusChatUsage: snapshot.user.plusChatUsage ?? { date: getToday(), count: 0 },
             lastSyncedAt: snapshot.updatedAt,
-          }),
+          },
           dailyChallenges: snapshot.dailyChallenges ?? state.dailyChallenges,
           currentLesson: snapshot.currentLessonId ? getLessonById(snapshot.currentLessonId) ?? state.currentLesson : state.currentLesson,
           currentExerciseIndex: snapshot.currentExerciseIndex ?? state.currentExerciseIndex,
-          exerciseAnswers: {
-            correct: snapshot.exerciseAnswers?.correct ?? state.exerciseAnswers.correct,
-            incorrect: snapshot.exerciseAnswers?.incorrect ?? state.exerciseAnswers.incorrect,
-            missedWordIds: snapshot.exerciseAnswers?.missedWordIds ?? state.exerciseAnswers.missedWordIds,
-          },
+          exerciseAnswers: snapshot.exerciseAnswers ?? state.exerciseAnswers,
           syncStatus: 'synced',
           syncError: null,
         })),
@@ -365,12 +227,11 @@ export const useAppStore = create<AppState>()(
       startLesson: (lesson) => set({
         currentLesson: lesson,
         currentExerciseIndex: 0,
-        exerciseAnswers: { correct: 0, incorrect: 0, missedWordIds: [] },
-        lessonAchievementPopups: [],
+        exerciseAnswers: { correct: 0, incorrect: 0 },
         currentScreen: 'exercise',
       }),
 
-      completeExercise: (correct, wordId, trackMiss = true) => set((state) => {
+      completeExercise: (correct, wordId) => set((state) => {
         const user = state.user
         const today = getToday()
         const wordReviews = user?.wordReviews ?? {}
@@ -392,9 +253,6 @@ export const useAppStore = create<AppState>()(
           exerciseAnswers: {
             correct: state.exerciseAnswers.correct + (correct ? 1 : 0),
             incorrect: state.exerciseAnswers.incorrect + (correct ? 0 : 1),
-            missedWordIds: !correct && wordId && trackMiss && !state.exerciseAnswers.missedWordIds.includes(wordId)
-              ? [...state.exerciseAnswers.missedWordIds, wordId]
-              : state.exerciseAnswers.missedWordIds,
           },
           currentExerciseIndex: state.currentExerciseIndex + 1,
           user: user && wordId
@@ -422,18 +280,12 @@ export const useAppStore = create<AppState>()(
 
         const user = state.user
         const lessonId = state.currentLesson.id
-        const courseId = normalizeCourseId(state.currentLesson.courseId ?? user.selectedCourse ?? user.learningPath)
-        const activeProgress = getProgressForCourse(user, courseId)
         const multiplier = getActiveXpMultiplier(user)
-        const rawXpEarned = Math.max(0, state.currentLesson.xpReward - state.exerciseAnswers.incorrect)
-        const xpEarned = Math.round(rawXpEarned * multiplier)
+        const xpEarned = Math.round(state.currentLesson.xpReward * multiplier)
         const featherEarned = state.currentLesson.featherReward ?? 5
-        const isPracticeSession = Boolean(state.currentLesson.isPracticeSession)
-        const alreadyCompleted = activeProgress.completedLessons.includes(lessonId)
-        const lessonCompletedNow = !isPracticeSession && !alreadyCompleted
-        const newCompletedLessons = lessonCompletedNow
-          ? [...activeProgress.completedLessons, lessonId]
-          : activeProgress.completedLessons
+        const newCompletedLessons = user.completedLessons.includes(lessonId)
+          ? user.completedLessons
+          : [...user.completedLessons, lessonId]
 
         // Update daily challenges
         const today = getToday()
@@ -441,12 +293,11 @@ export const useAppStore = create<AppState>()(
         if (challenges.length === 0 || challenges[0].date !== today) {
           challenges = generateDailyChallenges()
         }
-
+        
         challenges = challenges.map((challenge) => {
           if (challenge.completed) return challenge
-
+          
           if (challenge.type === 'lessons') {
-            if (isPracticeSession) return challenge
             const newCurrent = challenge.current + 1
             return {
               ...challenge,
@@ -487,55 +338,20 @@ export const useAppStore = create<AppState>()(
           feathers: baseFeathers,
           completedLessons: newCompletedLessons,
           userLevel: leveled,
-          courseProgress: {
-            ...user.courseProgress,
-            [courseId]: {
-              completedLessons: newCompletedLessons,
-              achievements: activeProgress.achievements,
-            },
-          },
-        }, courseId)
+        })
         const finalXp = baseXp + achievementRewards.xp
         const finalFeathers = baseFeathers + achievementRewards.feathers
         const finalLevel = getLevel(finalXp)
-        const totalXpEarned = xpEarned + challengeBonusXp + achievementRewards.xp
-        const totalFeathersEarned = featherEarned + challengeBonusFeathers + achievementRewards.feathers
-        const nextCourseProgress = {
-          ...user.courseProgress,
-          [courseId]: {
-            completedLessons: newCompletedLessons,
-            achievements: [...activeProgress.achievements, ...achievementRewards.unlockedIds],
-          },
-        }
-        const lessonAchievementPopups = buildAchievementPopups(achievementRewards.unlockedIds)
 
         set({
           user: {
             ...user,
-            learningPath: courseId,
-            selectedCourse: courseId,
             xp: finalXp,
             feathers: finalFeathers,
             userLevel: finalLevel,
-            achievements: nextCourseProgress[courseId]?.achievements ?? user.achievements,
+            achievements: [...user.achievements, ...achievementRewards.unlockedIds],
             completedLessons: newCompletedLessons,
-            courseProgress: nextCourseProgress,
             lastActiveDate: today,
-            activityLog: updateActivityLog(user, {
-              date: today,
-              courseId,
-              skillFocus: state.currentLesson.skillFocus ?? 'mixed',
-              xpEarned: totalXpEarned,
-              feathersEarned: totalFeathersEarned,
-              lessonsCompleted: lessonCompletedNow ? 1 : 0,
-              practiceSessions: isPracticeSession ? 1 : 0,
-              studySessions: 1,
-              newWordsLearned: lessonCompletedNow ? state.currentLesson.words.length : 0,
-              wordsReviewed: isPracticeSession || state.currentLesson.isReview ? state.currentLesson.words.length : 0,
-              correctAnswers: state.exerciseAnswers.correct,
-              incorrectAnswers: state.exerciseAnswers.incorrect,
-              missedWords: state.exerciseAnswers.missedWordIds.length,
-            }),
             xpMultiplier: multiplier,
             xpMultiplierExpiresAt: multiplier > 1 ? user.xpMultiplierExpiresAt : null,
           },
@@ -545,13 +361,12 @@ export const useAppStore = create<AppState>()(
           newLevel: finalLevel,
           achievementPopups: [
             ...state.achievementPopups,
-            ...lessonAchievementPopups,
+            ...buildAchievementPopups(achievementRewards.unlockedIds),
           ],
-          lessonAchievementPopups,
         })
 
-        get().addXpPopup(totalXpEarned, 'xp', multiplier > 1 ? `${multiplier}x XP active` : undefined)
-        get().addXpPopup(totalFeathersEarned, 'feathers')
+        get().addXpPopup(xpEarned + challengeBonusXp + achievementRewards.xp, 'xp', multiplier > 1 ? `${multiplier}x XP active` : undefined)
+        get().addXpPopup(featherEarned + challengeBonusFeathers + achievementRewards.feathers, 'feathers')
       },
 
       addXp: (amount) => {
@@ -608,8 +423,6 @@ export const useAppStore = create<AppState>()(
         const boostedXp = state.user.xp + streakXpBonus
         const boostedFeathers = state.user.feathers + streakFeatherBonus
         const leveled = getLevel(boostedXp)
-        const courseId = normalizeCourseId(state.user.selectedCourse ?? state.user.learningPath)
-        const activeProgress = getProgressForCourse(state.user, courseId)
         const achievementRewards = claimableAchievementRewards({
           ...state.user,
           streak: newStreak,
@@ -617,18 +430,10 @@ export const useAppStore = create<AppState>()(
           xp: boostedXp,
           feathers: boostedFeathers,
           userLevel: leveled,
-        }, courseId)
+        })
         const finalXp = boostedXp + achievementRewards.xp
         const finalFeathers = boostedFeathers + achievementRewards.feathers
         const finalLevel = getLevel(finalXp)
-
-        const nextCourseProgress = {
-          ...state.user.courseProgress,
-          [courseId]: {
-            ...activeProgress,
-            achievements: [...activeProgress.achievements, ...achievementRewards.unlockedIds],
-          },
-        }
 
         set({
           user: {
@@ -640,8 +445,7 @@ export const useAppStore = create<AppState>()(
             xp: finalXp,
             feathers: finalFeathers,
             userLevel: finalLevel,
-            achievements: nextCourseProgress[courseId]?.achievements ?? state.user.achievements,
-            courseProgress: nextCourseProgress,
+            achievements: [...state.user.achievements, ...achievementRewards.unlockedIds],
           },
           showLevelUpModal: finalLevel > state.user.userLevel,
           newLevel: finalLevel,
@@ -755,37 +559,25 @@ export const useAppStore = create<AppState>()(
         const nextXp = state.user.xp + xpGain
         const nextLevel = getLevel(nextXp)
         const nextFeathers = state.user.feathers + featherGain
-        const courseId = normalizeCourseId(state.user.selectedCourse ?? state.user.learningPath)
-        const activeProgress = getProgressForCourse(state.user, courseId)
         const achievementRewards = claimableAchievementRewards({
           ...state.user,
           referralCount: nextReferralCount,
           xp: nextXp,
           feathers: nextFeathers,
           userLevel: nextLevel,
-        }, courseId)
+        })
         const finalXp = nextXp + achievementRewards.xp
         const finalLevel = getLevel(finalXp)
         const finalFeathers = nextFeathers + achievementRewards.feathers
-
-        const nextCourseProgress = {
-          ...state.user.courseProgress,
-          [courseId]: {
-            ...activeProgress,
-            achievements: [...activeProgress.achievements, ...achievementRewards.unlockedIds],
-          },
-        }
 
         set({
           user: {
             ...state.user,
             referralCount: nextReferralCount,
-            claimedReferralMilestones: state.user.claimedReferralMilestones ?? [],
             xp: finalXp,
             feathers: finalFeathers,
             userLevel: finalLevel,
-            achievements: nextCourseProgress[courseId]?.achievements ?? state.user.achievements,
-            courseProgress: nextCourseProgress,
+            achievements: [...state.user.achievements, ...achievementRewards.unlockedIds],
           },
           showLevelUpModal: finalLevel > state.user.userLevel,
           newLevel: finalLevel,
@@ -802,55 +594,42 @@ export const useAppStore = create<AppState>()(
         }
       },
 
-      claimReferralMilestone: (friends, xp, feathers) => {
+      grantManualPlus: (days) => {
+        const state = get()
+        if (!state.user || !TESTER_PLUS_DAYS.includes(days)) return
+        const baseTime = isPlusActive(state.user)
+          ? new Date(state.user.plusExpiresAt!).getTime()
+          : Date.now()
+        const plusExpiresAt = new Date(baseTime + days * 24 * 60 * 60 * 1000).toISOString()
+        set({
+          user: {
+            ...state.user,
+            plan: 'plus',
+            plusExpiresAt,
+            plusSource: 'manual',
+            plusUpdatedAt: new Date().toISOString(),
+          },
+        })
+        get().addXpPopup(1, 'streak_saved', `Plus unlocked for ${days} days`)
+      },
+
+      incrementPlusChatUsage: () => {
         const state = get()
         if (!state.user) return false
-        const claimed = state.user.claimedReferralMilestones ?? []
-        if (state.user.referralCount < friends || claimed.includes(friends)) return false
+        if (isPlusActive(state.user)) return true
 
-        const nextXp = state.user.xp + xp
-        const nextLevel = getLevel(nextXp)
+        const usage = getPlusChatUsage(state.user)
+        if (usage.count >= 3) return false
+
         set({
           user: {
             ...state.user,
-            xp: nextXp,
-            feathers: state.user.feathers + feathers,
-            userLevel: nextLevel,
-            claimedReferralMilestones: [...claimed, friends],
-          },
-          showLevelUpModal: nextLevel > state.user.userLevel,
-          newLevel: nextLevel,
-        })
-        get().addXpPopup(xp, 'xp', 'Referral milestone')
-        get().addXpPopup(feathers, 'feathers', 'Referral milestone')
-        return true
-      },
-
-      buyXpBoost: (price, multiplier, hours) => {
-        const state = get()
-        if (!state.user || state.user.feathers < price) return false
-        set({
-          user: {
-            ...state.user,
-            feathers: state.user.feathers - price,
-            xpMultiplier: Math.max(state.user.xpMultiplier ?? 1, multiplier),
-            xpMultiplierExpiresAt: new Date(Date.now() + hours * 60 * 60 * 1000).toISOString(),
+            plusChatUsage: {
+              date: usage.date,
+              count: usage.count + 1,
+            },
           },
         })
-        get().addXpPopup(multiplier, 'multiplier', `${hours}h XP Boost`)
-        return true
-      },
-
-      buyFeatherBundle: (price, amount) => {
-        const state = get()
-        if (!state.user || state.user.feathers < price) return false
-        set({
-          user: {
-            ...state.user,
-            feathers: state.user.feathers - price + amount,
-          },
-        })
-        get().addXpPopup(amount, 'feathers', 'Bonus bundle')
         return true
       },
 
@@ -858,7 +637,7 @@ export const useAppStore = create<AppState>()(
 
       resetExercise: () => set({
         currentExerciseIndex: 0,
-        exerciseAnswers: { correct: 0, incorrect: 0, missedWordIds: [] },
+        exerciseAnswers: { correct: 0, incorrect: 0 },
       }),
 
       addXpPopup: (amount, type, label) =>

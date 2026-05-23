@@ -3,21 +3,9 @@
 import { useEffect, useMemo, useRef } from 'react'
 import { useAppStore } from '@/lib/store'
 import { useTelegram } from '@/hooks/use-telegram'
-import { cacheCloudSession, getCachedCloudSession, isCloudSessionFresh, signInWithTelegram } from '@/lib/auth'
+import { getCachedCloudSession, signInWithTelegram } from '@/lib/auth'
 import { buildProgressSnapshot, chooseNewestProgress, fetchCloudProgress, saveCloudProgress } from '@/lib/progress-sync'
 import { isSupabaseConfigured } from '@/lib/supabase'
-
-function isAuthError(error: unknown) {
-  const message = error instanceof Error ? error.message : String(error)
-
-  return (
-    message.includes('401') ||
-    message.includes('403') ||
-    message.toLowerCase().includes('jwt') ||
-    message.toLowerCase().includes('expired') ||
-    message.toLowerCase().includes('unauthorized')
-  )
-}
 
 export function useProgressSync() {
   const { initData, isReady } = useTelegram()
@@ -48,7 +36,6 @@ export function useProgressSync() {
         photoUrl: user.photoUrl,
         avatarStyle: user.avatarStyle,
         learningPath: user.learningPath,
-        selectedCourse: user.selectedCourse,
         level: user.level,
         dailyGoal: user.dailyGoal,
         xp: user.xp,
@@ -59,9 +46,7 @@ export function useProgressSync() {
         lastActiveDate: user.lastActiveDate,
         completedLessons: user.completedLessons,
         achievements: user.achievements,
-        courseProgress: user.courseProgress,
         referralCount: user.referralCount,
-        claimedReferralMilestones: user.claimedReferralMilestones ?? [],
         joinedAt: user.joinedAt,
         lastChestClaim: user.lastChestClaim,
         userLevel: user.userLevel,
@@ -71,6 +56,11 @@ export function useProgressSync() {
         xpMultiplier: user.xpMultiplier,
         xpMultiplierExpiresAt: user.xpMultiplierExpiresAt,
         wordReviews: user.wordReviews,
+        plan: user.plan,
+        plusExpiresAt: user.plusExpiresAt,
+        plusSource: user.plusSource,
+        plusUpdatedAt: user.plusUpdatedAt,
+        plusChatUsage: user.plusChatUsage,
       },
       dailyChallenges,
       currentLessonId: currentLesson?.id ?? null,
@@ -90,20 +80,8 @@ export function useProgressSync() {
     })
   }
 
-  const resetCloudSession = () => {
-    cacheCloudSession(null)
-    setCloudSession(null)
-    hasFetchedCloudRef.current = false
-  }
-
   useEffect(() => {
     if (!isReady || !isSupabaseConfigured) return
-
-    if (cloudSession && !isCloudSessionFresh(cloudSession)) {
-      resetCloudSession()
-      setSyncStatus('loading')
-      return
-    }
 
     const cachedSession = getCachedCloudSession()
     if (cachedSession && !cloudSession) {
@@ -125,10 +103,7 @@ export function useProgressSync() {
           updateUser(result.user)
         }
       })
-      .catch((error) => {
-        resetCloudSession()
-        setSyncStatus('error', error instanceof Error ? error.message : 'Telegram sign-in failed')
-      })
+      .catch((error) => setSyncStatus('error', error instanceof Error ? error.message : 'Telegram sign-in failed'))
 
     return () => {
       cancelled = true
@@ -150,15 +125,7 @@ export function useProgressSync() {
           setSyncStatus('synced')
         }
       })
-      .catch((error) => {
-        if (cancelled) return
-        if (isAuthError(error)) {
-          resetCloudSession()
-          setSyncStatus('loading')
-          return
-        }
-        setSyncStatus(typeof navigator !== 'undefined' && !navigator.onLine ? 'offline' : 'error', error instanceof Error ? error.message : 'Cloud progress fetch failed')
-      })
+      .catch((error) => setSyncStatus(typeof navigator !== 'undefined' && !navigator.onLine ? 'offline' : 'error', error instanceof Error ? error.message : 'Cloud progress fetch failed'))
     return () => {
       cancelled = true
     }
@@ -191,14 +158,7 @@ export function useProgressSync() {
           updateUser({ cloudUserId: cloudSession.userId, lastSyncedAt: snapshot.updatedAt })
           setSyncStatus('synced')
         })
-        .catch((error) => {
-          if (isAuthError(error)) {
-            resetCloudSession()
-            setSyncStatus('loading')
-            return
-          }
-          setSyncStatus('error', error instanceof Error ? error.message : 'Cloud progress save failed')
-        })
+        .catch((error) => setSyncStatus('error', error instanceof Error ? error.message : 'Cloud progress save failed'))
     }, 700)
 
     return () => {
@@ -226,14 +186,7 @@ export function useProgressSync() {
           updateUser({ cloudUserId: cloudSession.userId, lastSyncedAt: snapshot.updatedAt })
           setSyncStatus('synced')
         })
-        .catch((error) => {
-          if (isAuthError(error)) {
-            resetCloudSession()
-            setSyncStatus('loading')
-            return
-          }
-          setSyncStatus('error', error instanceof Error ? error.message : 'Cloud reconnect save failed')
-        })
+        .catch((error) => setSyncStatus('error', error instanceof Error ? error.message : 'Cloud reconnect save failed'))
     }
 
     window.addEventListener('online', handleOnline)

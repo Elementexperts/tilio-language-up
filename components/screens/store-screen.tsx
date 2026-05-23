@@ -4,11 +4,14 @@ import { useEffect } from 'react'
 import type { ElementType } from 'react'
 import { Card } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
+import { SparrowMascot } from '@/components/sparrow-mascot'
+import { PlusLockedCard } from '@/components/plus-locked-card'
 import { useAppStore } from '@/lib/store'
 import { useTelegram } from '@/hooks/use-telegram'
+import { isPlusActive } from '@/lib/plus'
 import { storeItemsData } from '@/lib/data/lessons'
 import { cn } from '@/lib/utils'
-import { ArrowLeft, BadgeCheck, BarChart3, BookOpenCheck, Brain, Check, Cloud, Feather, Landmark, Leaf, Map, MessageCircle, Palette, Shield, ShoppingBag, Snowflake, Sparkles, Wand2, Zap } from 'lucide-react'
+import { ArrowLeft, BadgeCheck, Check, Cloud, Crown, Feather, Gift, Landmark, Leaf, Map, Palette, Shield, ShoppingBag, Snowflake, Sparkles, Wand2 } from 'lucide-react'
 import type { StoreItem } from '@/lib/types'
 
 const wallpaperItems: StoreItem[] = [
@@ -57,15 +60,6 @@ const wallpaperItems: StoreItem[] = [
     icon: 'cloud',
     preview: 'cotton',
   },
-  {
-    id: 'wallpaper-tilio-garden',
-    name: 'Tilio Garden',
-    description: 'Premium green valley theme with soft glow and Uzbek skyline depth.',
-    type: 'wallpaper',
-    price: 220,
-    icon: 'garden',
-    preview: 'tilio-garden',
-  },
 ]
 
 const itemIcons = {
@@ -83,7 +77,6 @@ const wallpaperPreviewClass: Record<string, string> = {
   'wallpaper-silk-road': 'from-amber-100 via-lime-50 to-emerald-100',
   'wallpaper-orchard': 'from-green-100 via-emerald-50 to-lime-200',
   'wallpaper-cotton-sky': 'from-sky-100 via-white to-emerald-100',
-  'wallpaper-tilio-garden': 'from-emerald-900 via-lime-100 to-emerald-200',
 }
 
 const wallpaperImage: Record<string, string> = {
@@ -92,7 +85,6 @@ const wallpaperImage: Record<string, string> = {
   'wallpaper-silk-road': '/wallpapers/silk-road-path.png',
   'wallpaper-orchard': '/wallpapers/orchard-garden.png',
   'wallpaper-cotton-sky': '/wallpapers/cotton-sky.png',
-  'wallpaper-tilio-garden': '/wallpapers/tilio-premium-garden.png',
 }
 
 const wallpaperIcon: Record<string, ElementType> = {
@@ -103,46 +95,11 @@ const wallpaperIcon: Record<string, ElementType> = {
   cloud: Cloud,
 }
 
-const plusFeatureCards = [
-  {
-    title: 'Premium Practice Mode',
-    description: 'Extra speaking, listening, and mixed review sessions after daily lessons.',
-    icon: BookOpenCheck,
-    status: 'Planned',
-  },
-  {
-    title: 'Smart Review',
-    description: 'A focused weak-word queue based on mistakes, misses, and old lesson history.',
-    icon: Brain,
-    status: 'Planned',
-  },
-  {
-    title: 'AI Conversation Practice',
-    description: 'Guided Uzbek, English, Korean, Russian, Arabic, and German conversations with a Tilio tutor.',
-    icon: MessageCircle,
-    status: 'Next',
-  },
-  {
-    title: 'Weekly Insights',
-    description: 'Progress reports with active days, skill balance, strongest words, and next goals.',
-    icon: BarChart3,
-    status: 'Planned',
-  },
-]
-
-const plusRewards = [
-  'Unlimited smart reviews',
-  'Extra Streak Freezes',
-  'Premium themes and frames',
-  'Weekly progress insights',
-]
-
 export function StoreScreen() {
   const user = useAppStore((state) => state.user)
   const setScreen = useAppStore((state) => state.setScreen)
   const purchaseItem = useAppStore((state) => state.purchaseItem)
   const useStreakFreeze = useAppStore((state) => state.useStreakFreeze)
-  const buyXpBoost = useAppStore((state) => state.buyXpBoost)
   const updateUser = useAppStore((state) => state.updateUser)
   const { hapticFeedback, showBackButton, hideBackButton } = useTelegram()
 
@@ -157,9 +114,8 @@ export function StoreScreen() {
   if (!user) return null
 
   const ownedItemIds = new Set([...user.purchasedItems, 'classic-green'])
-  const frameItems = storeItemsData.filter((item) => item.type === 'frame')
-  const styleItems = storeItemsData.filter((item) => item.type !== 'frame')
-  const plusActive = user.purchasedItems.includes('tilio-plus-preview')
+  const cosmeticItems = storeItemsData.filter((item) => item.type !== 'theme' && item.type !== 'color')
+  const plusActive = isPlusActive(user)
 
   const handleBuy = (item: StoreItem) => {
     hapticFeedback('light')
@@ -179,13 +135,6 @@ export function StoreScreen() {
     hapticFeedback('medium')
     useStreakFreeze()
   }
-
-  const handlePreviewPlus = () => {
-    hapticFeedback('success')
-    purchaseItem('tilio-plus-preview', 250)
-  }
-
-  const boostActive = user.xpMultiplierExpiresAt && new Date(user.xpMultiplierExpiresAt).getTime() > Date.now()
 
   return (
     <div className="tilio-shell flex flex-col">
@@ -210,80 +159,11 @@ export function StoreScreen() {
       <main className="tilio-container flex-1 overflow-y-auto px-4 py-4 pb-24">
         <section className="mb-4 overflow-hidden rounded-[2rem] bg-gradient-to-br from-emerald-50 to-lime-100 p-5 shadow-xl shadow-emerald-950/8">
           <div className="flex items-center gap-4">
-            <img src="/images/tilio-logo-1.png" alt="Tilio Plus logo" className="size-24 shrink-0 rounded-[1.6rem] object-cover shadow-xl shadow-emerald-950/10" />
+            <SparrowMascot branded size="lg" mood="waving" />
             <div className="min-w-0 flex-1">
-              <p className="text-xs font-extrabold uppercase tracking-[0.16em] text-primary">Tilio Plus</p>
-              <h2 className="text-2xl font-black leading-tight">Practice deeper. Keep streaks safer.</h2>
+              <p className="text-xs font-extrabold uppercase tracking-[0.16em] text-primary">Premium wallpapers</p>
+              <h2 className="text-2xl font-black leading-tight">Keep learning bright, calm, and fresh.</h2>
             </div>
-          </div>
-        </section>
-
-        <section className="plus-hero-card mb-5 overflow-hidden rounded-[2rem] p-5 text-white">
-          <div className="flex items-start justify-between gap-4">
-            <div className="min-w-0">
-              <p className="text-xs font-extrabold uppercase tracking-[0.18em] text-lime-200">Premium bundle</p>
-              <h2 className="mt-2 text-3xl font-black leading-[1]">Tilio Plus Preview</h2>
-              <p className="mt-3 text-sm font-semibold leading-5 text-white/78">
-                A first premium bundle for testers: smarter practice, stronger streak support, richer personalization, and progress insights.
-              </p>
-            </div>
-            <div className="flex size-16 shrink-0 items-center justify-center rounded-[1.35rem] bg-white/12 text-lime-200">
-              <Sparkles className="size-8" />
-            </div>
-          </div>
-
-          <div className="mt-4 grid grid-cols-2 gap-2">
-            {plusRewards.map((reward) => (
-              <div key={reward} className="rounded-2xl bg-white/10 px-3 py-2 text-xs font-black text-lime-50">
-                <Check className="mr-1 inline size-3.5 text-lime-200" />
-                {reward}
-              </div>
-            ))}
-          </div>
-
-          <div className="mt-5 flex items-center justify-between gap-3 rounded-2xl bg-white/10 p-3">
-            <div>
-              <p className="text-sm font-black">{plusActive ? 'Preview unlocked' : 'Unlock tester preview'}</p>
-              <p className="text-xs font-semibold text-white/68">Uses feathers for testing until payments are connected.</p>
-            </div>
-            <Button
-              className="h-11 rounded-2xl bg-lime-300 px-4 font-black text-emerald-950 hover:bg-lime-200"
-              disabled={plusActive || user.feathers < 250}
-              onClick={handlePreviewPlus}
-            >
-              <Feather className="size-4" />
-              {plusActive ? 'Unlocked' : '250'}
-            </Button>
-          </div>
-        </section>
-
-        <section className="mb-5">
-          <div className="mb-3">
-            <p className="text-xs font-extrabold uppercase tracking-[0.16em] text-primary">Premium features</p>
-            <h2 className="text-lg font-black">What Tilio Plus will include</h2>
-          </div>
-          <div className="grid grid-cols-1 gap-3">
-            {plusFeatureCards.map((feature) => {
-              const Icon = feature.icon
-              return (
-                <Card key={feature.title} className="premium-card rounded-[1.75rem] p-4">
-                  <div className="flex items-center gap-4">
-                    <div className="flex size-14 shrink-0 items-center justify-center rounded-2xl bg-primary/10 text-primary">
-                      <Icon className="size-7" />
-                    </div>
-                    <div className="min-w-0 flex-1">
-                      <div className="flex items-center justify-between gap-3">
-                        <p className="font-black leading-tight">{feature.title}</p>
-                        <span className="shrink-0 rounded-full bg-emerald-50 px-2.5 py-1 text-[10px] font-black uppercase tracking-[0.1em] text-primary">
-                          {feature.status}
-                        </span>
-                      </div>
-                      <p className="mt-1 text-xs font-semibold leading-4 text-muted-foreground">{feature.description}</p>
-                    </div>
-                  </div>
-                </Card>
-              )
-            })}
           </div>
         </section>
 
@@ -367,63 +247,6 @@ export function StoreScreen() {
 
         <section className="mb-5">
           <div className="mb-3">
-            <p className="text-xs font-extrabold uppercase tracking-[0.16em] text-primary">Study boosts</p>
-            <h2 className="text-lg font-black">Spend feathers on momentum</h2>
-          </div>
-          <div className="grid grid-cols-1 gap-3">
-            <Card className="tilio-card rounded-[1.75rem] border-amber-100 p-4">
-              <div className="flex items-center gap-4">
-                <div className="flex size-16 shrink-0 items-center justify-center rounded-[1.35rem] bg-gradient-to-br from-amber-100 to-lime-100 text-amber-700 shadow-inner">
-                  <Sparkles className="size-8" />
-                </div>
-                <div className="min-w-0 flex-1">
-                  <p className="font-black">2x XP Boost</p>
-                  <p className="mt-1 text-xs font-semibold text-muted-foreground">Double lesson XP for the next 24 hours.</p>
-                  {boostActive && <p className="mt-2 text-xs font-black text-amber-700">Boost active</p>}
-                </div>
-                <Button
-                  size="sm"
-                  className="h-10 rounded-xl px-3 font-black"
-                  disabled={user.feathers < 120}
-                  onClick={() => {
-                    hapticFeedback('success')
-                    buyXpBoost(120, 2, 24)
-                  }}
-                >
-                  <Feather className="size-4" />
-                  120
-                </Button>
-              </div>
-            </Card>
-
-            <Card className="tilio-card rounded-[1.75rem] border-emerald-100 p-4">
-              <div className="flex items-center gap-4">
-                <div className="flex size-16 shrink-0 items-center justify-center rounded-[1.35rem] bg-gradient-to-br from-emerald-100 to-white text-emerald-700 shadow-inner">
-                  <Zap className="size-8" />
-                </div>
-                <div className="min-w-0 flex-1">
-                  <p className="font-black">Focus Sprint</p>
-                  <p className="mt-1 text-xs font-semibold text-muted-foreground">A smaller 1.5x XP boost for the next 8 hours.</p>
-                </div>
-                <Button
-                  size="sm"
-                  className="h-10 rounded-xl px-3 font-black"
-                  disabled={user.feathers < 60}
-                  onClick={() => {
-                    hapticFeedback('success')
-                    buyXpBoost(60, 1.5, 8)
-                  }}
-                >
-                  <Feather className="size-4" />
-                  60
-                </Button>
-              </div>
-            </Card>
-          </div>
-        </section>
-
-        <section className="mb-5">
-          <div className="mb-3">
             <p className="text-xs font-extrabold uppercase tracking-[0.16em] text-primary">Streak protection</p>
             <h2 className="text-lg font-black">Keep your streak safe</h2>
           </div>
@@ -450,68 +273,47 @@ export function StoreScreen() {
           </Card>
         </section>
 
+        <section className="mb-5">
+          <div className="mb-3">
+            <p className="text-xs font-extrabold uppercase tracking-[0.16em] text-amber-700">Premium rewards</p>
+            <h2 className="text-lg font-black">Plus reward lane</h2>
+          </div>
+          {plusActive ? (
+            <Card className="tilio-card rounded-[1.75rem] border-amber-200 p-4">
+              <div className="flex items-center gap-4">
+                <div className="flex size-16 shrink-0 items-center justify-center rounded-[1.35rem] bg-gradient-to-br from-amber-200 to-lime-100 text-amber-800 shadow-inner">
+                  <Gift className="size-8" />
+                </div>
+                <div className="min-w-0 flex-1">
+                  <p className="font-black">Premium chest boosts unlocked</p>
+                  <p className="mt-1 text-xs font-semibold text-muted-foreground">Plus users are ready for future exclusive cosmetics and higher-value reward drops.</p>
+                </div>
+                <Crown className="size-5 text-amber-700" />
+              </div>
+            </Card>
+          ) : (
+            <PlusLockedCard
+              title="Premium rewards"
+              description="Unlock the Plus reward lane for special boosts, cosmetics, and early tester perks."
+              icon={<Gift className="size-5" />}
+            />
+          )}
+        </section>
+
         <section>
           <div className="mb-3">
             <p className="text-xs font-extrabold uppercase tracking-[0.16em] text-primary">Cosmetics</p>
             <h2 className="text-lg font-black">Frames and extras</h2>
           </div>
           <div className="grid grid-cols-2 gap-3">
-            {frameItems.map((item) => {
+            {cosmeticItems.map((item) => {
               const purchased = user.purchasedItems.includes(item.id)
-              const equipped = user.equippedFrame === item.id
               const Icon = itemIcons[item.type] || ShoppingBag
               const canBuy = user.feathers >= item.price
 
               return (
                 <Card key={item.id} className="tilio-pressed gap-0 rounded-[1.55rem] border-white/70 bg-white/82 p-4 shadow-xl shadow-emerald-950/5">
                   <div className={cn('mb-3 flex aspect-square items-center justify-center rounded-[1.35rem]', item.type === 'frame' ? 'bg-gradient-to-br from-amber-200 to-yellow-100' : 'bg-gradient-to-br from-white to-emerald-100')}>
-                    <Icon className="size-9 text-emerald-800" />
-                  </div>
-                  <p className="font-black leading-tight">{item.name}</p>
-                  <p className="mt-1 min-h-10 text-xs font-semibold leading-4 text-muted-foreground">{item.description}</p>
-                  <div className="mt-3 flex items-center justify-between gap-2">
-                    <span className="inline-flex items-center gap-1 text-sm font-black text-emerald-700">
-                      <Feather className="size-3.5" />
-                      {item.price}
-                    </span>
-                    <Button
-                      size="sm"
-                      className="h-9 rounded-xl px-3 font-black"
-                      variant={purchased ? 'outline' : 'default'}
-                      disabled={equipped || (!purchased && !canBuy)}
-                      onClick={() => {
-                        hapticFeedback('light')
-                        if (purchased) {
-                          updateUser({ equippedFrame: item.id })
-                        } else if (purchaseItem(item.id, item.price)) {
-                          updateUser({ equippedFrame: item.id })
-                        }
-                      }}
-                    >
-                      {equipped ? <Check className="size-4" /> : <ShoppingBag className="size-4" />}
-                      {equipped ? 'On' : purchased ? 'Use' : 'Buy'}
-                    </Button>
-                  </div>
-                </Card>
-              )
-            })}
-          </div>
-        </section>
-
-        <section className="mt-5">
-          <div className="mb-3">
-            <p className="text-xs font-extrabold uppercase tracking-[0.16em] text-primary">Style extras</p>
-            <h2 className="text-lg font-black">Outfits, accents, and badges</h2>
-          </div>
-          <div className="grid grid-cols-2 gap-3">
-            {styleItems.map((item) => {
-              const purchased = user.purchasedItems.includes(item.id)
-              const Icon = itemIcons[item.type] || Sparkles
-              const canBuy = user.feathers >= item.price
-
-              return (
-                <Card key={item.id} className="tilio-pressed gap-0 rounded-[1.55rem] border-white/70 bg-white/82 p-4 shadow-xl shadow-emerald-950/5">
-                  <div className="mb-3 flex aspect-square items-center justify-center rounded-[1.35rem] bg-gradient-to-br from-white to-emerald-100">
                     <Icon className="size-9 text-emerald-800" />
                   </div>
                   <p className="font-black leading-tight">{item.name}</p>

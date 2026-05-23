@@ -1,54 +1,15 @@
 import type { CloudAuthSession, CloudProgressSnapshot, DailyChallenge, User } from '@/lib/types'
 import { supabaseFetch } from '@/lib/supabase'
 
-const normalizeCourseId = (courseId?: string) => {
-  if (courseId === 'uz-ko') return 'uz-ko'
-  if (courseId === 'uz-ru') return 'uz-ru'
-  if (courseId === 'uz-ar') return 'uz-ar'
-  if (courseId === 'uz-de') return 'uz-de'
-  return 'uz-en'
-}
-
 export function buildProgressSnapshot(params: {
   user: User
   dailyChallenges: DailyChallenge[]
   currentLessonId: string | null
   currentExerciseIndex: number
-  exerciseAnswers: { correct: number; incorrect: number; missedWordIds?: string[] }
+  exerciseAnswers: { correct: number; incorrect: number }
 }): CloudProgressSnapshot {
   return {
     ...params,
-    user: {
-      ...params.user,
-      learningPath: normalizeCourseId(params.user.selectedCourse ?? params.user.learningPath),
-      selectedCourse: normalizeCourseId(params.user.selectedCourse ?? params.user.learningPath),
-      courseProgress: params.user.courseProgress ?? {
-        'uz-en': {
-          completedLessons: params.user.completedLessons ?? [],
-          achievements: params.user.achievements ?? [],
-        },
-        'uz-ko': {
-          completedLessons: [],
-          achievements: [],
-        },
-        'uz-ru': {
-          completedLessons: [],
-          achievements: [],
-        },
-        'uz-ar': {
-          completedLessons: [],
-          achievements: [],
-        },
-        'uz-de': {
-          completedLessons: [],
-          achievements: [],
-        },
-      },
-    },
-    exerciseAnswers: {
-      ...params.exerciseAnswers,
-      missedWordIds: params.exerciseAnswers.missedWordIds ?? [],
-    },
     updatedAt: new Date().toISOString(),
   }
 }
@@ -81,15 +42,17 @@ export async function saveCloudProgress(session: CloudAuthSession, snapshot: Clo
       achievements: snapshot.user.achievements,
       last_chest_claim: snapshot.user.lastChestClaim,
       settings: {
-        learningPath: normalizeCourseId(snapshot.user.selectedCourse ?? snapshot.user.learningPath),
-        selectedCourse: normalizeCourseId(snapshot.user.selectedCourse ?? snapshot.user.learningPath),
-        courseProgress: snapshot.user.courseProgress ?? {},
+        learningPath: snapshot.user.learningPath,
         level: snapshot.user.level,
         dailyGoal: snapshot.user.dailyGoal,
-        claimedReferralMilestones: snapshot.user.claimedReferralMilestones ?? [],
         avatarStyle: snapshot.user.avatarStyle,
         equippedTheme: snapshot.user.equippedTheme,
         equippedFrame: snapshot.user.equippedFrame,
+        plan: snapshot.user.plan ?? 'free',
+        plusExpiresAt: snapshot.user.plusExpiresAt ?? null,
+        plusSource: snapshot.user.plusSource ?? null,
+        plusUpdatedAt: snapshot.user.plusUpdatedAt ?? null,
+        plusChatUsage: snapshot.user.plusChatUsage ?? null,
         soundEnabled: true,
       },
       updated_at: snapshot.updatedAt,
@@ -99,21 +62,6 @@ export async function saveCloudProgress(session: CloudAuthSession, snapshot: Clo
 
 export function chooseNewestProgress(localUser: User | null, cloud: CloudProgressSnapshot | null) {
   if (!cloud) return null
-  if (!localUser?.lastSyncedAt) {
-    const localCourseProgressScore = Object.values(localUser?.courseProgress ?? {}).reduce(
-      (sum, progress) => sum + (progress?.completedLessons.length ?? 0) + (progress?.achievements.length ?? 0),
-      0,
-    )
-    const cloudCourseProgressScore = Object.values(cloud.user.courseProgress ?? {}).reduce(
-      (sum, progress) => sum + (progress?.completedLessons.length ?? 0) + (progress?.achievements.length ?? 0),
-      0,
-    )
-    const localProgressScore =
-      (localUser?.completedLessons.length ?? 0) + (localUser?.xp ?? 0) + (localUser?.achievements.length ?? 0) + localCourseProgressScore
-    const cloudProgressScore =
-      cloud.user.completedLessons.length + cloud.user.xp + cloud.user.achievements.length + cloudCourseProgressScore
-
-    return cloudProgressScore > localProgressScore ? cloud : null
-  }
+  if (!localUser?.lastSyncedAt) return cloud
   return new Date(cloud.updatedAt).getTime() >= new Date(localUser.lastSyncedAt).getTime() ? cloud : null
 }

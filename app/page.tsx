@@ -15,65 +15,14 @@ import { DailyChallengesScreen } from '@/components/screens/daily-challenges-scr
 import { ProfileScreen } from '@/components/screens/profile-screen'
 import { ReferralScreen } from '@/components/screens/referral-screen'
 import { StoreScreen } from '@/components/screens/store-screen'
-import { PlusScreen } from '@/components/screens/plus-screen'
 import { DailyChestScreen } from '@/components/screens/daily-chest-screen'
 import { AccountScreen } from '@/components/screens/account-screen'
-import { AuthScreen } from '@/components/screens/auth-screen'
-import { TesterStatsScreen } from '@/components/screens/tester-stats-screen'
+import { UpgradeScreen } from '@/components/screens/upgrade-screen'
 import { Feather, Flame, PartyPopper, ShieldCheck, Snowflake, Sparkles, Zap, X } from 'lucide-react'
 import { SparrowMascot } from '@/components/sparrow-mascot'
-import { playAchievementSound, playNavigationSound, playRewardSound, playTapSound, unlockAudio } from '@/lib/sound'
+import { playAchievementSound, playRewardSound, playTapSound } from '@/lib/sound'
 import { useProgressSync } from '@/hooks/use-progress-sync'
 import { CloudSyncIndicator } from '@/components/cloud-sync-indicator'
-import { completeOAuthSignInFromUrl } from '@/lib/auth'
-import { getLevel, type User } from '@/lib/types'
-
-function createOAuthUser(updates: Partial<User>): User {
-  const today = new Date().toISOString().split('T')[0]
-  const firstName = updates.firstName ?? 'Tester'
-
-  return {
-    id: updates.cloudUserId ?? `user_${Date.now()}`,
-    username: updates.username ?? 'tester',
-    firstName,
-    lastName: updates.lastName,
-    photoUrl: updates.photoUrl,
-    telegramId: updates.telegramId,
-    cloudUserId: updates.cloudUserId,
-    avatarStyle: 'boy',
-    learningPath: 'uz-en',
-    selectedCourse: 'uz-en',
-    level: 'beginner',
-    dailyGoal: 10,
-    xp: 0,
-    feathers: 50,
-    streak: 0,
-    maxStreak: 0,
-    streakFreezes: 0,
-    lastActiveDate: today,
-    completedLessons: [],
-    achievements: [],
-    courseProgress: {
-      'uz-en': { completedLessons: [], achievements: [] },
-      'uz-ko': { completedLessons: [], achievements: [] },
-      'uz-ru': { completedLessons: [], achievements: [] },
-      'uz-ar': { completedLessons: [], achievements: [] },
-      'uz-de': { completedLessons: [], achievements: [] },
-    },
-    referralCount: 0,
-    claimedReferralMilestones: [],
-    joinedAt: new Date().toISOString(),
-    lastChestClaim: null,
-    userLevel: getLevel(0),
-    equippedTheme: 'classic-green',
-    equippedFrame: 'default',
-    purchasedItems: [],
-    xpMultiplier: 1,
-    xpMultiplierExpiresAt: null,
-    wordReviews: {},
-    lastSyncedAt: null,
-  }
-}
 
 export default function TilioApp() {
   useProgressSync()
@@ -82,7 +31,7 @@ export default function TilioApp() {
   const hasUser = useAppStore((state) => Boolean(state.user))
   const userLastActiveDate = useAppStore((state) => state.user?.lastActiveDate ?? '')
   const equippedTheme = useAppStore((state) => state.user?.equippedTheme ?? 'classic-green')
-  const { isReady, hapticFeedback } = useTelegram()
+  const { isReady } = useTelegram()
   const xpPopups = useAppStore((state) => state.xpPopups)
   const removeXpPopup = useAppStore((state) => state.removeXpPopup)
   const achievementPopups = useAppStore((state) => state.achievementPopups)
@@ -93,14 +42,9 @@ export default function TilioApp() {
   const newLevel = useAppStore((state) => state.newLevel)
   const closeLevelUpModal = useAppStore((state) => state.closeLevelUpModal)
   const isSoundEnabled = useAppStore((state) => state.isSoundEnabled)
-  const setCloudSession = useAppStore((state) => state.setCloudSession)
-  const setSyncStatus = useAppStore((state) => state.setSyncStatus)
-  const updateUser = useAppStore((state) => state.updateUser)
-  const setUser = useAppStore((state) => state.setUser)
-  const setScreen = useAppStore((state) => state.setScreen)
+  const learningPath = useAppStore((state) => state.user?.learningPath ?? 'uz-en')
   const previousPopupCountRef = useRef(0)
   const previousAchievementCountRef = useRef(0)
-  const lastTapSoundAtRef = useRef(0)
 
   // Update streak on app load
   useEffect(() => {
@@ -117,10 +61,9 @@ export default function TilioApp() {
     }
     if (xpPopups.length > previousPopupCountRef.current) {
       playRewardSound()
-      hapticFeedback('medium')
     }
     previousPopupCountRef.current = xpPopups.length
-  }, [hapticFeedback, xpPopups.length, isSoundEnabled])
+  }, [xpPopups.length, isSoundEnabled])
 
   useEffect(() => {
     if (!isSoundEnabled) {
@@ -138,53 +81,15 @@ export default function TilioApp() {
   }, [equippedTheme])
 
   useEffect(() => {
-    if (typeof window === 'undefined' || !window.location.hash.includes('access_token=')) return
-
-    let cancelled = false
-    setSyncStatus('loading')
-    completeOAuthSignInFromUrl()
-      .then((result) => {
-        if (cancelled || !result) return
-        setCloudSession(result.session)
-        if (useAppStore.getState().user) {
-          updateUser({ ...result.user, id: result.user.cloudUserId ?? useAppStore.getState().user?.id })
-          setScreen('account')
-        } else {
-          setUser(createOAuthUser(result.user))
-          setScreen('home')
-        }
-      })
-      .catch((error) => {
-        if (cancelled) return
-        setSyncStatus('error', error instanceof Error ? error.message : 'Google sign-in failed')
-      })
-
-    return () => {
-      cancelled = true
-    }
-  }, [setCloudSession, setScreen, setSyncStatus, setUser, updateUser])
-
-  useEffect(() => {
     if (!isSoundEnabled) return
-    const handleTap = (event: Event) => {
+    const handleTap = (event: PointerEvent) => {
       const target = event.target as HTMLElement | null
       if (target?.closest('button, a, [role="button"]')) {
-        const now = Date.now()
-        if (now - lastTapSoundAtRef.current < 120) return
-        lastTapSoundAtRef.current = now
-        unlockAudio()
-        if (target.closest('nav')) playNavigationSound()
-        else playTapSound()
+        playTapSound()
       }
     }
     window.addEventListener('pointerdown', handleTap, { passive: true })
-    window.addEventListener('touchstart', handleTap, { passive: true })
-    window.addEventListener('click', handleTap, { passive: true })
-    return () => {
-      window.removeEventListener('pointerdown', handleTap)
-      window.removeEventListener('touchstart', handleTap)
-      window.removeEventListener('click', handleTap)
-    }
+    return () => window.removeEventListener('pointerdown', handleTap)
   }, [isSoundEnabled])
 
   // Render current screen
@@ -210,16 +115,12 @@ export default function TilioApp() {
         return <ReferralScreen />
       case 'store':
         return <StoreScreen />
-      case 'plus':
-        return <PlusScreen />
       case 'daily-chest':
         return <DailyChestScreen />
       case 'account':
         return <AccountScreen />
-      case 'auth':
-        return <AuthScreen />
-      case 'tester-stats':
-        return <TesterStatsScreen />
+      case 'upgrade':
+        return <UpgradeScreen />
       default:
         return <SplashScreen />
     }
@@ -230,11 +131,10 @@ export default function TilioApp() {
       <CloudSyncIndicator />
       {renderScreen()}
       <div className="fixed right-4 top-20 z-50 space-y-2 pointer-events-none">
-        {xpPopups.map((popup, index) => (
+        {xpPopups.map((popup) => (
           <div
             key={popup.id}
-            className="animate-xp-float animate-reward-glow rounded-2xl border border-primary/15 bg-white/95 px-4 py-2.5 text-sm font-extrabold shadow-xl"
-            style={{ animationDelay: `${index * 60}ms` }}
+            className="animate-float-up animate-reward-glow bg-white/95 border border-primary/15 shadow-xl rounded-2xl px-4 py-2.5 text-sm font-extrabold"
             onAnimationEnd={() => removeXpPopup(popup.id)}
           >
             <span className="inline-flex items-center gap-1">
@@ -305,7 +205,9 @@ export default function TilioApp() {
             <p className="text-xs text-primary font-extrabold tracking-[0.18em]">LEVEL UP</p>
             <h3 className="text-3xl font-black mt-1">Level {newLevel}</h3>
             <p className="text-sm text-muted-foreground mt-2">
-              Izchilligingiz natija bermoqda. Koproq mukofotlarni ochish uchun har kuni organishda davom eting.
+              {learningPath === 'uz-en'
+                ? 'Izchilligingiz natija bermoqda. Ko‘proq mukofotlarni ochish uchun har kuni o‘rganishda davom eting.'
+                : 'Your consistency is paying off. Keep learning daily to unlock more rewards.'}
             </p>
             <div className="mt-5 flex justify-center gap-2 text-accent">
               <Sparkles className="size-5 animate-bounce" />

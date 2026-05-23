@@ -6,10 +6,9 @@ import { Button } from '@/components/ui/button'
 import { Progress } from '@/components/ui/progress'
 import { useAppStore } from '@/lib/store'
 import { useTelegram } from '@/hooks/use-telegram'
-import { courseOptions, getCourseOption, getLessonsForCourse } from '@/lib/data/lessons'
-import { getUserAchievementProgress } from '@/lib/achievements'
+import { lessonsData, achievementsData } from '@/lib/data/lessons'
+import { getPlusDaysRemaining, isPlusActive } from '@/lib/plus'
 import { cn } from '@/lib/utils'
-import { AchievementBadge } from '@/components/achievement-badge'
 import { 
   ArrowLeft, 
   Zap, 
@@ -23,8 +22,11 @@ import {
   ChevronRight,
   LogOut,
   Feather,
+  Sparkles,
+  Languages,
   Cloud,
-  UserPlus,
+  Crown,
+  ShieldCheck,
 } from 'lucide-react'
 
 export function ProfileScreen() {
@@ -33,7 +35,7 @@ export function ProfileScreen() {
   const toggleSound = useAppStore((state) => state.toggleSound)
   const setScreen = useAppStore((state) => state.setScreen)
   const setUser = useAppStore((state) => state.setUser)
-  const setSelectedCourse = useAppStore((state) => state.setSelectedCourse)
+  const updateUser = useAppStore((state) => state.updateUser)
   const { hapticFeedback, showBackButton, hideBackButton } = useTelegram()
 
   useEffect(() => {
@@ -46,17 +48,23 @@ export function ProfileScreen() {
 
   if (!user) return null
 
-  const selectedCourse = user.selectedCourse ?? user.learningPath ?? 'uz-en'
-  const activeCourse = getCourseOption(selectedCourse)
-  const courseCompletedLessons = user.courseProgress?.[selectedCourse]?.completedLessons ?? user.completedLessons
-  const completedLessons = courseCompletedLessons.length
-  const totalLessons = getLessonsForCourse(selectedCourse).length
+  const completedLessons = user.completedLessons.length
+  const totalLessons = lessonsData.length
   const progressPercent = (completedLessons / totalLessons) * 100
   const avatarSrc = user.photoUrl ?? (user.avatarStyle === 'girl' ? '/avatars/tilio-girl-avatar.png' : '/avatars/tilio-boy-avatar.png')
+  const plusActive = isPlusActive(user)
+  const plusDaysRemaining = getPlusDaysRemaining(user)
 
-  const activeAchievements = getUserAchievementProgress(user, selectedCourse)
-  const unlockedBadges = activeAchievements.filter((a) => a.isUnlocked)
-  const unlockedAchievements = unlockedBadges.length
+  const unlockedAchievements = achievementsData.filter((a) => {
+    switch (a.requirement.type) {
+      case 'xp': return user.xp >= a.requirement.value
+      case 'streak': return user.streak >= a.requirement.value
+      case 'lessons': return user.completedLessons.length >= a.requirement.value
+      case 'referrals': return user.referralCount >= a.requirement.value
+      default: return false
+    }
+  }).length
+  const unlockedBadges = achievementsData.filter((a) => user.achievements.includes(a.id))
 
   const joinDate = (() => {
     const parsed = new Date(user.joinedAt)
@@ -92,6 +100,11 @@ export function ProfileScreen() {
     hapticFeedback('medium')
     setUser(null)
     setScreen('splash')
+  }
+
+  const handleLearningPathChange = (learningPath: 'uz-en' | 'en-uz') => {
+    hapticFeedback('light')
+    updateUser({ learningPath })
   }
 
   return (
@@ -144,6 +157,36 @@ export function ProfileScreen() {
           </div>
         </div>
 
+        <button
+          type="button"
+          onClick={() => {
+            hapticFeedback('light')
+            setScreen('upgrade')
+          }}
+          className={cn(
+            'tilio-pressed mb-6 w-full rounded-[1.75rem] border p-4 text-left shadow-xl shadow-emerald-950/5',
+            plusActive ? 'border-primary/25 bg-gradient-to-br from-white to-emerald-50' : 'border-amber-200/80 bg-gradient-to-br from-white to-amber-50',
+          )}
+        >
+          <div className="flex items-center gap-4">
+            <div className={cn('flex size-14 shrink-0 items-center justify-center rounded-2xl', plusActive ? 'bg-primary text-primary-foreground' : 'bg-amber-100 text-amber-800')}>
+              {plusActive ? <ShieldCheck className="size-7" /> : <Crown className="size-7" />}
+            </div>
+            <div className="min-w-0 flex-1">
+              <div className="flex items-center gap-2">
+                <p className="font-black">{plusActive ? 'Tilio Plus active' : 'Upgrade to Tilio Plus'}</p>
+                <span className="rounded-full bg-white/80 px-2 py-1 text-[11px] font-black text-amber-800">Plus</span>
+              </div>
+              <p className="mt-1 text-sm font-semibold text-muted-foreground">
+                {plusActive
+                  ? `${plusDaysRemaining} days remaining. Premium practice, review, chat, and insights are unlocked.`
+                  : 'Preview premium practice, advanced review, expanded AI chat, weekly insights, and rewards.'}
+              </p>
+            </div>
+            <ChevronRight className="size-5 shrink-0 text-muted-foreground" />
+          </div>
+        </button>
+
         {/* Stats Grid */}
         <div className="grid grid-cols-2 gap-4 mb-6">
           <Card className="tilio-card rounded-[1.5rem] p-4 text-center">
@@ -162,7 +205,7 @@ export function ProfileScreen() {
           <Card className="tilio-card rounded-[1.5rem] p-4 text-center">
             <Book className="w-6 h-6 text-secondary-foreground mx-auto mb-2" />
             <p className="text-2xl font-black text-foreground">{completedLessons}</p>
-            <p className="text-sm text-muted-foreground">{activeCourse.badge} darslar</p>
+            <p className="text-sm text-muted-foreground">Darslar</p>
           </Card>
           <Card className="tilio-card rounded-[1.5rem] p-4 text-center">
             <Trophy className="w-6 h-6 text-accent mx-auto mb-2" />
@@ -190,21 +233,19 @@ export function ProfileScreen() {
 
         {/* Badges */}
         <Card className="tilio-card rounded-[1.75rem] p-4 mb-6">
-          <div className="mb-3 flex items-center justify-between gap-3">
-            <div>
-              <h3 className="font-black text-foreground">Nishonlar toplami</h3>
-              <p className="text-xs font-semibold text-muted-foreground">Ochilgan Tilio badge rewardlari</p>
-            </div>
-            <span className="rounded-full bg-primary/10 px-3 py-1 text-xs font-black text-primary">{unlockedBadges.length}/{activeAchievements.length}</span>
-          </div>
+          <h3 className="font-medium text-foreground mb-3">Nishonlar to‘plami</h3>
           {unlockedBadges.length > 0 ? (
-            <div className="grid grid-cols-3 gap-3">
-              {unlockedBadges.slice(0, 9).map((badge) => (
-                <AchievementBadge key={badge.id} achievement={badge} compact />
+            <div className="grid grid-cols-2 gap-2">
+              {unlockedBadges.slice(0, 6).map((badge) => (
+                <div key={badge.id} className="rounded-xl bg-primary/10 border border-primary/20 px-3 py-2">
+                  <Sparkles className="mb-1 size-4 text-accent" />
+                  <p className="text-sm font-semibold">{badge.title}</p>
+                  <p className="text-xs text-muted-foreground">Ochilgan</p>
+                </div>
               ))}
             </div>
           ) : (
-            <p className="rounded-2xl bg-emerald-50/80 p-3 text-sm font-semibold text-muted-foreground">Birinchi nishonni ochish uchun 3 kunlik streak, 10 dars yoki 500 XP sari harakat qiling.</p>
+            <p className="text-sm text-muted-foreground">Birinchi nishonni ochish uchun kunlik vazifani bajaring.</p>
           )}
         </Card>
 
@@ -218,36 +259,51 @@ export function ProfileScreen() {
           </div>
         </Card>
 
+        <Card className="tilio-card rounded-[1.75rem] p-4 mb-6">
+          <h3 className="font-medium text-foreground mb-3">Interface preference</h3>
+          <div className="mb-3 flex items-center gap-2">
+            <Languages className="size-5 text-primary" />
+            <p className="text-sm text-muted-foreground">
+              UZ -&gt; EN shows English words first with English pronunciation. EN -&gt; UZ shows Uzbek words first.
+            </p>
+          </div>
+          <div className="grid grid-cols-2 gap-2 rounded-2xl bg-emerald-50/70 p-1.5">
+            <button
+              type="button"
+              onClick={() => handleLearningPathChange('uz-en')}
+              className={cn(
+                'tilio-pressed rounded-xl px-3 py-2 text-sm font-black transition-all',
+                user.learningPath === 'uz-en'
+                  ? 'bg-primary text-primary-foreground shadow-lg shadow-primary/20'
+                  : 'text-emerald-900 hover:bg-white/70'
+              )}
+            >
+              UZ -&gt; EN
+            </button>
+            <button
+              type="button"
+              onClick={() => handleLearningPathChange('en-uz')}
+              className={cn(
+                'tilio-pressed rounded-xl px-3 py-2 text-sm font-black transition-all',
+                user.learningPath === 'en-uz'
+                  ? 'bg-primary text-primary-foreground shadow-lg shadow-primary/20'
+                  : 'text-emerald-900 hover:bg-white/70'
+              )}
+            >
+              EN -&gt; UZ
+            </button>
+          </div>
+        </Card>
+
         {/* Learning Path */}
         <Card className="p-4 mb-6">
           <h3 className="font-medium text-foreground mb-3">O‘rganish sozlamalari</h3>
           <div className="space-y-4">
-            <div>
+            <div className="flex items-center justify-between">
               <span className="text-sm text-muted-foreground">Yo‘nalish</span>
-              <div className="mt-3 grid gap-2">
-                {courseOptions.map((course) => (
-                  <button
-                    key={course.id}
-                    type="button"
-                    onClick={() => {
-                      hapticFeedback('light')
-                      setSelectedCourse(course.id)
-                    }}
-                    className={cn(
-                      'tilio-pressed rounded-2xl border p-3 text-left transition-colors',
-                      selectedCourse === course.id ? 'border-primary bg-primary/10 text-primary' : 'border-border bg-white/70 text-foreground',
-                    )}
-                  >
-                    <div className="flex items-center gap-3">
-                      <span className="text-xl">{course.fromFlag} → {course.toFlag}</span>
-                      <div className="min-w-0 flex-1">
-                        <p className="font-black">{course.titleUz}</p>
-                        <p className="text-xs font-semibold text-muted-foreground">{course.descriptionUz}</p>
-                      </div>
-                    </div>
-                  </button>
-                ))}
-              </div>
+              <span className="text-sm font-medium text-foreground">
+                {user.learningPath === 'uz-en' ? 'O‘zbekcha → English' : 'English → O‘zbekcha'}
+              </span>
             </div>
             <div className="flex items-center justify-between">
               <span className="text-sm text-muted-foreground">Bosqich</span>
@@ -266,25 +322,6 @@ export function ProfileScreen() {
 
         {/* Settings */}
         <Card className="mb-6 overflow-hidden">
-          <button
-            onClick={() => {
-              hapticFeedback('medium')
-              setScreen('auth')
-            }}
-            className="flex w-full items-center justify-between bg-emerald-50/80 p-4 text-left transition-colors hover:bg-emerald-50"
-          >
-            <div className="flex items-center gap-3">
-              <UserPlus className="h-5 w-5 text-primary" />
-              <div>
-                <span className="font-black text-foreground">Sign up or log in</span>
-                <p className="text-xs font-semibold text-muted-foreground">Help us count testers and save your progress.</p>
-              </div>
-            </div>
-            <ChevronRight className="h-5 w-5 text-muted-foreground" />
-          </button>
-
-          <div className="border-t border-border" />
-
           <button
             onClick={handleToggleSound}
             className="w-full flex items-center justify-between p-4 hover:bg-muted/50 transition-colors"

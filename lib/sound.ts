@@ -103,6 +103,14 @@ export function playRewardSound() {
   playTone(988, 1318, 0.16, 'sine', 0.032, 0.16)
 }
 
+export function playRewardVideoSound() {
+  if (typeof window === 'undefined') return
+  if (playAsset(SOUND_ASSETS.lessonComplete, 0.58)) return
+  playTone(392, 587, 0.12, 'triangle', 0.05)
+  playTone(587, 880, 0.16, 'triangle', 0.044, 0.08)
+  playTone(880, 1175, 0.2, 'sine', 0.034, 0.2)
+}
+
 export function playAnswerSound(correct: boolean) {
   if (correct) {
     if (playAsset(SOUND_ASSETS.correct, 0.58)) return

@@ -46,11 +46,6 @@ export function RewardAnimationOverlay({
     [],
   )
 
-  const xp = useCountUp(reward.xp, phase === 'counting', 2700)
-  const feathers = useCountUp(reward.feathers, phase === 'counting', 2700)
-  const streak = useCountUp(reward.streak, phase === 'counting', 2700)
-  const freezes = useCountUp(reward.streakFreeze, phase === 'counting', 2700)
-
   useEffect(() => {
     const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches
     hapticFeedback('success')
@@ -143,16 +138,17 @@ export function RewardAnimationOverlay({
               Mukofotlar hisoblanmoqda...
             </div>
             <SparrowMascot branded size="lg" mood="celebrating" className="mb-3 animate-float" />
-            <h1 className="mb-6 text-center text-3xl font-black leading-tight text-emerald-950">
+            <h1 className="text-center text-3xl font-black leading-tight text-emerald-950">
               Zo&apos;r natija!
             </h1>
-            <RewardGrid
-              xp={xp}
-              feathers={feathers}
-              streak={streak}
-              freezes={freezes}
-              showFreeze={reward.streakFreeze > 0}
-            />
+            <p className="mt-2 max-w-xs text-center text-sm font-bold text-emerald-900/68">
+              Mukofotlaringiz tayyorlanmoqda. Natijalar animatsiyadan keyin ko'rsatiladi.
+            </p>
+            <div className="mt-7 flex items-center gap-2 rounded-full bg-white/72 px-5 py-3 shadow-lg shadow-emerald-950/8">
+              <span className="size-2.5 animate-bounce rounded-full bg-primary" />
+              <span className="size-2.5 animate-bounce rounded-full bg-amber-400" style={{ animationDelay: '120ms' }} />
+              <span className="size-2.5 animate-bounce rounded-full bg-primary" style={{ animationDelay: '240ms' }} />
+            </div>
           </section>
         )}
 
@@ -300,32 +296,4 @@ function MiniStat({ label, value }: { label: string; value: string | number }) {
       <p className="text-[11px] font-bold text-muted-foreground">{label}</p>
     </div>
   )
-}
-
-function useCountUp(target: number, active: boolean, duration: number) {
-  const [value, setValue] = useState(active ? 0 : target)
-
-  useEffect(() => {
-    if (!active) {
-      setValue(target)
-      return
-    }
-
-    const start = performance.now()
-    let frame = 0
-
-    const tick = (now: number) => {
-      const progress = Math.min(1, (now - start) / duration)
-      const eased = 1 - Math.pow(1 - progress, 3)
-      setValue(Math.round(target * eased))
-      if (progress < 1) {
-        frame = window.requestAnimationFrame(tick)
-      }
-    }
-
-    frame = window.requestAnimationFrame(tick)
-    return () => window.cancelAnimationFrame(frame)
-  }, [active, duration, target])
-
-  return value
 }

@@ -136,7 +136,7 @@ export function RewardAnimationOverlay({
         <X className="size-5" />
       </button>
 
-      <main className="relative z-10 mx-auto flex min-h-[100dvh] w-full max-w-md flex-col px-4 pb-32 pt-5 safe-area-top safe-area-bottom">
+      <main className="relative z-10 mx-auto flex min-h-[100dvh] w-full max-w-md flex-col px-4 pb-48 pt-5 safe-area-top safe-area-bottom">
         {phase === 'counting' && (
           <section className="flex flex-1 flex-col items-center justify-center">
             <div className="mb-5 rounded-full bg-white/78 px-4 py-2 text-xs font-black uppercase tracking-[0.16em] text-primary shadow-lg shadow-emerald-950/8">
@@ -182,15 +182,20 @@ export function RewardAnimationOverlay({
         )}
 
         {phase === 'done' && (
-          <section className="flex flex-1 flex-col items-center justify-start pt-10">
-            <div className="mb-4 flex size-20 items-center justify-center rounded-[1.6rem] bg-primary text-primary-foreground shadow-xl shadow-primary/25">
-              <Sparkles className="size-10" />
+          <section className="flex flex-1 flex-col items-center justify-start pt-5">
+            <div className="mb-3 flex size-16 items-center justify-center rounded-[1.35rem] bg-primary text-primary-foreground shadow-xl shadow-primary/25">
+              <Sparkles className="size-8" />
             </div>
-            <h1 className="text-center text-4xl font-black leading-tight text-emerald-950">{title}</h1>
+            <h1 className="text-center text-3xl font-black leading-tight text-emerald-950">{title}</h1>
             <p className="mt-2 text-center text-sm font-bold text-emerald-900/68">
               {videoFailed ? 'Animatsiya yuklanmadi, mukofotlaringiz saqlandi.' : "Mukofotlaringiz hisobingizga qo'shildi."}
             </p>
-            <div className="mt-6 w-full">
+            <div className="mt-4 grid w-full grid-cols-3 gap-3 rounded-[1.45rem] border border-white/70 bg-white/78 p-3 shadow-xl shadow-emerald-950/8">
+              <MiniStat label="Accuracy" value={`${reward.accuracy}%`} />
+              <MiniStat label="Correct" value={reward.correct} />
+              <MiniStat label="Words" value={reward.wordsPracticed} />
+            </div>
+            <div className="mt-5 w-full">
               <RewardGrid
                 xp={reward.xp}
                 feathers={reward.feathers}
@@ -199,36 +204,31 @@ export function RewardAnimationOverlay({
                 showFreeze={reward.streakFreeze > 0}
               />
             </div>
-            <div className="mt-5 grid w-full grid-cols-3 gap-3 rounded-[1.6rem] border border-white/70 bg-white/78 p-3 shadow-xl shadow-emerald-950/8">
-              <MiniStat label="Accuracy" value={`${reward.accuracy}%`} />
-              <MiniStat label="Correct" value={reward.correct} />
-              <MiniStat label="Words" value={reward.wordsPracticed} />
-            </div>
           </section>
         )}
       </main>
 
       {phase === 'done' && (
-        <div className="fixed inset-x-0 bottom-0 z-30 bg-gradient-to-t from-emerald-950/30 via-emerald-50/95 to-transparent px-4 pb-[calc(env(safe-area-inset-bottom)+1rem)] pt-7 backdrop-blur-sm">
-          <div className="mx-auto w-full max-w-md space-y-3">
-            <Button
-              type="button"
-              onClick={onContinue}
-              className="tilio-button h-14 w-full rounded-2xl text-lg font-black shadow-2xl shadow-emerald-950/20"
-            >
-              Davom etish
-              <ArrowRight className="size-5" />
-            </Button>
+        <div className="fixed inset-x-0 bottom-[calc(env(safe-area-inset-bottom)+4.25rem)] z-30 px-4">
+          <div className="mx-auto w-full max-w-md space-y-2 rounded-[1.65rem] border border-white/65 bg-emerald-50/88 p-2 shadow-2xl shadow-emerald-950/18 backdrop-blur-md">
             {onRetry && reward.accuracy < 100 && (
               <Button
                 type="button"
                 onClick={onRetry}
                 variant="outline"
-                className="h-12 w-full rounded-2xl border-white/80 bg-white/90 font-black shadow-lg shadow-emerald-950/10"
+                className="h-11 w-full rounded-2xl border-white/80 bg-white/90 font-black shadow-sm"
               >
                 Qayta mashq qilish
               </Button>
             )}
+            <Button
+              type="button"
+              onClick={onContinue}
+              className="tilio-button h-14 w-full rounded-2xl text-lg font-black shadow-xl shadow-emerald-950/18"
+            >
+              Davom etish
+              <ArrowRight className="size-5" />
+            </Button>
           </div>
         </div>
       )}

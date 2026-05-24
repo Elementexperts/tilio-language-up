@@ -6,6 +6,7 @@ import { useTelegram } from '@/hooks/use-telegram'
 
 // Import all screens
 import { SplashScreen } from '@/components/screens/splash-screen'
+import { AuthScreen } from '@/components/screens/auth-screen'
 import { OnboardingScreen } from '@/components/screens/onboarding-screen'
 import { HomeScreen } from '@/components/screens/home-screen'
 import { ExerciseScreen } from '@/components/screens/exercise-screen'
@@ -27,9 +28,11 @@ import { CloudSyncIndicator } from '@/components/cloud-sync-indicator'
 export default function TilioApp() {
   useProgressSync()
   const currentScreen = useAppStore((state) => state.currentScreen)
+  const setScreen = useAppStore((state) => state.setScreen)
   const updateStreak = useAppStore((state) => state.updateStreak)
   const hasUser = useAppStore((state) => Boolean(state.user))
   const userLastActiveDate = useAppStore((state) => state.user?.lastActiveDate ?? '')
+  const cloudSession = useAppStore((state) => state.cloudSession)
   const equippedTheme = useAppStore((state) => state.user?.equippedTheme ?? 'classic-green')
   const { isReady } = useTelegram()
   const xpPopups = useAppStore((state) => state.xpPopups)
@@ -53,6 +56,20 @@ export default function TilioApp() {
       updateStreak()
     }
   }, [isReady, hasUser, userLastActiveDate, updateStreak])
+
+  useEffect(() => {
+    if (!isReady) return
+    if (currentScreen === 'splash' || currentScreen === 'auth') return
+
+    if (!cloudSession) {
+      setScreen('auth')
+      return
+    }
+
+    if (!hasUser && currentScreen !== 'onboarding') {
+      setScreen('onboarding')
+    }
+  }, [cloudSession, currentScreen, hasUser, isReady, setScreen])
 
   useEffect(() => {
     if (!isSoundEnabled) {
@@ -97,6 +114,8 @@ export default function TilioApp() {
     switch (currentScreen) {
       case 'splash':
         return <SplashScreen />
+      case 'auth':
+        return <AuthScreen />
       case 'onboarding':
         return <OnboardingScreen />
       case 'home':

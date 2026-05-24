@@ -3,24 +3,26 @@
 import { useEffect, useMemo, useRef } from 'react'
 import { useAppStore } from '@/lib/store'
 import { useTelegram } from '@/hooks/use-telegram'
-import { getCachedCloudSession, signInWithTelegram } from '@/lib/auth'
+import { getCachedCloudSession } from '@/lib/auth'
 import { buildProgressSnapshot, chooseNewestProgress, fetchCloudProgress, saveCloudProgress } from '@/lib/progress-sync'
 import { isSupabaseConfigured } from '@/lib/supabase'
 
 export function useProgressSync() {
-  const { initData, isReady } = useTelegram()
+  const { isReady } = useTelegram()
   const user = useAppStore((state) => state.user)
   const dailyChallenges = useAppStore((state) => state.dailyChallenges)
   const currentLesson = useAppStore((state) => state.currentLesson)
   const currentExerciseIndex = useAppStore((state) => state.currentExerciseIndex)
   const exerciseAnswers = useAppStore((state) => state.exerciseAnswers)
   const cloudSession = useAppStore((state) => state.cloudSession)
+  const currentScreen = useAppStore((state) => state.currentScreen)
   const setCloudSession = useAppStore((state) => state.setCloudSession)
+  const setScreen = useAppStore((state) => state.setScreen)
   const updateUser = useAppStore((state) => state.updateUser)
   const hydrateCloudProgress = useAppStore((state) => state.hydrateCloudProgress)
   const setSyncStatus = useAppStore((state) => state.setSyncStatus)
   const syncTimerRef = useRef<number | null>(null)
-  const hasFetchedCloudRef = useRef(false)
+  const fetchedCloudUserRef = useRef<string | null>(null)
   const lastSavedKeyRef = useRef('')
 
   const progressKey = useMemo(() => {
@@ -88,31 +90,15 @@ export function useProgressSync() {
       setCloudSession(cachedSession)
     }
 
-    if (!initData || cloudSession) return
-
-    let cancelled = false
-    setSyncStatus('loading')
-    signInWithTelegram(initData)
-      .then((result) => {
-        if (cancelled || !result) {
-          if (!result) setSyncStatus('offline')
-          return
-        }
-        setCloudSession(result.session)
-        if (user) {
-          updateUser(result.user)
-        }
-      })
-      .catch((error) => setSyncStatus('error', error instanceof Error ? error.message : 'Telegram sign-in failed'))
-
-    return () => {
-      cancelled = true
-    }
-  }, [cloudSession, initData, isReady, setCloudSession, setSyncStatus, updateUser, user])
+  }, [cloudSession, isReady, setCloudSession])
 
   useEffect(() => {
-    if (!cloudSession || hasFetchedCloudRef.current) return
-    hasFetchedCloudRef.current = true
+    if (!cloudSession) {
+      fetchedCloudUserRef.current = null
+      return
+    }
+    if (fetchedCloudUserRef.current === cloudSession.userId) return
+    fetchedCloudUserRef.current = cloudSession.userId
     let cancelled = false
     setSyncStatus('loading')
     fetchCloudProgress(cloudSession)
@@ -121,6 +107,9 @@ export function useProgressSync() {
         const newerCloudProgress = chooseNewestProgress(user, cloudProgress)
         if (newerCloudProgress) {
           hydrateCloudProgress(newerCloudProgress)
+          if (currentScreen === 'auth' || currentScreen === 'onboarding' || currentScreen === 'splash') {
+            setScreen('home')
+          }
         } else {
           setSyncStatus('synced')
         }
@@ -129,7 +118,7 @@ export function useProgressSync() {
     return () => {
       cancelled = true
     }
-  }, [cloudSession?.userId, user, hydrateCloudProgress, setSyncStatus])
+  }, [cloudSession?.userId, currentScreen, user, hydrateCloudProgress, setScreen, setSyncStatus])
 
   useEffect(() => {
     if (!cloudSession || !progressKey) return

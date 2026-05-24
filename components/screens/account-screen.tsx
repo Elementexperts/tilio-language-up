@@ -1,14 +1,13 @@
 'use client'
 
 import { useEffect } from 'react'
-import { ArrowLeft, BarChart3, CheckCircle2, Cloud, CloudOff, FileText, LogIn, LogOut, ShieldCheck, UserPlus } from 'lucide-react'
+import { ArrowLeft, CheckCircle2, Cloud, CloudOff, LogOut, ShieldCheck } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
 import { SparrowMascot } from '@/components/sparrow-mascot'
 import { useAppStore } from '@/lib/store'
 import { useTelegram } from '@/hooks/use-telegram'
 import { logoutCloudAccount } from '@/lib/auth'
-import { canViewTesterStats } from '@/lib/admin-access'
 
 export function AccountScreen() {
   const user = useAppStore((state) => state.user)
@@ -16,10 +15,10 @@ export function AccountScreen() {
   const syncError = useAppStore((state) => state.syncError)
   const cloudSession = useAppStore((state) => state.cloudSession)
   const setCloudSession = useAppStore((state) => state.setCloudSession)
+  const setAuthProfile = useAppStore((state) => state.setAuthProfile)
   const setScreen = useAppStore((state) => state.setScreen)
   const setUser = useAppStore((state) => state.setUser)
   const { hapticFeedback, showBackButton, hideBackButton } = useTelegram()
-  const showTesterStats = canViewTesterStats({ email: cloudSession?.email, userId: cloudSession?.userId })
 
   useEffect(() => {
     showBackButton(() => {
@@ -33,8 +32,9 @@ export function AccountScreen() {
     hapticFeedback('warning')
     logoutCloudAccount()
     setCloudSession(null)
+    setAuthProfile(null)
     setUser(null)
-    setScreen('splash')
+    setScreen('auth')
   }
 
   return (
@@ -56,41 +56,16 @@ export function AccountScreen() {
       <main className="tilio-container flex-1 overflow-y-auto px-4 py-5 pb-24">
         <Card className="tilio-card rounded-[2rem] p-5 text-center">
           <SparrowMascot branded size="md" mood={cloudSession ? 'celebrating' : 'thinking'} className="mx-auto" />
-          <h2 className="mt-3 text-2xl font-black">{cloudSession ? 'Cloud account active' : 'Local account'}</h2>
+          <h2 className="mt-3 text-2xl font-black">{cloudSession ? 'Cloud account active' : 'Sign in required'}</h2>
           <p className="mt-2 text-sm font-semibold text-muted-foreground">
             {cloudSession
               ? 'Your XP, streaks, feathers, lessons, achievements, and settings are saved to the cloud.'
-              : 'Progress is cached locally. Open from Telegram after Supabase setup to enable cloud sync.'}
+              : 'Guest progress is paused. Sign in with Telegram, Google, or email to continue learning.'}
           </p>
           <div className="mt-4 rounded-2xl bg-emerald-50/80 p-3 text-left">
             <p className="text-sm font-black">{user?.firstName ?? 'Learner'}</p>
             <p className="text-xs font-semibold text-muted-foreground">@{user?.username ?? 'tilio_user'}</p>
           </div>
-          {!cloudSession && (
-            <div className="mt-4 grid grid-cols-2 gap-2">
-              <Button
-                className="h-12 rounded-2xl font-black"
-                onClick={() => {
-                  hapticFeedback('medium')
-                  setScreen('auth')
-                }}
-              >
-                <UserPlus className="mr-2 size-4" />
-                Sign up
-              </Button>
-              <Button
-                variant="outline"
-                className="h-12 rounded-2xl border-primary/25 bg-white/80 font-black"
-                onClick={() => {
-                  hapticFeedback('light')
-                  setScreen('auth')
-                }}
-              >
-                <LogIn className="mr-2 size-4" />
-                Log in
-              </Button>
-            </div>
-          )}
         </Card>
 
         <Card className="mt-4 rounded-[1.75rem] border-white/70 bg-white/85 p-4 shadow-xl shadow-emerald-950/5">
@@ -114,50 +89,16 @@ export function AccountScreen() {
             <div>
               <p className="font-black">Recovery</p>
               <p className="mt-1 text-sm font-semibold text-muted-foreground">
-                Telegram sign-in restores your account automatically. The same cloud profile can later be linked to Android, iOS, or email login.
+                Telegram, Google, and email sign-in restore your cloud progress. The same profile is ready for future Android and iOS apps.
               </p>
             </div>
           </div>
         </Card>
 
-        <Card className="mt-4 rounded-[1.75rem] border-white/70 bg-white/85 p-4 shadow-xl shadow-emerald-950/5">
-          <div className="flex items-start gap-3">
-            <FileText className="mt-1 size-5 text-primary" />
-            <div>
-              <p className="font-black">Legal</p>
-              <p className="mt-1 text-sm font-semibold text-muted-foreground">Review Tilio&apos;s Privacy Policy and Terms of Service.</p>
-              <div className="mt-3 flex gap-2">
-                <a className="rounded-full bg-emerald-50 px-3 py-1.5 text-xs font-black text-primary" href="/privacy" target="_blank" rel="noreferrer">Privacy</a>
-                <a className="rounded-full bg-emerald-50 px-3 py-1.5 text-xs font-black text-primary" href="/terms" target="_blank" rel="noreferrer">Terms</a>
-              </div>
-            </div>
-          </div>
-        </Card>
-
-        {showTesterStats && (
-          <Card className="mt-4 rounded-[1.75rem] border-white/70 bg-white/85 p-4 shadow-xl shadow-emerald-950/5">
-            <div className="flex items-center justify-between gap-3">
-              <div className="flex items-center gap-3">
-                <div className="flex size-12 items-center justify-center rounded-2xl bg-primary/10 text-primary">
-                  <BarChart3 className="size-6" />
-                </div>
-                <div>
-                  <p className="font-black">Tester stats</p>
-                  <p className="text-sm font-semibold text-muted-foreground">Developer and analyst access.</p>
-                </div>
-              </div>
-              <Button
-                variant="outline"
-                className="rounded-2xl"
-                onClick={() => {
-                  hapticFeedback('light')
-                  setScreen('tester-stats')
-                }}
-              >
-                Open
-              </Button>
-            </div>
-          </Card>
+        {!cloudSession && (
+          <Button onClick={() => setScreen('auth')} className="mt-6 h-12 w-full rounded-2xl font-black">
+            Sign in to continue
+          </Button>
         )}
 
         <Button onClick={handleLogout} variant="outline" className="mt-6 h-12 w-full rounded-2xl border-red-200 text-red-600">

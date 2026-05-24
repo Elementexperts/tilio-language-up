@@ -99,7 +99,7 @@ export function OnboardingScreen() {
   const [selectedLevel, setSelectedLevel] = useState<'beginner' | 'intermediate' | null>(null)
   const [selectedGoal, setSelectedGoal] = useState<5 | 10 | 15 | 20 | null>(null)
 
-  const { setUser, setScreen, updateStreak } = useAppStore()
+  const { setUser, setScreen, updateStreak, cloudSession, authProfile } = useAppStore()
   const { user: telegramUser, hapticFeedback } = useTelegram()
 
   const handleNext = () => {
@@ -108,6 +108,10 @@ export function OnboardingScreen() {
     if (step === 'welcome') {
       setStep('account')
     } else if (step === 'account') {
+      if (!cloudSession) {
+        setScreen('auth')
+        return
+      }
       setStep('avatar')
     } else if (step === 'avatar') {
       setStep('path')
@@ -122,14 +126,19 @@ export function OnboardingScreen() {
 
   const completeOnboarding = () => {
     hapticFeedback('success')
+    if (!cloudSession) {
+      setScreen('auth')
+      return
+    }
 
     const newUser: User = {
-      id: telegramUser?.id?.toString() || `user_${Date.now()}`,
-      username: telegramUser?.username || 'learner',
-      firstName: telegramUser?.first_name || (selectedAvatar === 'girl' ? 'Aziza' : 'Azizbek'),
-      lastName: telegramUser?.last_name,
-      photoUrl: telegramUser?.photo_url,
-      telegramId: telegramUser?.id?.toString(),
+      id: cloudSession.userId,
+      cloudUserId: cloudSession.userId,
+      username: authProfile?.username || telegramUser?.username || 'learner',
+      firstName: authProfile?.firstName || telegramUser?.first_name || (selectedAvatar === 'girl' ? 'Aziza' : 'Azizbek'),
+      lastName: authProfile?.lastName || telegramUser?.last_name,
+      photoUrl: authProfile?.photoUrl || telegramUser?.photo_url,
+      telegramId: authProfile?.telegramId || telegramUser?.id?.toString(),
       avatarStyle: selectedAvatar,
       learningPath: selectedPath!,
       level: selectedLevel!,
@@ -152,10 +161,10 @@ export function OnboardingScreen() {
       xpMultiplier: 1,
       xpMultiplierExpiresAt: null,
       wordReviews: {},
-      plan: 'free',
-      plusExpiresAt: null,
-      plusSource: null,
-      plusUpdatedAt: null,
+      plan: authProfile?.plan ?? 'free',
+      plusExpiresAt: authProfile?.plusExpiresAt ?? null,
+      plusSource: authProfile?.plusSource ?? null,
+      plusUpdatedAt: authProfile?.plusUpdatedAt ?? null,
       plusChatUsage: { date: new Date().toISOString().split('T')[0], count: 0 },
       lastSyncedAt: null,
     }
@@ -168,9 +177,10 @@ export function OnboardingScreen() {
   const canProceed = () => {
     switch (step) {
       case 'welcome':
-      case 'account':
       case 'avatar':
         return true
+      case 'account':
+        return Boolean(cloudSession)
       case 'path':
         return selectedPath !== null
       case 'level':
@@ -232,17 +242,19 @@ export function OnboardingScreen() {
               <Cloud className="size-11" />
             </div>
             <SparrowMascot size="md" mood="celebrating" branded />
-            <h2 className="mt-5 text-2xl font-black text-foreground">Progressingiz saqlanadi</h2>
+            <h2 className="mt-5 text-2xl font-black text-foreground">{cloudSession ? 'Hisob tayyor' : 'Avval hisobga kiring'}</h2>
             <p className="mt-3 max-w-xs text-muted-foreground">
-              Telegram akkauntingiz orqali XP, streak, patlar, darslar va nishonlar bulutda saqlanadi.
+              {cloudSession
+                ? 'XP, streak, patlar, darslar va nishonlar bulutda saqlanadi.'
+                : 'Mehmon rejimi yopiq. Davom etish uchun Telegram, Google yoki email orqali kiring.'}
             </p>
             <div className="mt-6 grid w-full gap-3">
               <Card className="rounded-[1.35rem] border-emerald-100 bg-white/85 p-4 text-left shadow-sm">
                 <div className="flex items-center gap-3">
                   <ShieldCheck className="size-5 text-primary" />
                   <div>
-                    <p className="font-black">Secure Telegram sign-in</p>
-                    <p className="text-xs font-semibold text-muted-foreground">No password needed inside the Mini App.</p>
+                    <p className="font-black">Secure account sign-in</p>
+                    <p className="text-xs font-semibold text-muted-foreground">Telegram, Google, and email accounts are supported.</p>
                   </div>
                 </div>
               </Card>
@@ -255,6 +267,12 @@ export function OnboardingScreen() {
                   </div>
                 </div>
               </Card>
+              {!cloudSession && (
+                <Button onClick={() => setScreen('auth')} className="tilio-button h-12 rounded-2xl font-black">
+                  Hisobga kirish
+                  <ArrowRight className="ml-2 size-4" />
+                </Button>
+              )}
             </div>
           </div>
         )}

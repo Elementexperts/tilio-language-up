@@ -149,6 +149,7 @@ export const useAppStore = create<AppState>()(
   persist(
     (set, get) => ({
       user: null,
+      authProfile: null,
       currentScreen: 'splash',
       currentLesson: null,
       currentExerciseIndex: 0,
@@ -194,6 +195,8 @@ export const useAppStore = create<AppState>()(
               }
             : null,
         }),
+
+      setAuthProfile: (profile) => set({ authProfile: profile }),
       
       updateUser: (updates) => set((state) => ({
         user: state.user ? { ...state.user, ...updates } : null,
@@ -690,6 +693,7 @@ export const useAppStore = create<AppState>()(
       name: 'tilio-storage',
       partialize: (state) => ({
         user: state.user,
+        authProfile: state.authProfile,
         dailyChallenges: state.dailyChallenges,
         isSoundEnabled: state.isSoundEnabled,
         cloudSession: state.cloudSession,

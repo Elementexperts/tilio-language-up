@@ -9,6 +9,7 @@ import { useTelegram } from '@/hooks/use-telegram'
 import { lessonsData, achievementsData } from '@/lib/data/lessons'
 import { getPlusDaysRemaining, isPlusActive } from '@/lib/plus'
 import { cn } from '@/lib/utils'
+import { logoutCloudAccount } from '@/lib/auth'
 import { 
   ArrowLeft, 
   Zap, 
@@ -35,6 +36,8 @@ export function ProfileScreen() {
   const toggleSound = useAppStore((state) => state.toggleSound)
   const setScreen = useAppStore((state) => state.setScreen)
   const setUser = useAppStore((state) => state.setUser)
+  const setCloudSession = useAppStore((state) => state.setCloudSession)
+  const setAuthProfile = useAppStore((state) => state.setAuthProfile)
   const updateUser = useAppStore((state) => state.updateUser)
   const { hapticFeedback, showBackButton, hideBackButton } = useTelegram()
 
@@ -98,8 +101,11 @@ export function ProfileScreen() {
 
   const handleLogout = () => {
     hapticFeedback('medium')
+    logoutCloudAccount()
+    setCloudSession(null)
+    setAuthProfile(null)
     setUser(null)
-    setScreen('splash')
+    setScreen('auth')
   }
 
   const handleLearningPathChange = (learningPath: 'uz-en' | 'en-uz') => {

@@ -167,6 +167,7 @@ export interface StoreItem {
 // Navigation types
 export type AppScreen = 
   | 'splash'
+  | 'auth'
   | 'onboarding'
   | 'account'
   | 'home'
@@ -233,6 +234,7 @@ export interface CloudProgressSnapshot {
 // Store types
 export interface AppState {
   user: User | null
+  authProfile: Partial<User> | null
   currentScreen: AppScreen
   currentLesson: Lesson | null
   currentExerciseIndex: number
@@ -252,6 +254,7 @@ export interface AppState {
   
   // Actions
   setUser: (user: User | null) => void
+  setAuthProfile: (profile: Partial<User> | null) => void
   updateUser: (updates: Partial<User>) => void
   hydrateCloudProgress: (snapshot: CloudProgressSnapshot) => void
   setCloudSession: (session: CloudAuthSession | null) => void

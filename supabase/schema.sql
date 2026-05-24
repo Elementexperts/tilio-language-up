@@ -117,8 +117,21 @@ alter table public.user_achievements enable row level security;
 alter table public.daily_rewards enable row level security;
 alter table public.streak_data enable row level security;
 
+drop policy if exists "Users can read own profile" on public.users;
+drop policy if exists "Users can insert own profile" on public.users;
+drop policy if exists "Users can update own profile" on public.users;
+drop policy if exists "Users can manage own progress" on public.user_progress;
+drop policy if exists "Users can read own payments" on public.payments;
+drop policy if exists "Users can manage own lessons" on public.user_lessons;
+drop policy if exists "Users can manage own achievements" on public.user_achievements;
+drop policy if exists "Users can manage own daily rewards" on public.daily_rewards;
+drop policy if exists "Users can manage own streak data" on public.streak_data;
+
 create policy "Users can read own profile" on public.users
   for select using (auth.uid() = id);
+
+create policy "Users can insert own profile" on public.users
+  for insert with check (auth.uid() = id);
 
 create policy "Users can update own profile" on public.users
   for update using (auth.uid() = id);

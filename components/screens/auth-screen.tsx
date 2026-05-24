@@ -1,280 +1,299 @@
 'use client'
 
-import { useEffect, useState } from 'react'
-import { ArrowLeft, AtSign, Eye, EyeOff, LockKeyhole, Mail, ShieldCheck, Sparkles } from 'lucide-react'
+import { FormEvent, useCallback, useEffect, useMemo, useState } from 'react'
+import { AlertCircle, ArrowRight, Chrome, Cloud, Loader2, LockKeyhole, Mail, MessageCircle, ShieldCheck, Sparkles, UserRound } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
-import { Input } from '@/components/ui/input'
 import { SparrowMascot } from '@/components/sparrow-mascot'
-import { useAppStore } from '@/lib/store'
 import { useTelegram } from '@/hooks/use-telegram'
+import { useAppStore } from '@/lib/store'
+import { consumeOAuthSessionFromUrl, signInWithEmail, signInWithTelegram, signUpWithEmail, startGoogleSignIn, type TelegramAuthResult } from '@/lib/auth'
+import { isSupabaseConfigured } from '@/lib/supabase'
 import { cn } from '@/lib/utils'
-import { getGoogleSignInUrl, signInWithEmail, signUpWithEmail } from '@/lib/auth'
-import { getLevel, type User } from '@/lib/types'
 
-type AuthMode = 'signup' | 'login'
+type AuthMode = 'signin' | 'signup'
+type LoadingProvider = 'telegram' | 'google' | 'email' | null
 
 export function AuthScreen() {
-  const [mode, setMode] = useState<AuthMode>('signup')
-  const [showPassword, setShowPassword] = useState(false)
-  const [name, setName] = useState('')
+  const [mode, setMode] = useState<AuthMode>('signin')
+  const [firstName, setFirstName] = useState('')
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
-  const [isSubmitting, setIsSubmitting] = useState(false)
-  const [message, setMessage] = useState<string | null>(null)
-  const [error, setError] = useState<string | null>(null)
-  const user = useAppStore((state) => state.user)
-  const setUser = useAppStore((state) => state.setUser)
-  const updateUser = useAppStore((state) => state.updateUser)
+  const [message, setMessage] = useState('')
+  const [loadingProvider, setLoadingProvider] = useState<LoadingProvider>(null)
+
+  const existingUser = useAppStore((state) => state.user)
   const setCloudSession = useAppStore((state) => state.setCloudSession)
-  const setSyncStatus = useAppStore((state) => state.setSyncStatus)
+  const setAuthProfile = useAppStore((state) => state.setAuthProfile)
+  const updateUser = useAppStore((state) => state.updateUser)
   const setScreen = useAppStore((state) => state.setScreen)
-  const { hapticFeedback, showBackButton, hideBackButton } = useTelegram()
+  const { initData, isTelegramEnv, hapticFeedback } = useTelegram()
+
+  const telegramAvailable = Boolean(initData && isTelegramEnv)
+  const isBusy = loadingProvider !== null
+
+  const applyAuthResult = useCallback((result: TelegramAuthResult) => {
+    setCloudSession(result.session)
+    setAuthProfile(result.user)
+
+    if (existingUser) {
+      updateUser({
+        ...result.user,
+        id: existingUser.id || result.session.userId,
+        cloudUserId: result.session.userId,
+      })
+      setScreen('home')
+      return
+    }
+
+    setScreen('onboarding')
+  }, [existingUser, setAuthProfile, setCloudSession, setScreen, updateUser])
 
   useEffect(() => {
-    showBackButton(() => {
-      hideBackButton()
-      setScreen('account')
-    })
-    return () => hideBackButton()
-  }, [hideBackButton, setScreen, showBackButton])
+    if (typeof window === 'undefined') return
+    if (!window.location.hash.includes('access_token')) return
 
-  const isSignup = mode === 'signup'
-  const canSubmit = email.includes('@') && password.length >= 8 && (!isSignup || name.trim().length >= 2)
+    let cancelled = false
+    setLoadingProvider('google')
+    setMessage('')
 
-  const createLocalUser = (updates: Partial<User>): User => {
-    const displayName = updates.firstName ?? name.trim() ?? 'Tester'
-    const today = new Date().toISOString().split('T')[0]
+    consumeOAuthSessionFromUrl()
+      .then((result) => {
+        if (cancelled || !result) return
+        hapticFeedback('success')
+        applyAuthResult(result)
+      })
+      .catch((error) => {
+        if (cancelled) return
+        setMessage(error instanceof Error ? error.message : 'Google sign-in failed. Please try again.')
+        hapticFeedback('warning')
+      })
+      .finally(() => {
+        if (!cancelled) setLoadingProvider(null)
+      })
 
-    return {
-      id: updates.cloudUserId ?? `user_${Date.now()}`,
-      username: updates.username ?? email.split('@')[0] ?? 'tester',
-      firstName: displayName,
-      lastName: updates.lastName,
-      photoUrl: updates.photoUrl,
-      telegramId: updates.telegramId,
-      cloudUserId: updates.cloudUserId,
-      avatarStyle: 'boy',
-      learningPath: 'uz-en',
-      selectedCourse: 'uz-en',
-      level: 'beginner',
-      dailyGoal: 10,
-      xp: 0,
-      feathers: 50,
-      streak: 0,
-      maxStreak: 0,
-      streakFreezes: 0,
-      lastActiveDate: today,
-      completedLessons: [],
-      achievements: [],
-      courseProgress: {
-        'uz-en': { completedLessons: [], achievements: [] },
-        'uz-ko': { completedLessons: [], achievements: [] },
-        'uz-ru': { completedLessons: [], achievements: [] },
-        'uz-ar': { completedLessons: [], achievements: [] },
-        'uz-de': { completedLessons: [], achievements: [] },
-      },
-      referralCount: 0,
-      claimedReferralMilestones: [],
-      joinedAt: new Date().toISOString(),
-      lastChestClaim: null,
-      userLevel: getLevel(0),
-      equippedTheme: 'classic-green',
-      equippedFrame: 'default',
-      purchasedItems: [],
-      xpMultiplier: 1,
-      xpMultiplierExpiresAt: null,
-      wordReviews: {},
-      lastSyncedAt: null,
+    return () => {
+      cancelled = true
     }
-  }
+  }, [applyAuthResult, hapticFeedback])
 
-  const handleSubmit = async () => {
-    if (!canSubmit || isSubmitting) return
-    hapticFeedback('medium')
-    setIsSubmitting(true)
-    setError(null)
-    setMessage(null)
+  const subtitle = useMemo(() => (
+    mode === 'signin'
+      ? 'Hisobingizga kiring va progressni davom ettiring.'
+      : 'Yangi hisob oching. Mehmon rejimi hozircha yopiq.'
+  ), [mode])
+
+  const handleTelegram = async () => {
+    if (!telegramAvailable) {
+      setMessage('Telegram orqali kirish Mini App ichida ishlaydi. Web brauzerda Google yoki emaildan foydalaning.')
+      hapticFeedback('warning')
+      return
+    }
+
+    setLoadingProvider('telegram')
+    setMessage('')
 
     try {
-      const result = isSignup
-        ? await signUpWithEmail({ email: email.trim(), password, name: name.trim() })
-        : await signInWithEmail({ email: email.trim(), password })
-
-      setCloudSession(result.session)
-      if (user) {
-        updateUser({ ...result.user, id: result.user.cloudUserId ?? user.id })
-      } else {
-        setUser(createLocalUser(result.user))
-      }
-      setSyncStatus('saving')
-      setMessage(isSignup ? 'Tester account created. Your progress will now sync.' : 'Logged in. Restoring your progress now.')
-      window.setTimeout(() => setScreen(user ? 'account' : 'home'), 700)
-    } catch (authError) {
-      setError(authError instanceof Error ? authError.message : 'Authentication failed')
+      const result = await signInWithTelegram(initData)
+      if (!result) throw new Error('Telegram sign-in could not start. Please reopen the Mini App from Telegram.')
+      hapticFeedback('success')
+      applyAuthResult(result)
+    } catch (error) {
       hapticFeedback('warning')
+      setMessage(error instanceof Error ? error.message : 'Telegram sign-in failed. Please try again.')
     } finally {
-      setIsSubmitting(false)
+      setLoadingProvider(null)
     }
   }
 
-  const handleGoogleSignIn = () => {
-    hapticFeedback('medium')
-    setError(null)
-    window.location.href = getGoogleSignInUrl(window.location.origin)
+  const handleGoogle = () => {
+    if (!isSupabaseConfigured) {
+      setMessage('Supabase is not configured yet.')
+      hapticFeedback('warning')
+      return
+    }
+
+    setLoadingProvider('google')
+    setMessage('')
+    hapticFeedback('light')
+    startGoogleSignIn()
+  }
+
+  const handleEmailSubmit = async (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault()
+    const normalizedEmail = email.trim().toLowerCase()
+
+    if (!normalizedEmail || password.length < 6) {
+      setMessage('Email va kamida 6 ta belgidan iborat parol kiriting.')
+      hapticFeedback('warning')
+      return
+    }
+
+    setLoadingProvider('email')
+    setMessage('')
+
+    try {
+      const result = mode === 'signin'
+        ? await signInWithEmail(normalizedEmail, password)
+        : await signUpWithEmail(normalizedEmail, password, firstName.trim())
+      hapticFeedback('success')
+      applyAuthResult(result)
+    } catch (error) {
+      hapticFeedback('warning')
+      setMessage(error instanceof Error ? error.message : 'Email sign-in failed. Please try again.')
+    } finally {
+      setLoadingProvider(null)
+    }
   }
 
   return (
-    <div className="tilio-shell flex flex-col">
-      <header className="sticky top-0 z-10 safe-area-top">
-        <div className="tilio-container px-4 py-3">
-          <div className="flex items-center gap-4 rounded-[1.6rem] border border-white/70 bg-white/80 px-3 py-2 shadow-lg shadow-emerald-950/5 backdrop-blur-xl">
-            <button
-              onClick={() => {
-                hapticFeedback('light')
-                setScreen('account')
-              }}
-              className="tilio-pressed flex size-10 items-center justify-center rounded-full bg-emerald-50 text-muted-foreground"
-              aria-label="Go back"
-            >
-              <ArrowLeft className="size-6" />
-            </button>
-            <div>
-              <h1 className="text-xl font-black">{isSignup ? 'Create account' : 'Log in'}</h1>
-              <p className="text-xs font-semibold text-muted-foreground">Save tester progress and activity</p>
-            </div>
+    <div className="tilio-shell min-h-screen overflow-y-auto px-4 py-6">
+      <div className="tilio-container flex min-h-full flex-col justify-center">
+        <div className="mb-5 text-center">
+          <div className="mx-auto mb-3 flex size-24 items-center justify-center rounded-[2rem] bg-gradient-to-br from-emerald-100 to-lime-100 shadow-xl shadow-emerald-950/10">
+            <SparrowMascot branded size="md" mood="waving" />
           </div>
+          <p className="text-xs font-extrabold uppercase tracking-[0.2em] text-primary">Tilio Account</p>
+          <h1 className="mt-2 text-3xl font-black leading-tight text-foreground">Progressingiz xavfsiz saqlansin</h1>
+          <p className="mx-auto mt-2 max-w-sm text-sm font-semibold text-muted-foreground">{subtitle}</p>
         </div>
-      </header>
 
-      <main className="tilio-container flex-1 overflow-y-auto px-4 py-5 pb-24">
-        <Card className="premium-card relative overflow-hidden rounded-[2rem] p-5">
-          <div className="absolute -right-7 -top-8 h-28 w-28 rounded-full bg-lime-200/45 blur-2xl" />
-          <div className="relative flex items-center gap-4">
-            <SparrowMascot branded size="md" mood={isSignup ? 'celebrating' : 'happy'} className="shrink-0 rounded-[1.5rem]" />
-            <div className="min-w-0">
-              <p className="text-xs font-extrabold uppercase tracking-[0.18em] text-primary">
-                {isSignup ? 'Join Tilio testing' : 'Welcome back'}
-              </p>
-              <h2 className="mt-1 text-3xl font-black leading-[1] text-emerald-950">
-                {isSignup ? 'Track every tester' : 'Continue your journey'}
-              </h2>
-              <p className="mt-2 text-sm font-semibold text-muted-foreground">
-                {isSignup ? 'Create a profile so we can count real testers and protect their progress.' : 'Log in to restore XP, streaks, lessons, and rewards.'}
-              </p>
-            </div>
+        <Card className="rounded-[2rem] border-white/70 bg-white/90 p-4 shadow-2xl shadow-emerald-950/10 backdrop-blur-xl">
+          <div className="grid grid-cols-2 gap-2 rounded-2xl bg-emerald-50/80 p-1">
+            {(['signin', 'signup'] as const).map((item) => (
+              <button
+                key={item}
+                type="button"
+                onClick={() => {
+                  setMode(item)
+                  setMessage('')
+                  hapticFeedback('light')
+                }}
+                className={cn(
+                  'tilio-pressed rounded-xl px-3 py-2.5 text-sm font-black transition-all',
+                  mode === item ? 'bg-white text-primary shadow-sm' : 'text-muted-foreground',
+                )}
+              >
+                {item === 'signin' ? 'Log in' : 'Sign up'}
+              </button>
+            ))}
           </div>
-        </Card>
 
-        <Card className="mt-4 rounded-[1.75rem] border-white/70 bg-white/88 p-2 shadow-xl shadow-emerald-950/5">
-          <div className="grid grid-cols-2 gap-2">
-            <button
-              className={cn('rounded-[1.25rem] px-3 py-3 text-sm font-black transition-colors', isSignup ? 'bg-primary text-white shadow-lg shadow-primary/20' : 'text-muted-foreground')}
-              onClick={() => {
-                hapticFeedback('light')
-                setMode('signup')
-              }}
+          <div className="mt-4 grid gap-3">
+            <Button
+              type="button"
+              onClick={handleTelegram}
+              disabled={isBusy}
+              className="h-14 rounded-2xl bg-[#2AABEE] text-base font-black text-white shadow-lg shadow-sky-500/20 hover:bg-[#229ed9]"
             >
-              Sign up
-            </button>
-            <button
-              className={cn('rounded-[1.25rem] px-3 py-3 text-sm font-black transition-colors', !isSignup ? 'bg-primary text-white shadow-lg shadow-primary/20' : 'text-muted-foreground')}
-              onClick={() => {
-                hapticFeedback('light')
-                setMode('login')
-              }}
+              {loadingProvider === 'telegram' ? <Loader2 className="mr-2 size-5 animate-spin" /> : <MessageCircle className="mr-2 size-5" />}
+              Telegram bilan davom etish
+            </Button>
+
+            <Button
+              type="button"
+              onClick={handleGoogle}
+              disabled={isBusy}
+              variant="outline"
+              className="h-14 rounded-2xl border-emerald-100 bg-white text-base font-black shadow-sm"
             >
-              Log in
-            </button>
-          </div>
-        </Card>
-
-        <Card className="mt-4 rounded-[1.75rem] border-white/70 bg-white/90 p-4 shadow-xl shadow-emerald-950/5">
-          <Button
-            variant="outline"
-            className="mb-4 h-13 w-full rounded-2xl border-emerald-100 bg-white text-base font-black shadow-sm"
-            onClick={handleGoogleSignIn}
-          >
-            <span className="mr-2 flex size-6 items-center justify-center rounded-full bg-white text-base">G</span>
-            Continue with Google
-          </Button>
-
-          <div className="mb-4 flex items-center gap-3 text-xs font-black uppercase tracking-[0.14em] text-muted-foreground">
-            <span className="h-px flex-1 bg-border" />
-            Email
-            <span className="h-px flex-1 bg-border" />
+              {loadingProvider === 'google' ? <Loader2 className="mr-2 size-5 animate-spin" /> : <Chrome className="mr-2 size-5 text-primary" />}
+              Google bilan davom etish
+            </Button>
           </div>
 
-          <div className="space-y-3">
-            {isSignup && (
-              <label className="block">
-                <span className="mb-1.5 block text-xs font-black uppercase tracking-[0.14em] text-muted-foreground">Name</span>
-                <div className="flex items-center gap-2 rounded-2xl border border-emerald-100 bg-emerald-50/60 px-3">
-                  <AtSign className="size-4 text-primary" />
-                  <Input className="border-0 bg-transparent px-0 shadow-none focus-visible:ring-0" placeholder="Your name" value={name} onChange={(event) => setName(event.target.value)} />
-                </div>
+          <div className="my-5 flex items-center gap-3">
+            <div className="h-px flex-1 bg-emerald-100" />
+            <span className="text-xs font-black uppercase tracking-[0.16em] text-muted-foreground">yoki email</span>
+            <div className="h-px flex-1 bg-emerald-100" />
+          </div>
+
+          <form onSubmit={handleEmailSubmit} className="grid gap-3">
+            {mode === 'signup' && (
+              <label className="grid gap-1.5">
+                <span className="text-xs font-black text-muted-foreground">Ism</span>
+                <span className="flex h-12 items-center gap-2 rounded-2xl border border-emerald-100 bg-emerald-50/50 px-3">
+                  <UserRound className="size-4 text-primary" />
+                  <input
+                    value={firstName}
+                    onChange={(event) => setFirstName(event.target.value)}
+                    placeholder="Aziza"
+                    className="min-w-0 flex-1 bg-transparent text-sm font-bold outline-none placeholder:text-muted-foreground/55"
+                    autoComplete="given-name"
+                  />
+                </span>
               </label>
             )}
 
-            <label className="block">
-              <span className="mb-1.5 block text-xs font-black uppercase tracking-[0.14em] text-muted-foreground">Email</span>
-              <div className="flex items-center gap-2 rounded-2xl border border-emerald-100 bg-emerald-50/60 px-3">
+            <label className="grid gap-1.5">
+              <span className="text-xs font-black text-muted-foreground">Email</span>
+              <span className="flex h-12 items-center gap-2 rounded-2xl border border-emerald-100 bg-emerald-50/50 px-3">
                 <Mail className="size-4 text-primary" />
-                <Input className="border-0 bg-transparent px-0 shadow-none focus-visible:ring-0" placeholder="you@example.com" type="email" value={email} onChange={(event) => setEmail(event.target.value)} />
-              </div>
+                <input
+                  value={email}
+                  onChange={(event) => setEmail(event.target.value)}
+                  placeholder="you@example.com"
+                  className="min-w-0 flex-1 bg-transparent text-sm font-bold outline-none placeholder:text-muted-foreground/55"
+                  inputMode="email"
+                  autoComplete={mode === 'signin' ? 'email' : 'username'}
+                />
+              </span>
             </label>
 
-            <label className="block">
-              <span className="mb-1.5 block text-xs font-black uppercase tracking-[0.14em] text-muted-foreground">Password</span>
-              <div className="flex items-center gap-2 rounded-2xl border border-emerald-100 bg-emerald-50/60 px-3">
+            <label className="grid gap-1.5">
+              <span className="text-xs font-black text-muted-foreground">Parol</span>
+              <span className="flex h-12 items-center gap-2 rounded-2xl border border-emerald-100 bg-emerald-50/50 px-3">
                 <LockKeyhole className="size-4 text-primary" />
-                <Input className="border-0 bg-transparent px-0 shadow-none focus-visible:ring-0" placeholder="Minimum 8 characters" type={showPassword ? 'text' : 'password'} value={password} onChange={(event) => setPassword(event.target.value)} />
-                <button
-                  type="button"
-                  className="tilio-pressed flex size-9 items-center justify-center rounded-full text-muted-foreground"
-                  onClick={() => setShowPassword((value) => !value)}
-                  aria-label={showPassword ? 'Hide password' : 'Show password'}
-                >
-                  {showPassword ? <EyeOff className="size-4" /> : <Eye className="size-4" />}
-                </button>
-              </div>
+                <input
+                  value={password}
+                  onChange={(event) => setPassword(event.target.value)}
+                  placeholder="Minimum 6 belgi"
+                  className="min-w-0 flex-1 bg-transparent text-sm font-bold outline-none placeholder:text-muted-foreground/55"
+                  type="password"
+                  autoComplete={mode === 'signin' ? 'current-password' : 'new-password'}
+                />
+              </span>
             </label>
-          </div>
 
-          <Button
-            className="tilio-button mt-5 h-14 w-full rounded-2xl text-base font-black"
-            disabled={!canSubmit || isSubmitting}
-            onClick={handleSubmit}
-          >
-            {isSubmitting ? 'Connecting...' : isSignup ? 'Create tester account' : 'Log in'}
-          </Button>
-          {message && <p className="mt-3 rounded-2xl bg-emerald-50 p-3 text-center text-xs font-bold text-emerald-700">{message}</p>}
-          {error && <p className="mt-3 rounded-2xl bg-red-50 p-3 text-center text-xs font-bold text-red-700">{error}</p>}
-          <p className="mt-4 text-center text-xs font-semibold leading-5 text-muted-foreground">
-            By continuing, you agree to Tilio&apos;s{' '}
-            <a className="font-black text-primary" href="/terms" target="_blank" rel="noreferrer">Terms</a>
-            {' '}and{' '}
-            <a className="font-black text-primary" href="/privacy" target="_blank" rel="noreferrer">Privacy Policy</a>.
-          </p>
+            <Button type="submit" disabled={isBusy} className="tilio-button mt-1 h-14 rounded-2xl text-base font-black">
+              {loadingProvider === 'email' ? <Loader2 className="mr-2 size-5 animate-spin" /> : <ArrowRight className="mr-2 size-5" />}
+              {mode === 'signin' ? 'Email bilan kirish' : 'Email bilan hisob ochish'}
+            </Button>
+          </form>
+
+          {message && (
+            <div className="mt-4 flex items-start gap-2 rounded-2xl bg-amber-50 p-3 text-xs font-bold text-amber-800">
+              <AlertCircle className="mt-0.5 size-4 shrink-0" />
+              <p>{message}</p>
+            </div>
+          )}
         </Card>
 
-        <Card className="mt-4 rounded-[1.75rem] border-emerald-100 bg-emerald-50/70 p-4">
-          <div className="flex items-start gap-3">
-            <ShieldCheck className="mt-0.5 size-5 text-primary" />
-            <div>
-              <p className="font-black">Tester metrics this unlocks</p>
-              <p className="mt-1 text-sm font-semibold text-muted-foreground">
-                Registered testers, active users, sign-up dates, selected courses, and retention can be counted once auth is connected.
-              </p>
+        <div className="mt-4 grid gap-3">
+          <Card className="rounded-[1.5rem] border-emerald-100 bg-white/75 p-3 shadow-sm">
+            <div className="flex items-start gap-3">
+              <div className="flex size-10 shrink-0 items-center justify-center rounded-2xl bg-emerald-50 text-primary">
+                <Cloud className="size-5" />
+              </div>
+              <div>
+                <p className="text-sm font-black">Mehmon rejimi to'xtatilgan</p>
+                <p className="text-xs font-semibold text-muted-foreground">XP, streak, feathers va Plus xaridlar akkauntga bog'lanadi.</p>
+              </div>
+            </div>
+          </Card>
+
+          <div className="grid grid-cols-2 gap-3">
+            <div className="rounded-[1.35rem] border border-white/70 bg-white/65 p-3 text-center shadow-sm">
+              <ShieldCheck className="mx-auto mb-1 size-5 text-primary" />
+              <p className="text-xs font-black">Cloud sync</p>
+            </div>
+            <div className="rounded-[1.35rem] border border-white/70 bg-white/65 p-3 text-center shadow-sm">
+              <Sparkles className="mx-auto mb-1 size-5 text-amber-500" />
+              <p className="text-xs font-black">Plus ready</p>
             </div>
           </div>
-        </Card>
-
-        <div className="mt-4 flex items-center justify-center gap-2 text-xs font-bold text-primary">
-          <Sparkles className="size-4" />
-          <span>Premium account flow prepared</span>
         </div>
-      </main>
+      </div>
     </div>
   )
 }

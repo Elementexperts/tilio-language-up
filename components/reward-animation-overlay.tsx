@@ -5,7 +5,8 @@ import type { ReactNode } from 'react'
 import { Button } from '@/components/ui/button'
 import { SparrowMascot } from '@/components/sparrow-mascot'
 import { useTelegram } from '@/hooks/use-telegram'
-import { playChestSound, playRewardSound } from '@/lib/sound'
+import { useAppStore } from '@/lib/store'
+import { playRewardSound, playRewardVideoSound } from '@/lib/sound'
 import type { CompletionRewardSummary } from '@/lib/types'
 import { cn } from '@/lib/utils'
 import { ArrowRight, Feather, Flame, Snowflake, Sparkles, X, Zap } from 'lucide-react'
@@ -25,6 +26,7 @@ export function RewardAnimationOverlay({
   const [videoFailed, setVideoFailed] = useState(false)
   const videoRef = useRef<HTMLVideoElement | null>(null)
   const { hapticFeedback } = useTelegram()
+  const isSoundEnabled = useAppStore((state) => state.isSoundEnabled)
 
   const isDone = phase === 'done'
   const title = reward.sessionType === 'review'
@@ -52,7 +54,7 @@ export function RewardAnimationOverlay({
   useEffect(() => {
     const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches
     hapticFeedback('success')
-    playRewardSound()
+    if (isSoundEnabled) playRewardSound()
 
     if (reduceMotion) {
       setPhase('done')
@@ -61,12 +63,12 @@ export function RewardAnimationOverlay({
 
     const timer = window.setTimeout(() => {
       setPhase('video')
-      playChestSound()
+      if (isSoundEnabled) playRewardVideoSound()
       hapticFeedback('medium')
     }, 3000)
 
     return () => window.clearTimeout(timer)
-  }, [hapticFeedback])
+  }, [hapticFeedback, isSoundEnabled])
 
   useEffect(() => {
     if (phase !== 'video') return
@@ -89,14 +91,18 @@ export function RewardAnimationOverlay({
     return () => window.clearTimeout(doneTimer)
   }, [phase])
 
-  const handleSkip = () => {
+  const handleClose = () => {
     hapticFeedback('light')
+    if (phase === 'done') {
+      onContinue()
+      return
+    }
     setPhase('done')
   }
 
   return (
     <div
-      className="fixed inset-0 z-[70] flex min-h-screen flex-col overflow-hidden bg-emerald-950/45 text-foreground backdrop-blur-md"
+      className="fixed inset-0 z-[70] flex min-h-[100dvh] flex-col overflow-y-auto bg-emerald-950/45 text-foreground backdrop-blur-md"
       role="dialog"
       aria-modal="true"
       aria-label={title}
@@ -123,14 +129,14 @@ export function RewardAnimationOverlay({
 
       <button
         type="button"
-        onClick={handleSkip}
+        onClick={handleClose}
         className="tilio-pressed fixed right-4 top-4 z-20 flex size-11 items-center justify-center rounded-full bg-white/82 text-emerald-950 shadow-xl shadow-emerald-950/10 backdrop-blur"
-        aria-label="Skip reward animation"
+        aria-label={phase === 'done' ? 'Close rewards' : 'Skip reward animation'}
       >
         <X className="size-5" />
       </button>
 
-      <main className="relative z-10 mx-auto flex min-h-screen w-full max-w-md flex-col px-4 py-5 safe-area-top safe-area-bottom">
+      <main className="relative z-10 mx-auto flex min-h-[100dvh] w-full max-w-md flex-col px-4 pb-32 pt-5 safe-area-top safe-area-bottom">
         {phase === 'counting' && (
           <section className="flex flex-1 flex-col items-center justify-center">
             <div className="mb-5 rounded-full bg-white/78 px-4 py-2 text-xs font-black uppercase tracking-[0.16em] text-primary shadow-lg shadow-emerald-950/8">
@@ -176,7 +182,7 @@ export function RewardAnimationOverlay({
         )}
 
         {phase === 'done' && (
-          <section className="flex flex-1 flex-col items-center justify-center">
+          <section className="flex flex-1 flex-col items-center justify-start pt-10">
             <div className="mb-4 flex size-20 items-center justify-center rounded-[1.6rem] bg-primary text-primary-foreground shadow-xl shadow-primary/25">
               <Sparkles className="size-10" />
             </div>
@@ -198,29 +204,34 @@ export function RewardAnimationOverlay({
               <MiniStat label="Correct" value={reward.correct} />
               <MiniStat label="Words" value={reward.wordsPracticed} />
             </div>
-            <div className="mt-6 w-full space-y-3">
-              <Button
-                type="button"
-                onClick={onContinue}
-                className="tilio-button h-14 w-full rounded-2xl text-lg font-black"
-              >
-                Davom etish
-                <ArrowRight className="size-5" />
-              </Button>
-              {onRetry && reward.accuracy < 100 && (
-                <Button
-                  type="button"
-                  onClick={onRetry}
-                  variant="outline"
-                  className="h-12 w-full rounded-2xl bg-white/82 font-black"
-                >
-                  Qayta mashq qilish
-                </Button>
-              )}
-            </div>
           </section>
         )}
       </main>
+
+      {phase === 'done' && (
+        <div className="fixed inset-x-0 bottom-0 z-30 bg-gradient-to-t from-emerald-950/30 via-emerald-50/95 to-transparent px-4 pb-[calc(env(safe-area-inset-bottom)+1rem)] pt-7 backdrop-blur-sm">
+          <div className="mx-auto w-full max-w-md space-y-3">
+            <Button
+              type="button"
+              onClick={onContinue}
+              className="tilio-button h-14 w-full rounded-2xl text-lg font-black shadow-2xl shadow-emerald-950/20"
+            >
+              Davom etish
+              <ArrowRight className="size-5" />
+            </Button>
+            {onRetry && reward.accuracy < 100 && (
+              <Button
+                type="button"
+                onClick={onRetry}
+                variant="outline"
+                className="h-12 w-full rounded-2xl border-white/80 bg-white/90 font-black shadow-lg shadow-emerald-950/10"
+              >
+                Qayta mashq qilish
+              </Button>
+            )}
+          </div>
+        </div>
+      )}
     </div>
   )
 }

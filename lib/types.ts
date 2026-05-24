@@ -198,6 +198,20 @@ export interface AchievementPopup {
   timestamp: number
 }
 
+export interface CompletionRewardSummary {
+  sessionType: 'lesson' | 'review' | 'practice'
+  title: string
+  xp: number
+  feathers: number
+  streak: number
+  streakFreeze: number
+  accuracy: number
+  correct: number
+  incorrect: number
+  wordsPracticed: number
+  timestamp: number
+}
+
 export type SyncStatus = 'idle' | 'loading' | 'saving' | 'synced' | 'offline' | 'error'
 
 export interface CloudAuthSession {
@@ -231,6 +245,7 @@ export interface AppState {
   cloudSession: CloudAuthSession | null
   xpPopups: XpPopup[]
   achievementPopups: AchievementPopup[]
+  lastCompletionReward: CompletionRewardSummary | null
   showStreakSavedModal: boolean
   showLevelUpModal: boolean
   newLevel: number
@@ -257,6 +272,7 @@ export interface AppState {
   incrementPlusChatUsage: () => boolean
   toggleSound: () => void
   resetExercise: () => void
+  clearCompletionReward: () => void
   addXpPopup: (amount: number, type: XpPopup['type'], label?: string) => void
   removeXpPopup: (id: string) => void
   removeAchievementPopup: (id: string) => void

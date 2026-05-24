@@ -161,6 +161,7 @@ export const useAppStore = create<AppState>()(
       cloudSession: null,
       xpPopups: [],
       achievementPopups: [],
+      lastCompletionReward: null,
       showStreakSavedModal: false,
       showLevelUpModal: false,
       newLevel: 1,
@@ -342,6 +343,8 @@ export const useAppStore = create<AppState>()(
         const finalXp = baseXp + achievementRewards.xp
         const finalFeathers = baseFeathers + achievementRewards.feathers
         const finalLevel = getLevel(finalXp)
+        const totalAnswered = state.exerciseAnswers.correct + state.exerciseAnswers.incorrect
+        const accuracy = totalAnswered > 0 ? Math.round((state.exerciseAnswers.correct / totalAnswered) * 100) : 0
 
         set({
           user: {
@@ -356,6 +359,19 @@ export const useAppStore = create<AppState>()(
             xpMultiplierExpiresAt: multiplier > 1 ? user.xpMultiplierExpiresAt : null,
           },
           dailyChallenges: challenges,
+          lastCompletionReward: {
+            sessionType: 'lesson',
+            title: state.currentLesson.title,
+            xp: xpEarned + challengeBonusXp + achievementRewards.xp,
+            feathers: featherEarned + challengeBonusFeathers + achievementRewards.feathers,
+            streak: user.streak,
+            streakFreeze: 0,
+            accuracy,
+            correct: state.exerciseAnswers.correct,
+            incorrect: state.exerciseAnswers.incorrect,
+            wordsPracticed: state.currentLesson.words.length,
+            timestamp: Date.now(),
+          },
           currentScreen: 'result',
           showLevelUpModal: finalLevel > user.userLevel,
           newLevel: finalLevel,
@@ -639,6 +655,8 @@ export const useAppStore = create<AppState>()(
         currentExerciseIndex: 0,
         exerciseAnswers: { correct: 0, incorrect: 0 },
       }),
+
+      clearCompletionReward: () => set({ lastCompletionReward: null }),
 
       addXpPopup: (amount, type, label) =>
         set((state) => ({

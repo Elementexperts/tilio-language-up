@@ -72,15 +72,21 @@ export function RewardAnimationOverlay({
     if (phase !== 'video') return
     const video = videoRef.current
     if (!video) return
+    const doneTimer = window.setTimeout(() => {
+      setPhase('done')
+    }, 8500)
 
     video.currentTime = 0
     const playPromise = video.play()
     if (playPromise) {
       playPromise.catch(() => {
+        window.clearTimeout(doneTimer)
         setVideoFailed(true)
         setPhase('done')
       })
     }
+
+    return () => window.clearTimeout(doneTimer)
   }, [phase])
 
   const handleSkip = () => {

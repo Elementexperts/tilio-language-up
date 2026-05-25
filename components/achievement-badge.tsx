@@ -22,9 +22,40 @@ const toneClass = {
   amber: 'from-yellow-500 via-amber-400 to-orange-300 text-amber-950 shadow-amber-900/20',
 }
 
+const badgeImageMap: Record<string, string> = {
+  'early-bird': '/badges/early-bird.png',
+  'word-collector': '/badges/word-collector.png',
+  '7-day-hero': '/badges/7-day-hero.png',
+  'speaking-master': '/badges/speaking-master.png',
+  'referral-champion': '/badges/referral-champion.png',
+  'streak-legend': '/badges/streak-legend.png',
+  'xp-champion': '/badges/xp-champion.png',
+  'feather-keeper': '/badges/feather-keeper.png',
+  'course-hero': '/badges/course-complete.png',
+  'ko-course-complete': '/badges/course-complete.png',
+  'ko-first-hello': '/badges/early-bird.png',
+  'ko-word-collector': '/badges/word-collector.png',
+  'ko-grammar-starter': '/badges/speaking-master.png',
+  'ko-hangul-reader': '/badges/word-collector.png',
+  'ko-travel-ready': '/badges/7-day-hero.png',
+  'ko-topik-starter': '/badges/xp-champion.png',
+  'ru-course-complete': '/badges/course-complete.png',
+  'ru-first-hello': '/badges/early-bird.png',
+  'ru-word-collector': '/badges/word-collector.png',
+  'ru-grammar-starter': '/badges/speaking-master.png',
+  'ru-travel-ready': '/badges/7-day-hero.png',
+  'ar-course-complete': '/badges/course-complete.png',
+  'ar-first-hello': '/badges/early-bird.png',
+  'ar-word-collector': '/badges/word-collector.png',
+  'de-course-complete': '/badges/course-complete.png',
+  'de-first-hello': '/badges/early-bird.png',
+  'de-word-collector': '/badges/word-collector.png',
+}
+
 export function AchievementBadge({ achievement, compact = false, showProgress = false }: AchievementBadgeProps) {
   const tone = achievementBadgeTone[achievement.id] ?? 'teal'
   const Icon = achievementBadgeIcon[achievement.id] ?? achievementBadgeIcon['early-bird']
+  const imageSrc = badgeImageMap[achievement.id]
   const label = achievement.id === 'xp-champion'
     ? '500 XP'
     : achievement.id === 'feather-keeper'
@@ -39,23 +70,34 @@ export function AchievementBadge({ achievement, compact = false, showProgress = 
 
   return (
     <div className={cn('group relative text-center', compact ? 'min-w-0' : '')}>
-      <div
-        className={cn(
-          'relative mx-auto flex items-center justify-center rounded-full bg-gradient-to-br shadow-xl ring-4 ring-white/80 transition-transform duration-200 group-active:scale-95',
-          toneClass[tone],
-          compact ? 'size-20' : 'size-28',
-          !achievement.isUnlocked && 'grayscale opacity-55',
-        )}
-        style={{ clipPath: 'polygon(50% 0%, 56% 7%, 64% 3%, 69% 11%, 78% 10%, 81% 19%, 90% 22%, 89% 31%, 97% 36%, 93% 44%, 100% 50%, 93% 56%, 97% 64%, 89% 69%, 90% 78%, 81% 81%, 78% 90%, 69% 89%, 64% 97%, 56% 93%, 50% 100%, 44% 93%, 36% 97%, 31% 89%, 22% 90%, 19% 81%, 10% 78%, 11% 69%, 3% 64%, 7% 56%, 0% 50%, 7% 44%, 3% 36%, 11% 31%, 10% 22%, 19% 19%, 22% 10%, 31% 11%, 36% 3%, 44% 7%)' }}
-      >
-        <div className="absolute inset-2 rounded-full border border-white/20" />
-        <div className="absolute inset-x-4 top-3 h-8 rounded-full bg-white/18 blur-md" />
-        {achievement.isUnlocked ? (
-          <Icon className={cn('relative drop-shadow-sm', compact ? 'size-8' : 'size-11')} />
-        ) : (
-          <Lock className={cn('relative', compact ? 'size-7' : 'size-9')} />
-        )}
-      </div>
+      {imageSrc ? (
+        <div className={cn('relative mx-auto rounded-full transition-transform duration-200 group-active:scale-95', compact ? 'size-20' : 'size-28', !achievement.isUnlocked && 'grayscale opacity-55')}>
+          <img src={imageSrc} alt={achievement.title} className="h-full w-full object-contain drop-shadow-xl" />
+          {!achievement.isUnlocked && (
+            <div className="absolute inset-0 flex items-center justify-center rounded-full bg-white/45">
+              <Lock className={cn('text-emerald-950/70', compact ? 'size-7' : 'size-9')} />
+            </div>
+          )}
+        </div>
+      ) : (
+        <div
+          className={cn(
+            'relative mx-auto flex items-center justify-center rounded-full bg-gradient-to-br shadow-xl ring-4 ring-white/80 transition-transform duration-200 group-active:scale-95',
+            toneClass[tone],
+            compact ? 'size-20' : 'size-28',
+            !achievement.isUnlocked && 'grayscale opacity-55',
+          )}
+          style={{ clipPath: 'polygon(50% 0%, 56% 7%, 64% 3%, 69% 11%, 78% 10%, 81% 19%, 90% 22%, 89% 31%, 97% 36%, 93% 44%, 100% 50%, 93% 56%, 97% 64%, 89% 69%, 90% 78%, 81% 81%, 78% 90%, 69% 89%, 64% 97%, 56% 93%, 50% 100%, 44% 93%, 36% 97%, 31% 89%, 22% 90%, 19% 81%, 10% 78%, 11% 69%, 3% 64%, 7% 56%, 0% 50%, 7% 44%, 3% 36%, 11% 31%, 10% 22%, 19% 19%, 22% 10%, 31% 11%, 36% 3%, 44% 7%)' }}
+        >
+          <div className="absolute inset-2 rounded-full border border-white/20" />
+          <div className="absolute inset-x-4 top-3 h-8 rounded-full bg-white/18 blur-md" />
+          {achievement.isUnlocked ? (
+            <Icon className={cn('relative drop-shadow-sm', compact ? 'size-8' : 'size-11')} />
+          ) : (
+            <Lock className={cn('relative', compact ? 'size-7' : 'size-9')} />
+          )}
+        </div>
+      )}
       <div className={cn('mx-auto mt-2', compact ? 'max-w-24' : 'max-w-32')}>
         <p className={cn('font-black leading-tight text-foreground', compact ? 'text-xs' : 'text-sm')}>{achievement.title}</p>
         <p className={cn('mt-0.5 font-extrabold uppercase leading-tight text-muted-foreground', compact ? 'text-[9px]' : 'text-[10px]')}>{label}</p>

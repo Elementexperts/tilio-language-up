@@ -9,7 +9,7 @@ import { LessonMap } from '@/components/lesson-map'
 import { useAppStore } from '@/lib/store'
 import { useTelegram } from '@/hooks/use-telegram'
 import { useHasMounted } from '@/hooks/use-has-mounted'
-import { lessonsData, getNextLesson } from '@/lib/data/lessons'
+import { courseOptions, getCourseOption, getLessonsForCourse, getNextLesson } from '@/lib/data/lessons'
 import { getXpProgress, getXpToNextLevel } from '@/lib/types'
 import { isPlusActive } from '@/lib/plus'
 import { cn } from '@/lib/utils'
@@ -19,12 +19,17 @@ export function HomeScreen() {
   const user = useAppStore((state) => state.user)
   const dailyChallenges = useAppStore((state) => state.dailyChallenges)
   const setScreen = useAppStore((state) => state.setScreen)
+  const setSelectedCourse = useAppStore((state) => state.setSelectedCourse)
   const canClaimChest = useAppStore((state) => state.canClaimChest)
   const { hapticFeedback } = useTelegram()
   const hasMounted = useHasMounted()
 
-  const completedCount = user?.completedLessons.length || 0
-  const totalLessons = lessonsData.length
+  const selectedCourse = user?.selectedCourse ?? 'uz-en'
+  const activeCourse = getCourseOption(selectedCourse)
+  const courseLessons = getLessonsForCourse(selectedCourse)
+  const courseCompletedLessons = user?.courseProgress?.[selectedCourse]?.completedLessons ?? user?.completedLessons ?? []
+  const completedCount = courseCompletedLessons.length
+  const totalLessons = courseLessons.length
   const progressPercent = (completedCount / totalLessons) * 100
 
   const activeChallenge = useMemo(() => {
@@ -35,16 +40,20 @@ export function HomeScreen() {
 
   const nextLesson = useMemo(() => {
     if (!user) return null
-    return getNextLesson(user.completedLessons) ?? lessonsData[0]
-  }, [user])
+    return getNextLesson(courseCompletedLessons, selectedCourse) ?? courseLessons[0]
+  }, [courseCompletedLessons, courseLessons, selectedCourse, user])
 
   const motivationalMessage = useMemo(() => {
     if (!user) return ''
     if (user.streak >= 30) return 'Afsona darajasidasiz. Keep the flame alive.'
     if (user.streak >= 7) return 'A full week of momentum. Beautiful work.'
     if (user.streak >= 3) return 'You are building a real habit now.'
+    if (selectedCourse === 'uz-ko') return 'Bugun bitta koreyscha ibora. Ertaga aniqroq talaffuz.'
+    if (selectedCourse === 'uz-ru') return 'Bugun bitta ruscha qadam. Ertaga osonroq gap.'
+    if (selectedCourse === 'uz-ar') return 'Bugun bitta arabcha so‘z. Ertaga kengroq dunyo.'
+    if (selectedCourse === 'uz-de') return 'Bugun bitta nemischa mashq. Ertaga dadilroq javob.'
     return 'One tiny lesson today. A bigger voice tomorrow.'
-  }, [user])
+  }, [selectedCourse, user])
 
   const getGreeting = () => {
     if (!hasMounted) return 'Welcome back'
@@ -93,10 +102,18 @@ export function HomeScreen() {
             <div className="min-w-0 flex-1">
               <div className="mb-3 inline-flex items-center gap-1.5 rounded-full bg-white/75 px-3 py-1 text-xs font-extrabold text-emerald-800 shadow-sm">
                 <Sparkles className="size-3.5 text-accent" />
-                Tilio Daily
+                {activeCourse.badge} daily path
               </div>
               <h1 className="text-3xl font-black leading-[1.02] tracking-normal text-emerald-950">
-                O&apos;rgan. Mashq qil. So&apos;zla.
+                {selectedCourse === 'uz-ko'
+                  ? 'Koreyscha tingla. O‘qi. So‘zla.'
+                  : selectedCourse === 'uz-ru'
+                    ? 'Ruscha o‘qi. Tingla. Gapir.'
+                    : selectedCourse === 'uz-ar'
+                      ? 'Arabcha o‘qi. Eshit. Ayta ol.'
+                      : selectedCourse === 'uz-de'
+                        ? 'Nemischa tingla. O‘qi. Gapir.'
+                        : 'O‘rgan. Mashq qil. So‘zla.'}
               </h1>
               <p className="mt-3 text-sm font-medium leading-5 text-emerald-900/75">{motivationalMessage}</p>
             </div>
@@ -120,6 +137,40 @@ export function HomeScreen() {
           <MetricCard label="Level" value={user.userLevel} icon={<Zap className="size-5" />} />
           <MetricCard label="Streak" value={user.streak} icon={<Flame className="size-5" />} tone="orange" />
           <MetricCard label="Feathers" value={user.feathers} icon={<Feather className="size-5" />} />
+        </section>
+
+        <section className="tilio-card mt-4 rounded-[1.75rem] p-4">
+          <div className="mb-3 flex items-center justify-between gap-3">
+            <div>
+              <p className="text-xs font-extrabold uppercase tracking-[0.16em] text-primary">5 ta til</p>
+              <h2 className="text-lg font-black">Til yo‘nalishini tanlang</h2>
+            </div>
+            <Sparkles className="size-5 text-accent" />
+          </div>
+          <div className="grid grid-cols-5 gap-2">
+            {courseOptions.map((course) => {
+              const selected = course.id === selectedCourse
+              const progress = user.courseProgress?.[course.id]?.completedLessons?.length ?? (course.id === 'uz-en' ? user.completedLessons.length : 0)
+              return (
+                <button
+                  key={course.id}
+                  type="button"
+                  onClick={() => {
+                    hapticFeedback('light')
+                    setSelectedCourse(course.id)
+                  }}
+                  className={cn(
+                    'tilio-pressed rounded-2xl border px-2 py-3 text-center shadow-sm transition-all',
+                    selected ? 'border-primary bg-primary text-primary-foreground shadow-lg shadow-primary/20' : 'border-emerald-100 bg-white/75 text-emerald-950',
+                  )}
+                >
+                  <span className="block text-sm font-black">{course.badge}</span>
+                  <span className={cn('mt-1 block text-[10px] font-bold', selected ? 'text-white/80' : 'text-muted-foreground')}>{progress}/{getLessonsForCourse(course.id).length}</span>
+                </button>
+              )
+            })}
+          </div>
+          <p className="mt-3 text-xs font-semibold text-muted-foreground">{activeCourse.descriptionUz}</p>
         </section>
 
         <section className="tilio-card mt-4 rounded-[1.75rem] p-4">
@@ -205,7 +256,7 @@ export function HomeScreen() {
             </div>
             <button
               type="button"
-              onClick={() => setScreen('upgrade')}
+              onClick={() => setScreen('plus')}
               className="tilio-pressed flex size-11 items-center justify-center rounded-2xl bg-amber-100 text-amber-800"
               aria-label="Open Tilio Plus"
             >
@@ -256,9 +307,10 @@ export function HomeScreen() {
 
       <nav className="fixed inset-x-0 bottom-0 z-30 safe-area-bottom">
         <div className="tilio-container px-4 pb-3">
-          <div className="grid grid-cols-5 gap-1 rounded-[1.7rem] border border-white/70 bg-white/85 p-2 shadow-2xl shadow-emerald-950/12 backdrop-blur-xl">
+          <div className="grid grid-cols-6 gap-1 rounded-[1.7rem] border border-white/70 bg-white/85 p-2 shadow-2xl shadow-emerald-950/12 backdrop-blur-xl">
             <NavButton icon={<Home className="size-5" />} label="Learn" active onClick={() => hapticFeedback('light')} />
             <NavButton icon={<Trophy className="size-5" />} label="Badges" onClick={() => setScreen('achievements')} />
+            <NavButton icon={<Crown className="size-5" />} label="Plus" onClick={() => setScreen('plus')} />
             <NavButton icon={<Users className="size-5" />} label="Invite" onClick={() => setScreen('referral')} />
             <NavButton icon={<ShoppingBag className="size-5" />} label="Store" onClick={() => setScreen('store')} />
             <NavButton icon={<UserRound className="size-5" />} label="Profile" onClick={() => setScreen('profile')} />

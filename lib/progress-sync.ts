@@ -6,7 +6,7 @@ export function buildProgressSnapshot(params: {
   dailyChallenges: DailyChallenge[]
   currentLessonId: string | null
   currentExerciseIndex: number
-  exerciseAnswers: { correct: number; incorrect: number }
+  exerciseAnswers: { correct: number; incorrect: number; missedWordIds?: string[] }
 }): CloudProgressSnapshot {
   return {
     ...params,
@@ -43,6 +43,8 @@ export async function saveCloudProgress(session: CloudAuthSession, snapshot: Clo
       last_chest_claim: snapshot.user.lastChestClaim,
       settings: {
         learningPath: snapshot.user.learningPath,
+        selectedCourse: snapshot.user.selectedCourse,
+        courseProgress: snapshot.user.courseProgress,
         level: snapshot.user.level,
         dailyGoal: snapshot.user.dailyGoal,
         avatarStyle: snapshot.user.avatarStyle,
@@ -53,6 +55,7 @@ export async function saveCloudProgress(session: CloudAuthSession, snapshot: Clo
         plusSource: snapshot.user.plusSource ?? null,
         plusUpdatedAt: snapshot.user.plusUpdatedAt ?? null,
         plusChatUsage: snapshot.user.plusChatUsage ?? null,
+        activityLog: snapshot.user.activityLog ?? {},
         soundEnabled: true,
       },
       updated_at: snapshot.updatedAt,

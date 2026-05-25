@@ -4,9 +4,11 @@ import { useEffect } from 'react'
 import { Card } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Progress } from '@/components/ui/progress'
+import { AchievementBadge } from '@/components/achievement-badge'
 import { useAppStore } from '@/lib/store'
 import { useTelegram } from '@/hooks/use-telegram'
-import { lessonsData, achievementsData } from '@/lib/data/lessons'
+import { courseOptions, getCourseOption, getLessonsForCourse } from '@/lib/data/lessons'
+import { getUserAchievementProgress } from '@/lib/achievements'
 import { getPlusDaysRemaining, isPlusActive } from '@/lib/plus'
 import { cn } from '@/lib/utils'
 import { logoutCloudAccount } from '@/lib/auth'
@@ -23,7 +25,6 @@ import {
   ChevronRight,
   LogOut,
   Feather,
-  Sparkles,
   Languages,
   Cloud,
   Crown,
@@ -39,6 +40,7 @@ export function ProfileScreen() {
   const setCloudSession = useAppStore((state) => state.setCloudSession)
   const setAuthProfile = useAppStore((state) => state.setAuthProfile)
   const updateUser = useAppStore((state) => state.updateUser)
+  const setSelectedCourse = useAppStore((state) => state.setSelectedCourse)
   const { hapticFeedback, showBackButton, hideBackButton } = useTelegram()
 
   useEffect(() => {
@@ -51,23 +53,20 @@ export function ProfileScreen() {
 
   if (!user) return null
 
-  const completedLessons = user.completedLessons.length
-  const totalLessons = lessonsData.length
+  const selectedCourse = user.selectedCourse ?? 'uz-en'
+  const activeCourse = getCourseOption(selectedCourse)
+  const courseLessons = getLessonsForCourse(selectedCourse)
+  const courseCompletedLessons = user.courseProgress?.[selectedCourse]?.completedLessons ?? user.completedLessons
+  const completedLessons = courseCompletedLessons.length
+  const totalLessons = courseLessons.length
   const progressPercent = (completedLessons / totalLessons) * 100
   const avatarSrc = user.photoUrl ?? (user.avatarStyle === 'girl' ? '/avatars/tilio-girl-avatar.png' : '/avatars/tilio-boy-avatar.png')
   const plusActive = isPlusActive(user)
   const plusDaysRemaining = getPlusDaysRemaining(user)
 
-  const unlockedAchievements = achievementsData.filter((a) => {
-    switch (a.requirement.type) {
-      case 'xp': return user.xp >= a.requirement.value
-      case 'streak': return user.streak >= a.requirement.value
-      case 'lessons': return user.completedLessons.length >= a.requirement.value
-      case 'referrals': return user.referralCount >= a.requirement.value
-      default: return false
-    }
-  }).length
-  const unlockedBadges = achievementsData.filter((a) => user.achievements.includes(a.id))
+  const achievementProgress = getUserAchievementProgress(user, selectedCourse)
+  const unlockedAchievements = achievementProgress.filter((a) => a.isUnlocked).length
+  const unlockedBadges = achievementProgress.filter((a) => a.isUnlocked)
 
   const joinDate = (() => {
     const parsed = new Date(user.joinedAt)
@@ -243,10 +242,8 @@ export function ProfileScreen() {
           {unlockedBadges.length > 0 ? (
             <div className="grid grid-cols-2 gap-2">
               {unlockedBadges.slice(0, 6).map((badge) => (
-                <div key={badge.id} className="rounded-xl bg-primary/10 border border-primary/20 px-3 py-2">
-                  <Sparkles className="mb-1 size-4 text-accent" />
-                  <p className="text-sm font-semibold">{badge.title}</p>
-                  <p className="text-xs text-muted-foreground">Ochilgan</p>
+                <div key={badge.id} className="rounded-xl border border-primary/10 bg-white/70 px-2 py-3">
+                  <AchievementBadge achievement={badge} compact />
                 </div>
               ))}
             </div>
@@ -262,6 +259,34 @@ export function ProfileScreen() {
           </p>
           <div className="mt-3 rounded-2xl bg-emerald-50/80 p-3 text-sm font-semibold text-emerald-900">
             Maqsad: {user.dailyGoal} daqiqa / kun. Davom eting, {user.firstName}!
+          </div>
+        </Card>
+
+        <Card className="tilio-card rounded-[1.75rem] p-4 mb-6">
+          <h3 className="font-black text-foreground mb-2">Til kursi</h3>
+          <p className="mb-3 text-sm font-semibold text-muted-foreground">{activeCourse.descriptionUz}</p>
+          <div className="grid grid-cols-5 gap-2">
+            {courseOptions.map((course) => {
+              const selected = course.id === selectedCourse
+              const progress = user.courseProgress?.[course.id]?.completedLessons?.length ?? (course.id === 'uz-en' ? user.completedLessons.length : 0)
+              return (
+                <button
+                  key={course.id}
+                  type="button"
+                  onClick={() => {
+                    hapticFeedback('light')
+                    setSelectedCourse(course.id)
+                  }}
+                  className={cn(
+                    'tilio-pressed rounded-2xl border px-2 py-3 text-center shadow-sm transition-all',
+                    selected ? 'border-primary bg-primary text-primary-foreground shadow-lg shadow-primary/20' : 'border-emerald-100 bg-white/75 text-emerald-950',
+                  )}
+                >
+                  <span className="block text-sm font-black">{course.badge}</span>
+                  <span className={cn('mt-1 block text-[10px] font-bold', selected ? 'text-white/80' : 'text-muted-foreground')}>{progress}/{getLessonsForCourse(course.id).length}</span>
+                </button>
+              )
+            })}
           </div>
         </Card>
 

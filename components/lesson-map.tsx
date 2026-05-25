@@ -6,7 +6,7 @@ import { getLessonsForCourse, isLessonUnlocked } from '@/lib/data/lessons'
 import { useTelegram } from '@/hooks/use-telegram'
 import { cn } from '@/lib/utils'
 import { BookOpen, Briefcase, Check, Clock, Footprints, GraduationCap, Hash, Heart, Home, Languages, Lock, Map, MessageCircle, Palette, PenLine, Play, Star, Sun, Utensils } from 'lucide-react'
-import type { Lesson } from '@/lib/types'
+import type { CourseId, Lesson } from '@/lib/types'
 
 const categoryIcons: Record<string, React.ElementType> = {
   basics: BookOpen,
@@ -62,12 +62,20 @@ const categoryColors: Record<string, string> = {
   'ko-daily-2': 'bg-lime-600',
 }
 
+function normalizeCourseId(courseId?: string): CourseId {
+  if (courseId === 'uz-ko') return 'uz-ko'
+  if (courseId === 'uz-ru') return 'uz-ru'
+  if (courseId === 'uz-ar') return 'uz-ar'
+  if (courseId === 'uz-de') return 'uz-de'
+  return 'uz-en'
+}
+
 export function LessonMap() {
   const user = useAppStore((state) => state.user)
   const startLesson = useAppStore((state) => state.startLesson)
   const { hapticFeedback } = useTelegram()
 
-  const selectedCourse = user?.selectedCourse ?? user?.learningPath ?? 'uz-en'
+  const selectedCourse = normalizeCourseId(user?.selectedCourse ?? user?.learningPath)
   const lessons = getLessonsForCourse(selectedCourse)
   const completedLessons = user?.courseProgress?.[selectedCourse]?.completedLessons ?? user?.completedLessons ?? []
 

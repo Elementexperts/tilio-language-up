@@ -4,24 +4,14 @@ import { useEffect, useMemo } from 'react'
 import { Card } from '@/components/ui/card'
 import { Progress } from '@/components/ui/progress'
 import { PlusLockedCard } from '@/components/plus-locked-card'
+import { AchievementBadge } from '@/components/achievement-badge'
 import { useAppStore } from '@/lib/store'
 import { useTelegram } from '@/hooks/use-telegram'
-import { achievementsData } from '@/lib/data/lessons'
+import { getCourseOption } from '@/lib/data/lessons'
+import { getUserAchievementProgress } from '@/lib/achievements'
 import { isPlusActive } from '@/lib/plus'
 import { cn } from '@/lib/utils'
-import { ArrowLeft, BarChart3, Book, Crown, Feather, Flame, GraduationCap, Lock, Medal, PartyPopper, Star, Trophy, Users, Zap } from 'lucide-react'
-
-const iconMap: Record<string, React.ElementType> = {
-  star: Star,
-  zap: Zap,
-  flame: Flame,
-  book: Book,
-  trophy: Trophy,
-  medal: Medal,
-  crown: Crown,
-  users: Users,
-  'graduation-cap': GraduationCap,
-}
+import { ArrowLeft, BarChart3, Feather, PartyPopper, Star, Trophy } from 'lucide-react'
 
 export function AchievementsScreen() {
   const user = useAppStore((state) => state.user)
@@ -38,37 +28,7 @@ export function AchievementsScreen() {
 
   const achievements = useMemo(() => {
     if (!user) return []
-    return achievementsData.map((achievement) => {
-      let current = 0
-      const target = achievement.requirement.value
-      switch (achievement.requirement.type) {
-        case 'xp':
-          current = user.xp
-          break
-        case 'streak':
-          current = user.streak
-          break
-        case 'lessons':
-          current = user.completedLessons.length
-          break
-        case 'referrals':
-          current = user.referralCount
-          break
-        case 'feathers':
-          current = user.feathers
-          break
-        case 'level':
-          current = user.userLevel
-          break
-      }
-
-      return {
-        ...achievement,
-        current,
-        progress: Math.min((current / target) * 100, 100),
-        isUnlocked: current >= target,
-      }
-    })
+    return getUserAchievementProgress(user, user.selectedCourse ?? 'uz-en')
   }, [user])
 
   if (!user) return null
@@ -76,6 +36,7 @@ export function AchievementsScreen() {
   const unlockedCount = achievements.filter((achievement) => achievement.isUnlocked).length
   const totalXpFromAchievements = achievements.filter((achievement) => achievement.isUnlocked).reduce((sum, achievement) => sum + achievement.xpReward, 0)
   const plusActive = isPlusActive(user)
+  const activeCourse = getCourseOption(user.selectedCourse ?? 'uz-en')
 
   return (
     <div className="tilio-shell flex flex-col">
@@ -94,7 +55,7 @@ export function AchievementsScreen() {
             </button>
             <div className="min-w-0 flex-1">
               <h1 className="text-xl font-black">Achievements</h1>
-              <p className="text-sm font-semibold text-muted-foreground">{unlockedCount}/{achievements.length} unlocked</p>
+              <p className="text-sm font-semibold text-muted-foreground">{activeCourse.badge} path В· {unlockedCount}/{achievements.length} unlocked</p>
             </div>
             <div className="flex items-center gap-1.5 rounded-full bg-accent/20 px-3 py-1.5">
               <Trophy className="size-4 text-accent" />
@@ -141,9 +102,8 @@ export function AchievementsScreen() {
 
         <div className="grid grid-cols-2 gap-3">
           {achievements.map((achievement) => {
-            const IconComponent = iconMap[achievement.icon] || Star
-            const title = user.learningPath === 'uz-en' ? achievement.title : achievement.titleUz
-            const description = user.learningPath === 'uz-en' ? achievement.description : achievement.descriptionUz
+            const title = achievement.titleUz || achievement.title
+            const description = achievement.descriptionUz || achievement.description
 
             return (
               <Card
@@ -153,9 +113,7 @@ export function AchievementsScreen() {
                   achievement.isUnlocked ? 'border-primary/20 bg-white/90 shadow-xl shadow-primary/10' : 'border-white/70 bg-white/55 opacity-85',
                 )}
               >
-                <div className={cn('mb-3 flex size-14 items-center justify-center rounded-2xl', achievement.isUnlocked ? 'bg-primary text-primary-foreground shadow-lg shadow-primary/25' : 'bg-muted text-muted-foreground')}>
-                  {achievement.isUnlocked ? <IconComponent className="size-7" /> : <Lock className="size-6" />}
-                </div>
+                <AchievementBadge achievement={achievement} compact showProgress />
                 <h3 className={cn('font-black leading-tight', achievement.isUnlocked ? 'text-foreground' : 'text-muted-foreground')}>{title}</h3>
                 <p className="mt-2 min-h-10 text-xs font-semibold leading-4 text-muted-foreground">{description}</p>
                 <div className="mt-3 flex flex-wrap gap-1.5 text-xs font-black">

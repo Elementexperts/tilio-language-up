@@ -106,7 +106,7 @@ export function PlusScreen() {
             <img src="/images/tilio-logo-1.png" alt="Tilio Plus logo" className="size-28 shrink-0 rounded-[1.6rem] object-cover shadow-2xl shadow-lime-300/20 ring-1 ring-white/25" />
           </div>
           {!plusActive && (
-            <Button className="relative z-10 mt-5 h-12 w-full rounded-2xl bg-white text-emerald-950 hover:bg-lime-50" onClick={() => setScreen('store')}>
+            <Button className="relative z-10 mt-5 h-12 w-full rounded-2xl bg-white text-emerald-950 hover:bg-lime-50" onClick={() => setScreen('upgrade')}>
               <Crown className="size-5" />
               Unlock Tilio Plus
             </Button>

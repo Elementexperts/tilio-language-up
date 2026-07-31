@@ -15,7 +15,7 @@ export function SplashScreen() {
     if (!isReady) return
 
     const timer = setTimeout(() => {
-      if (cloudSession && storedUser) {
+      if (storedUser) {
         setScreen('home')
       } else if (cloudSession) {
         setScreen('onboarding')

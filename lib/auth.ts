@@ -94,6 +94,15 @@ async function upsertPublicUser(accessToken: string, authUser: SupabaseAuthUser)
   return profile
 }
 
+async function getCloudProfile(accessToken: string, authUser: SupabaseAuthUser) {
+  try {
+    return await upsertPublicUser(accessToken, authUser)
+  } catch (error) {
+    console.warn('Cloud profile sync failed after sign-in. Continuing with auth profile only.', error)
+    return authUserToProfile(authUser)
+  }
+}
+
 async function supabaseAuthRequest<T>(path: string, body: Record<string, unknown>) {
   const { url, anonKey } = getSupabaseConfig()
   const response = await fetch(`${url}${path}`, {
@@ -117,7 +126,7 @@ export async function signInWithEmail(email: string, password: string): Promise<
   if (!isSupabaseConfigured) throw new Error('Supabase is not configured.')
   const result = await supabaseAuthRequest<SupabaseAuthSessionResponse>('/auth/v1/token?grant_type=password', { email, password })
   const session = createSessionFromAuthResponse(result)
-  const user = await upsertPublicUser(session.accessToken, result.user!)
+  const user = await getCloudProfile(session.accessToken, result.user!)
   cacheCloudSession(session)
   return { session, user }
 }
@@ -132,7 +141,7 @@ export async function signUpWithEmail(email: string, password: string, firstName
     },
   })
   const session = createSessionFromAuthResponse(result)
-  const user = await upsertPublicUser(session.accessToken, result.user!)
+  const user = await getCloudProfile(session.accessToken, result.user!)
   cacheCloudSession(session)
   return { session, user }
 }
@@ -172,7 +181,7 @@ export async function consumeOAuthSessionFromUrl(): Promise<TelegramAuthResult |
     expiresAt: expiresIn ? Math.floor(Date.now() / 1000) + expiresIn : undefined,
     userId: authUser.id,
   }
-  const user = await upsertPublicUser(accessToken, authUser)
+  const user = await getCloudProfile(accessToken, authUser)
   cacheCloudSession(session)
   window.history.replaceState(null, '', `${window.location.pathname}${window.location.search}`)
   return { session, user }

@@ -39,7 +39,7 @@ export function AuthScreen() {
     if (existingUser) {
       updateUser({
         ...result.user,
-        id: existingUser.id || result.session.userId,
+        id: result.session.userId,
         cloudUserId: result.session.userId,
       })
       setScreen('home')

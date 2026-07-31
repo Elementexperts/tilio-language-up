@@ -56,11 +56,11 @@ export function AccountScreen() {
       <main className="tilio-container flex-1 overflow-y-auto px-4 py-5 pb-24">
         <Card className="tilio-card rounded-[2rem] p-5 text-center">
           <SparrowMascot branded size="md" mood={cloudSession ? 'celebrating' : 'thinking'} className="mx-auto" />
-          <h2 className="mt-3 text-2xl font-black">{cloudSession ? 'Cloud account active' : 'Sign in required'}</h2>
+          <h2 className="mt-3 text-2xl font-black">{cloudSession ? 'Cloud account active' : 'Guest mode active'}</h2>
           <p className="mt-2 text-sm font-semibold text-muted-foreground">
             {cloudSession
               ? 'Your XP, streaks, feathers, lessons, achievements, and settings are saved to the cloud.'
-              : 'Guest progress is paused. Sign in with Telegram, Google, or email to continue learning.'}
+              : 'Your progress is saved on this device. Sign in with Telegram, Google, or email when you want cloud backup.'}
           </p>
           <div className="mt-4 rounded-2xl bg-emerald-50/80 p-3 text-left">
             <p className="text-sm font-black">{user?.firstName ?? 'Learner'}</p>

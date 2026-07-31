@@ -62,7 +62,7 @@ export default function TilioApp() {
     if (!isReady) return
     if (currentScreen === 'splash' || currentScreen === 'auth') return
 
-    if (!cloudSession) {
+    if (!cloudSession && !hasUser) {
       setScreen('auth')
       return
     }

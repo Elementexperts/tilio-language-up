@@ -12,7 +12,7 @@ import { isSupabaseConfigured } from '@/lib/supabase'
 import { cn } from '@/lib/utils'
 
 type AuthMode = 'signin' | 'signup'
-type LoadingProvider = 'telegram' | 'google' | 'email' | null
+type LoadingProvider = 'telegram' | 'google' | 'email' | 'guest' | null
 
 export function AuthScreen() {
   const [mode, setMode] = useState<AuthMode>('signin')
@@ -80,8 +80,25 @@ export function AuthScreen() {
   const subtitle = useMemo(() => (
     mode === 'signin'
       ? 'Hisobingizga kiring va progressni davom ettiring.'
-      : 'Yangi hisob oching. Mehmon rejimi hozircha yopiq.'
+      : 'Yangi hisob oching yoki mehmon sifatida davom eting.'
   ), [mode])
+
+  const handleGuest = () => {
+    setLoadingProvider('guest')
+    setMessage('')
+    setCloudSession(null)
+    setAuthProfile(null)
+    hapticFeedback('light')
+
+    if (existingUser) {
+      setScreen('home')
+      setLoadingProvider(null)
+      return
+    }
+
+    setScreen('onboarding')
+    setLoadingProvider(null)
+  }
 
   const handleTelegram = async () => {
     if (!telegramAvailable) {
@@ -261,6 +278,23 @@ export function AuthScreen() {
             </Button>
           </form>
 
+          <div className="my-5 flex items-center gap-3">
+            <div className="h-px flex-1 bg-emerald-100" />
+            <span className="text-xs font-black uppercase tracking-[0.16em] text-muted-foreground">yoki</span>
+            <div className="h-px flex-1 bg-emerald-100" />
+          </div>
+
+          <Button
+            type="button"
+            onClick={handleGuest}
+            disabled={isBusy}
+            variant="outline"
+            className="h-14 w-full rounded-2xl border-emerald-100 bg-emerald-50/70 text-base font-black text-primary shadow-sm"
+          >
+            {loadingProvider === 'guest' ? <Loader2 className="mr-2 size-5 animate-spin" /> : <UserRound className="mr-2 size-5" />}
+            Mehmon sifatida davom etish
+          </Button>
+
           {message && (
             <div className="mt-4 flex items-start gap-2 rounded-2xl bg-amber-50 p-3 text-xs font-bold text-amber-800">
               <AlertCircle className="mt-0.5 size-4 shrink-0" />
@@ -276,8 +310,8 @@ export function AuthScreen() {
                 <Cloud className="size-5" />
               </div>
               <div>
-                <p className="text-sm font-black">Mehmon rejimi to'xtatilgan</p>
-                <p className="text-xs font-semibold text-muted-foreground">XP, streak, feathers va Plus xaridlar akkauntga bog'lanadi.</p>
+                <p className="text-sm font-black">Mehmon rejimi mavjud</p>
+                <p className="text-xs font-semibold text-muted-foreground">Progress shu qurilmada saqlanadi. Cloud sync uchun keyinroq hisobga kirishingiz mumkin.</p>
               </div>
             </div>
           </Card>

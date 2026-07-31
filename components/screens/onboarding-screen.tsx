@@ -108,10 +108,6 @@ export function OnboardingScreen() {
     if (step === 'welcome') {
       setStep('account')
     } else if (step === 'account') {
-      if (!cloudSession) {
-        setScreen('auth')
-        return
-      }
       setStep('avatar')
     } else if (step === 'avatar') {
       setStep('path')
@@ -126,14 +122,12 @@ export function OnboardingScreen() {
 
   const completeOnboarding = () => {
     hapticFeedback('success')
-    if (!cloudSession) {
-      setScreen('auth')
-      return
-    }
+    const localUserId = `guest-${Date.now()}`
+    const today = new Date().toISOString().split('T')[0]
 
     const newUser: User = {
-      id: cloudSession.userId,
-      cloudUserId: cloudSession.userId,
+      id: cloudSession?.userId ?? localUserId,
+      cloudUserId: cloudSession?.userId,
       username: authProfile?.username || telegramUser?.username || 'learner',
       firstName: authProfile?.firstName || telegramUser?.first_name || (selectedAvatar === 'girl' ? 'Aziza' : 'Azizbek'),
       lastName: authProfile?.lastName || telegramUser?.last_name,
@@ -149,7 +143,7 @@ export function OnboardingScreen() {
       streak: 0,
       maxStreak: 0,
       streakFreezes: 0,
-      lastActiveDate: new Date().toISOString().split('T')[0],
+      lastActiveDate: today,
       completedLessons: [],
       achievements: [],
       courseProgress: {
@@ -175,7 +169,7 @@ export function OnboardingScreen() {
       plusExpiresAt: authProfile?.plusExpiresAt ?? null,
       plusSource: authProfile?.plusSource ?? null,
       plusUpdatedAt: authProfile?.plusUpdatedAt ?? null,
-      plusChatUsage: { date: new Date().toISOString().split('T')[0], count: 0 },
+      plusChatUsage: { date: today, count: 0 },
       lastSyncedAt: null,
     }
 
@@ -190,7 +184,7 @@ export function OnboardingScreen() {
       case 'avatar':
         return true
       case 'account':
-        return Boolean(cloudSession)
+        return true
       case 'path':
         return selectedPath !== null
       case 'level':
@@ -252,19 +246,21 @@ export function OnboardingScreen() {
               <Cloud className="size-11" />
             </div>
             <SparrowMascot size="md" mood="celebrating" branded />
-            <h2 className="mt-5 text-2xl font-black text-foreground">{cloudSession ? 'Hisob tayyor' : 'Avval hisobga kiring'}</h2>
+            <h2 className="mt-5 text-2xl font-black text-foreground">{cloudSession ? 'Hisob tayyor' : 'Mehmon profili tayyor'}</h2>
             <p className="mt-3 max-w-xs text-muted-foreground">
               {cloudSession
                 ? 'XP, streak, patlar, darslar va nishonlar bulutda saqlanadi.'
-                : 'Mehmon rejimi yopiq. Davom etish uchun Telegram, Google yoki email orqali kiring.'}
+                : 'Progress shu qurilmada saqlanadi. Keyinroq cloud sync uchun hisobga kirishingiz mumkin.'}
             </p>
             <div className="mt-6 grid w-full gap-3">
               <Card className="rounded-[1.35rem] border-emerald-100 bg-white/85 p-4 text-left shadow-sm">
                 <div className="flex items-center gap-3">
                   <ShieldCheck className="size-5 text-primary" />
                   <div>
-                    <p className="font-black">Secure account sign-in</p>
-                    <p className="text-xs font-semibold text-muted-foreground">Telegram, Google, and email accounts are supported.</p>
+                    <p className="font-black">{cloudSession ? 'Secure account sign-in' : 'Local guest progress'}</p>
+                    <p className="text-xs font-semibold text-muted-foreground">
+                      {cloudSession ? 'Telegram, Google, and email accounts are supported.' : 'Lessons, XP, and streaks stay available on this device.'}
+                    </p>
                   </div>
                 </div>
               </Card>
@@ -272,13 +268,15 @@ export function OnboardingScreen() {
                 <div className="flex items-center gap-3">
                   <Cloud className="size-5 text-primary" />
                   <div>
-                    <p className="font-black">Continue anywhere</p>
-                    <p className="text-xs font-semibold text-muted-foreground">Ready for future Android and iOS apps.</p>
+                    <p className="font-black">{cloudSession ? 'Continue anywhere' : 'Cloud sync later'}</p>
+                    <p className="text-xs font-semibold text-muted-foreground">
+                      {cloudSession ? 'Ready for future Android and iOS apps.' : 'Sign in from the account screen when you want online backup.'}
+                    </p>
                   </div>
                 </div>
               </Card>
               {!cloudSession && (
-                <Button onClick={() => setScreen('auth')} className="tilio-button h-12 rounded-2xl font-black">
+                <Button variant="outline" onClick={() => setScreen('auth')} className="h-12 rounded-2xl border-emerald-100 bg-white font-black text-primary">
                   Hisobga kirish
                   <ArrowRight className="ml-2 size-4" />
                 </Button>

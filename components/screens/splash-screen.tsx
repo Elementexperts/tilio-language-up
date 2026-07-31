@@ -12,8 +12,6 @@ export function SplashScreen() {
   const cloudSession = useAppStore((state) => state.cloudSession)
 
   useEffect(() => {
-    if (!isReady) return
-
     const timer = setTimeout(() => {
       if (storedUser) {
         setScreen('home')
@@ -22,7 +20,7 @@ export function SplashScreen() {
       } else {
         setScreen('auth')
       }
-    }, 2000)
+    }, isReady ? 2000 : 2500)
 
     return () => clearTimeout(timer)
   }, [cloudSession, isReady, storedUser, setScreen])

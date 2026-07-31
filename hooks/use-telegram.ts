@@ -85,16 +85,19 @@ export function useTelegram() {
 
   useEffect(() => {
     const tg = window.Telegram?.WebApp
-    
-    if (tg) {
+
+    if (tg?.initData) {
       setWebApp(tg)
-      setUser(tg.initDataUnsafe.user || null)
+      setUser(tg.initDataUnsafe?.user || null)
       setIsTelegramEnv(true)
-      tg.ready()
-      tg.expand()
+      try {
+        tg.ready?.()
+        tg.expand?.()
+      } catch (error) {
+        console.warn('Telegram WebApp SDK could not initialize fully.', error)
+      }
       setIsReady(true)
     } else {
-      // Not in Telegram environment, use mock data for development
       setIsTelegramEnv(false)
       setIsReady(true)
       setUser({

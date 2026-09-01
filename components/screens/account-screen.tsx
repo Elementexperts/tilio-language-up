@@ -8,6 +8,7 @@ import { SparrowMascot } from '@/components/sparrow-mascot'
 import { useAppStore } from '@/lib/store'
 import { useTelegram } from '@/hooks/use-telegram'
 import { logoutCloudAccount } from '@/lib/auth'
+import { isAuthRequired } from '@/lib/auth-mode'
 
 export function AccountScreen() {
   const user = useAppStore((state) => state.user)
@@ -33,8 +34,12 @@ export function AccountScreen() {
     logoutCloudAccount()
     setCloudSession(null)
     setAuthProfile(null)
-    setUser(null)
-    setScreen('auth')
+    if (isAuthRequired) {
+      setUser(null)
+      setScreen('auth')
+    } else {
+      setScreen(user ? 'profile' : 'onboarding')
+    }
   }
 
   return (
@@ -76,7 +81,7 @@ export function AccountScreen() {
             <div>
               <p className="font-black">Sync status</p>
               <p className="text-sm font-semibold text-muted-foreground">
-                {syncStatus === 'synced' ? 'Saved across devices' : syncStatus === 'saving' ? 'Saving progress...' : syncStatus === 'loading' ? 'Loading cloud progress...' : syncStatus === 'offline' ? 'Using offline cache' : syncStatus === 'error' ? 'Needs attention' : 'Ready'}
+                {!cloudSession ? 'Local progress' : syncStatus === 'synced' ? 'Saved across devices' : syncStatus === 'saving' ? 'Saving progress...' : syncStatus === 'loading' ? 'Loading cloud progress...' : syncStatus === 'offline' ? 'Using offline cache' : syncStatus === 'error' ? 'Needs attention' : 'Cloud ready'}
               </p>
             </div>
           </div>
@@ -97,14 +102,16 @@ export function AccountScreen() {
 
         {!cloudSession && (
           <Button onClick={() => setScreen('auth')} className="mt-6 h-12 w-full rounded-2xl font-black">
-            Sign in to continue
+            Hisobga kirish
           </Button>
         )}
 
-        <Button onClick={handleLogout} variant="outline" className="mt-6 h-12 w-full rounded-2xl border-red-200 text-red-600">
-          <LogOut className="mr-2 size-4" />
-          Log out on this device
-        </Button>
+        {cloudSession && (
+          <Button onClick={handleLogout} variant="outline" className="mt-6 h-12 w-full rounded-2xl border-red-200 text-red-600">
+            <LogOut className="mr-2 size-4" />
+            Log out on this device
+          </Button>
+        )}
       </main>
     </div>
   )

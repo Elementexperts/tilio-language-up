@@ -4,6 +4,7 @@ import { useEffect } from 'react'
 import { SparrowMascot } from '@/components/sparrow-mascot'
 import { useAppStore } from '@/lib/store'
 import { useTelegram } from '@/hooks/use-telegram'
+import { isAuthRequired } from '@/lib/auth-mode'
 
 export function SplashScreen() {
   const { setScreen } = useAppStore()
@@ -17,8 +18,10 @@ export function SplashScreen() {
         setScreen('home')
       } else if (cloudSession) {
         setScreen('onboarding')
-      } else {
+      } else if (isAuthRequired) {
         setScreen('auth')
+      } else {
+        setScreen('onboarding')
       }
     }, isReady ? 2000 : 2500)
 

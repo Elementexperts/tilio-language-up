@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect } from 'react'
+import { useEffect, useState } from 'react'
 import { Card } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Progress } from '@/components/ui/progress'
@@ -11,7 +11,9 @@ import { courseOptions, getCourseOption, getLessonsForCourse } from '@/lib/data/
 import { getUserAchievementProgress } from '@/lib/achievements'
 import { getPlusDaysRemaining, isPlusActive } from '@/lib/plus'
 import { cn } from '@/lib/utils'
-import { logoutCloudAccount } from '@/lib/auth'
+import { logoutCloudAccount, startGoogleSignIn } from '@/lib/auth'
+import { isAuthRequired } from '@/lib/auth-mode'
+import { isSupabaseConfigured } from '@/lib/supabase'
 import { 
   ArrowLeft, 
   Zap, 
@@ -29,10 +31,13 @@ import {
   Cloud,
   Crown,
   ShieldCheck,
+  Chrome,
+  X,
 } from 'lucide-react'
 
 export function ProfileScreen() {
   const user = useAppStore((state) => state.user)
+  const cloudSession = useAppStore((state) => state.cloudSession)
   const isSoundEnabled = useAppStore((state) => state.isSoundEnabled)
   const toggleSound = useAppStore((state) => state.toggleSound)
   const setScreen = useAppStore((state) => state.setScreen)
@@ -42,6 +47,11 @@ export function ProfileScreen() {
   const updateUser = useAppStore((state) => state.updateUser)
   const setSelectedCourse = useAppStore((state) => state.setSelectedCourse)
   const { hapticFeedback, showBackButton, hideBackButton } = useTelegram()
+  const [accountCardDismissed, setAccountCardDismissed] = useState(true)
+
+  useEffect(() => {
+    setAccountCardDismissed(window.localStorage.getItem('tilio-account-card-dismissed') === 'true')
+  }, [])
 
   useEffect(() => {
     showBackButton(() => {
@@ -103,8 +113,12 @@ export function ProfileScreen() {
     logoutCloudAccount()
     setCloudSession(null)
     setAuthProfile(null)
-    setUser(null)
-    setScreen('auth')
+    if (isAuthRequired) {
+      setUser(null)
+      setScreen('auth')
+    } else {
+      setScreen('home')
+    }
   }
 
   const handleLearningPathChange = (learningPath: 'uz-en' | 'en-uz') => {
@@ -161,6 +175,43 @@ export function ProfileScreen() {
             </div>
           </div>
         </div>
+
+        {!cloudSession && !accountCardDismissed && (
+          <Card className="mb-6 rounded-[1.75rem] border-emerald-100 bg-white/90 p-4 shadow-xl shadow-emerald-950/5">
+            <div className="flex items-start gap-3">
+              <Cloud className="mt-1 size-6 shrink-0 text-primary" />
+              <div className="min-w-0 flex-1">
+                <h3 className="font-black">Progressingizni bulutda saqlang</h3>
+                <p className="mt-1 text-sm font-semibold text-muted-foreground">
+                  Hisob yaratib, natijalaringizni boshqa qurilmalarda ham davom ettiring.
+                </p>
+              </div>
+              <button
+                type="button"
+                aria-label="Dismiss account suggestion"
+                className="tilio-pressed flex size-8 shrink-0 items-center justify-center rounded-full bg-emerald-50 text-muted-foreground"
+                onClick={() => {
+                  window.localStorage.setItem('tilio-account-card-dismissed', 'true')
+                  setAccountCardDismissed(true)
+                }}
+              >
+                <X className="size-4" />
+              </button>
+            </div>
+            <div className="mt-4 grid gap-2 sm:grid-cols-2">
+              <Button className="rounded-2xl font-black" onClick={() => setScreen('auth')}>Hisobga kirish</Button>
+              <Button
+                variant="outline"
+                className="rounded-2xl border-emerald-100 bg-white font-black"
+                disabled={!isSupabaseConfigured}
+                onClick={startGoogleSignIn}
+              >
+                <Chrome className="mr-2 size-4" />
+                Google orqali davom etish
+              </Button>
+            </div>
+          </Card>
+        )}
 
         <button
           type="button"
@@ -426,14 +477,16 @@ export function ProfileScreen() {
         </Card>
 
         {/* Logout */}
-        <Button
-          onClick={handleLogout}
-          variant="outline"
-          className="w-full h-12 text-destructive border-destructive/30 hover:bg-destructive/10"
-        >
-          <LogOut className="w-4 h-4 mr-2" />
-          Chiqish
-        </Button>
+        {cloudSession && (
+          <Button
+            onClick={handleLogout}
+            variant="outline"
+            className="w-full h-12 text-destructive border-destructive/30 hover:bg-destructive/10"
+          >
+            <LogOut className="w-4 h-4 mr-2" />
+            Chiqish
+          </Button>
+        )}
       </main>
     </div>
   )

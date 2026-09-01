@@ -99,6 +99,7 @@ export function useProgressSync() {
   useEffect(() => {
     if (!cloudSession) {
       fetchedCloudUserRef.current = null
+      setSyncStatus('idle')
       return
     }
     if (fetchedCloudUserRef.current === cloudSession.userId) return

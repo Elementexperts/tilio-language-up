@@ -1,364 +1,184 @@
 'use client'
 
-import { useMemo } from 'react'
+import { FormEvent, useMemo, useState } from 'react'
+import { BookOpen, Brain, ChevronRight, Crown, Feather, Flame, Gift, Home, MessageCircle, Play, RotateCcw, Send, Target, UserRound, Zap } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Progress } from '@/components/ui/progress'
-import { SparrowMascot } from '@/components/sparrow-mascot'
-import { PlusLockedCard } from '@/components/plus-locked-card'
 import { LessonMap } from '@/components/lesson-map'
+import { SparrowMascot } from '@/components/sparrow-mascot'
 import { useAppStore } from '@/lib/store'
 import { useTelegram } from '@/hooks/use-telegram'
 import { useHasMounted } from '@/hooks/use-has-mounted'
 import { courseOptions, getCourseOption, getLessonsForCourse, getNextLesson } from '@/lib/data/lessons'
-import { getXpProgress, getXpToNextLevel } from '@/lib/types'
-import { isPlusActive } from '@/lib/plus'
+import { buildSmartReviewSummary, createPlusPracticeLesson, getPlusChatMessagesLeft, isPlusActive } from '@/lib/plus'
 import { cn } from '@/lib/utils'
-import { BarChart3, BookOpen, Brain, ChevronRight, Crown, Flame, Feather, Gift, Home, Medal, MessageCircle, Play, RotateCcw, ShoppingBag, Sparkles, Target, Trophy, UserRound, Users, Zap } from 'lucide-react'
+
+const tutorTopics = ['Gapirish', 'Yangi so‘zlar', 'Maktab', 'Sayohat', 'Kafe'] as const
+
+const languageNames = {
+  'uz-en': 'Ingliz tili',
+  'uz-ko': 'Koreys tili',
+  'uz-ru': 'Rus tili',
+  'uz-ar': 'Arab tili',
+  'uz-de': 'Nemis tili',
+} as const
+
+const courseMessages = {
+  'uz-en': 'Inglizcha o‘rgan. Mashq qil. Ishonch bilan gapir.',
+  'uz-ko': 'Koreyscha tingla. O‘qi. Gapir.',
+  'uz-ru': 'Ruscha o‘qi. Tingla. Gapir.',
+  'uz-ar': 'Arabcha o‘qi. Tingla. Gapir.',
+  'uz-de': 'Nemischa tingla. O‘qi. Gapir.',
+} as const
 
 export function HomeScreen() {
   const user = useAppStore((state) => state.user)
   const dailyChallenges = useAppStore((state) => state.dailyChallenges)
   const setScreen = useAppStore((state) => state.setScreen)
   const setSelectedCourse = useAppStore((state) => state.setSelectedCourse)
+  const launchTutor = useAppStore((state) => state.launchTutor)
+  const startLesson = useAppStore((state) => state.startLesson)
   const canClaimChest = useAppStore((state) => state.canClaimChest)
+  const [tutorPrompt, setTutorPrompt] = useState('')
   const { hapticFeedback } = useTelegram()
   const hasMounted = useHasMounted()
 
   const selectedCourse = user?.selectedCourse ?? 'uz-en'
   const activeCourse = getCourseOption(selectedCourse)
-  const courseLessons = getLessonsForCourse(selectedCourse)
-  const courseCompletedLessons = user?.courseProgress?.[selectedCourse]?.completedLessons ?? user?.completedLessons ?? []
-  const completedCount = courseCompletedLessons.length
-  const totalLessons = courseLessons.length
-  const progressPercent = (completedCount / totalLessons) * 100
-
+  const lessons = getLessonsForCourse(selectedCourse)
+  const completedLessons = user?.courseProgress?.[selectedCourse]?.completedLessons ?? user?.completedLessons ?? []
+  const nextLesson = useMemo(() => user ? getNextLesson(completedLessons, selectedCourse) ?? lessons[0] : null, [completedLessons, lessons, selectedCourse, user])
+  const reviewSummary = useMemo(() => buildSmartReviewSummary(user), [user])
   const activeChallenge = useMemo(() => {
     if (!hasMounted) return undefined
     const today = new Date().toISOString().split('T')[0]
-    return dailyChallenges.find((c) => c.date === today && !c.completed)
+    return dailyChallenges.find((challenge) => challenge.date === today && !challenge.completed)
   }, [dailyChallenges, hasMounted])
-
-  const nextLesson = useMemo(() => {
-    if (!user) return null
-    return getNextLesson(courseCompletedLessons, selectedCourse) ?? courseLessons[0]
-  }, [courseCompletedLessons, courseLessons, selectedCourse, user])
-
-  const motivationalMessage = useMemo(() => {
-    if (!user) return ''
-    if (user.streak >= 30) return 'Afsona darajasidasiz. Keep the flame alive.'
-    if (user.streak >= 7) return 'A full week of momentum. Beautiful work.'
-    if (user.streak >= 3) return 'You are building a real habit now.'
-    if (selectedCourse === 'uz-ko') return 'Bugun bitta koreyscha ibora. Ertaga aniqroq talaffuz.'
-    if (selectedCourse === 'uz-ru') return 'Bugun bitta ruscha qadam. Ertaga osonroq gap.'
-    if (selectedCourse === 'uz-ar') return 'Bugun bitta arabcha so‘z. Ertaga kengroq dunyo.'
-    if (selectedCourse === 'uz-de') return 'Bugun bitta nemischa mashq. Ertaga dadilroq javob.'
-    return 'One tiny lesson today. A bigger voice tomorrow.'
-  }, [selectedCourse, user])
-
-  const getGreeting = () => {
-    if (!hasMounted) return 'Welcome back'
-    const hour = new Date().getHours()
-    if (hour < 12) return 'Good morning'
-    if (hour < 18) return 'Good afternoon'
-    return 'Good evening'
-  }
 
   if (!user) return null
 
-  const xpProgress = getXpProgress(user.xp)
-  const xpToNext = getXpToNextLevel(user.xp)
-  const chestReady = hasMounted ? canClaimChest() : false
+  const progressPercent = lessons.length ? (completedLessons.length / lessons.length) * 100 : 0
   const avatarSrc = user.photoUrl ?? (user.avatarStyle === 'girl' ? '/avatars/tilio-girl-avatar.png' : '/avatars/tilio-boy-avatar.png')
   const plusActive = isPlusActive(user)
+  const messagesLeft = getPlusChatMessagesLeft(user)
+  const chestReady = hasMounted ? canClaimChest() : false
+
+  const greeting = (() => {
+    if (!hasMounted) return 'Xush kelibsiz'
+    const hour = new Date().getHours()
+    if (hour < 12) return 'Xayrli tong'
+    if (hour < 18) return 'Xayrli kun'
+    return 'Xayrli kech'
+  })()
+
+  const openTutor = (prompt: string) => {
+    hapticFeedback('light')
+    launchTutor(prompt)
+  }
+
+  const submitTutor = (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault()
+    if (tutorPrompt.trim()) openTutor(tutorPrompt)
+  }
+
+  const startReview = () => {
+    const lesson = createPlusPracticeLesson(user, reviewSummary, 'smart-review')
+    if (lesson) {
+      hapticFeedback('medium')
+      startLesson(lesson)
+    }
+  }
 
   return (
     <div className="tilio-shell flex flex-col">
       <header className="sticky top-0 z-20 safe-area-top">
         <div className="tilio-container px-4 pt-3">
-          <div className="flex items-center justify-between rounded-[1.6rem] border border-white/70 bg-white/75 px-3 py-2 shadow-lg shadow-emerald-950/5 backdrop-blur-xl">
+          <div className="flex items-center justify-between rounded-[1.6rem] border border-white/70 bg-white/80 px-3 py-2 shadow-lg shadow-emerald-950/5 backdrop-blur-xl">
             <div className="flex min-w-0 items-center gap-3">
-              <div className="flex size-11 shrink-0 items-center justify-center overflow-hidden rounded-2xl bg-primary/10 ring-2 ring-white">
-                <img src={avatarSrc} alt={user.firstName} className="h-full w-full object-cover" />
-              </div>
+              <img src={avatarSrc} alt="" className="size-11 shrink-0 rounded-2xl bg-primary/10 object-cover ring-2 ring-white" />
               <div className="min-w-0">
-                <p className="text-[11px] font-bold uppercase tracking-[0.14em] text-muted-foreground">{getGreeting()}</p>
-                <p className="truncate text-base font-black text-foreground">{user.firstName}</p>
+                <p className="text-[11px] font-bold uppercase tracking-[0.14em] text-muted-foreground">{greeting}</p>
+                <p className="truncate text-base font-black">{user.firstName}</p>
               </div>
             </div>
-
-            <div className="flex items-center gap-2">
-              <StatPill icon={<Flame className={cn('size-4', user.streak > 0 && 'animate-streak-flame text-orange-500')} />} value={user.streak} onClick={() => setScreen('daily-challenges')} />
-              <StatPill icon={<Feather className="size-4 text-emerald-700" />} value={user.feathers} />
-            </div>
+            <button onClick={() => setScreen('profile')} className="tilio-pressed flex size-11 items-center justify-center rounded-2xl bg-emerald-50 text-primary" aria-label="Profilni ochish">
+              <UserRound className="size-5" />
+            </button>
           </div>
         </div>
       </header>
 
       <main className="tilio-container flex-1 overflow-y-auto px-4 pb-28 pt-4">
-        <section className="relative overflow-hidden rounded-[2rem] bg-gradient-to-br from-[#fffbea] via-[#f3fbde] to-[#d9f4bd] p-5 shadow-2xl shadow-emerald-900/10">
-          <div className="absolute -right-12 top-0 h-40 w-40 rounded-full bg-primary/15" />
-          <div className="absolute bottom-0 left-0 h-20 w-full bg-[linear-gradient(135deg,transparent_0_40%,rgba(34,197,94,0.12)_40%_52%,transparent_52%)] bg-[length:42px_42px]" />
-          <div className="relative z-10 flex items-center gap-4">
+        <section className="relative overflow-hidden rounded-[2rem] border border-emerald-200/70 bg-gradient-to-br from-emerald-950 via-emerald-800 to-primary p-5 text-white shadow-2xl shadow-emerald-950/15">
+          <div className="absolute -right-10 -top-10 size-40 rounded-full bg-lime-300/15 blur-xl" />
+          <div className="relative flex items-start gap-3">
             <div className="min-w-0 flex-1">
-              <div className="mb-3 inline-flex items-center gap-1.5 rounded-full bg-white/75 px-3 py-1 text-xs font-extrabold text-emerald-800 shadow-sm">
-                <Sparkles className="size-3.5 text-accent" />
-                {activeCourse.badge} daily path
-              </div>
-              <h1 className="text-3xl font-black leading-[1.02] tracking-normal text-emerald-950">
-                {selectedCourse === 'uz-ko'
-                  ? 'Koreyscha tingla. O‘qi. So‘zla.'
-                  : selectedCourse === 'uz-ru'
-                    ? 'Ruscha o‘qi. Tingla. Gapir.'
-                    : selectedCourse === 'uz-ar'
-                      ? 'Arabcha o‘qi. Eshit. Ayta ol.'
-                      : selectedCourse === 'uz-de'
-                        ? 'Nemischa tingla. O‘qi. Gapir.'
-                        : 'O‘rgan. Mashq qil. So‘zla.'}
-              </h1>
-              <p className="mt-3 text-sm font-medium leading-5 text-emerald-900/75">{motivationalMessage}</p>
+              <p className="text-xs font-extrabold uppercase tracking-[0.16em] text-lime-200">Tilio Tutor</p>
+              <h1 className="mt-1 text-2xl font-black leading-tight">Bugun nimani o‘rganmoqchisiz?</h1>
+              <p className="mt-2 text-sm font-semibold leading-5 text-white/75">Tilio Tutor bilan savol bering yoki bir mavzuni mashq qiling.</p>
             </div>
-            <SparrowMascot branded size="lg" mood="waving" className="shrink-0" />
+            <SparrowMascot branded size="sm" mood="encouraging" className="shrink-0 ring-2 ring-white/20" />
           </div>
-          {nextLesson && (
-            <Button
-              className="tilio-button relative z-10 mt-5 h-14 w-full rounded-2xl bg-primary text-base font-black hover:bg-primary/95"
-              onClick={() => {
-                hapticFeedback('medium')
-                useAppStore.getState().startLesson(nextLesson)
-              }}
-            >
-              <Play className="size-5 fill-current" />
-              Continue Learning
-            </Button>
-          )}
+          <form onSubmit={submitTutor} className="relative mt-4 flex items-center gap-2 rounded-2xl bg-white p-2 shadow-xl">
+            <label htmlFor="home-tutor-prompt" className="sr-only">Tilio Tutor mavzusi</label>
+            <input id="home-tutor-prompt" value={tutorPrompt} onChange={(event) => setTutorPrompt(event.target.value)} placeholder="Masalan: ingliz tilida o‘zimni tanishtirish..." className="h-12 min-w-0 flex-1 rounded-xl px-3 text-sm font-semibold text-emerald-950 outline-none focus-visible:ring-2 focus-visible:ring-primary" />
+            <Button type="submit" disabled={!tutorPrompt.trim()} className="size-12 shrink-0 rounded-xl px-0" aria-label="Tutor’ga yuborish"><Send className="size-5" /></Button>
+          </form>
+          <div className="relative mt-3 flex gap-2 overflow-x-auto pb-1">
+            {tutorTopics.map((topic) => <button key={topic} type="button" onClick={() => openTutor(topic)} className="tilio-pressed min-h-11 shrink-0 rounded-full border border-white/20 bg-white/12 px-4 text-sm font-black text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-lime-200">{topic}</button>)}
+          </div>
+          <p className="relative mt-3 text-xs font-bold text-lime-100">{plusActive ? 'Plus: kengaytirilgan Tutor mashqlari' : `Bugun ${messagesLeft} ta bepul xabar qoldi`}</p>
         </section>
 
-        <section className="mt-4 grid grid-cols-3 gap-3">
-          <MetricCard label="Level" value={user.userLevel} icon={<Zap className="size-5" />} />
-          <MetricCard label="Streak" value={user.streak} icon={<Flame className="size-5" />} tone="orange" />
-          <MetricCard label="Feathers" value={user.feathers} icon={<Feather className="size-5" />} />
+        {nextLesson ? (
+          <section className="tilio-card mt-4 rounded-[1.75rem] p-4">
+            <div className="flex items-center gap-3"><div className="flex size-12 items-center justify-center rounded-2xl bg-primary/10 text-primary"><BookOpen className="size-6" /></div><div className="min-w-0 flex-1"><p className="text-xs font-black uppercase tracking-[0.14em] text-primary">Darsni davom ettirish</p><h2 className="truncate text-lg font-black">{nextLesson.titleUz || nextLesson.title}</h2><p className="truncate text-sm text-muted-foreground">{courseMessages[selectedCourse]}</p></div></div>
+            <Button className="tilio-button mt-4 h-12 w-full rounded-2xl font-black" onClick={() => startLesson(nextLesson)}><Play className="size-5 fill-current" />Davom ettirish</Button>
+          </section>
+        ) : null}
+
+        <section className="mt-4 grid grid-cols-4 gap-2" aria-label="Bugungi natijalar">
+          <CompactMetric icon={<Zap className="size-4" />} label="XP" value={user.xp} />
+          <CompactMetric icon={<Flame className="size-4" />} label="Kun" value={user.streak} />
+          <CompactMetric icon={<Feather className="size-4" />} label="Pat" value={user.feathers} />
+          <CompactMetric icon={<Target className="size-4" />} label="Maqsad" value={`${user.dailyGoal}m`} />
         </section>
+
+        <button type="button" disabled={reviewSummary.reviewQueue.length === 0} onClick={startReview} className="tilio-pressed mt-4 flex min-h-24 w-full items-center gap-4 rounded-[1.75rem] border border-sky-200 bg-gradient-to-br from-white to-sky-50 p-4 text-left shadow-xl shadow-emerald-950/5 disabled:opacity-75">
+          <div className="flex size-14 shrink-0 items-center justify-center rounded-2xl bg-sky-100 text-sky-700"><RotateCcw className="size-7" /></div>
+          <div className="min-w-0 flex-1"><p className="text-xs font-black uppercase tracking-[0.14em] text-sky-700">Aqlli takrorlash</p><h2 className="font-black">{reviewSummary.reviewQueue.length ? 'Bugungi takrorlash tayyor' : 'Hozircha hammasi joyida'}</h2><p className="text-sm font-semibold text-muted-foreground">{reviewSummary.reviewQueue.length ? `${reviewSummary.reviewQueue.length} ta so‘z sizni kutmoqda.` : 'Yangi so‘zlar uchun darslarni davom ettiring.'}</p></div>
+          <ChevronRight className="size-5 shrink-0 text-muted-foreground" />
+        </button>
 
         <section className="tilio-card mt-4 rounded-[1.75rem] p-4">
-          <div className="mb-3 flex items-center justify-between gap-3">
-            <div>
-              <p className="text-xs font-extrabold uppercase tracking-[0.16em] text-primary">5 ta til</p>
-              <h2 className="text-lg font-black">Til yo‘nalishini tanlang</h2>
-            </div>
-            <Sparkles className="size-5 text-accent" />
-          </div>
+          <div className="mb-3"><p className="text-xs font-black uppercase tracking-[0.14em] text-primary">Tilni tanlang</p><h2 className="text-lg font-black">{languageNames[selectedCourse]}</h2></div>
           <div className="grid grid-cols-5 gap-2">
-            {courseOptions.map((course) => {
-              const selected = course.id === selectedCourse
-              const progress = user.courseProgress?.[course.id]?.completedLessons?.length ?? (course.id === 'uz-en' ? user.completedLessons.length : 0)
-              return (
-                <button
-                  key={course.id}
-                  type="button"
-                  onClick={() => {
-                    hapticFeedback('light')
-                    setSelectedCourse(course.id)
-                  }}
-                  className={cn(
-                    'tilio-pressed rounded-2xl border px-2 py-3 text-center shadow-sm transition-all',
-                    selected ? 'border-primary bg-primary text-primary-foreground shadow-lg shadow-primary/20' : 'border-emerald-100 bg-white/75 text-emerald-950',
-                  )}
-                >
-                  <span className="block text-sm font-black">{course.badge}</span>
-                  <span className={cn('mt-1 block text-[10px] font-bold', selected ? 'text-white/80' : 'text-muted-foreground')}>{progress}/{getLessonsForCourse(course.id).length}</span>
-                </button>
-              )
-            })}
+            {courseOptions.map((course) => <button key={course.id} type="button" onClick={() => setSelectedCourse(course.id)} aria-label={languageNames[course.id]} aria-pressed={course.id === selectedCourse} className={cn('tilio-pressed min-h-16 rounded-2xl border px-1 py-2 text-center focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary', course.id === selectedCourse ? 'border-primary bg-primary text-white' : 'border-emerald-100 bg-white')}><span className="block text-xl">{course.toFlag}</span><span className="mt-1 block text-[10px] font-black">{course.badge}</span></button>)}
           </div>
-          <p className="mt-3 text-xs font-semibold text-muted-foreground">{activeCourse.descriptionUz}</p>
-        </section>
-
-        <section className="tilio-card mt-4 rounded-[1.75rem] p-4">
-          <div className="flex items-center justify-between gap-4">
-            <div>
-              <p className="text-xs font-extrabold uppercase tracking-[0.16em] text-primary">Level {user.userLevel}</p>
-              <h2 className="mt-1 text-xl font-black">Your Uzbek voice is growing</h2>
-            </div>
-            <div className="flex size-14 items-center justify-center rounded-2xl bg-primary/10 text-primary">
-              <BookOpen className="size-7" />
-            </div>
-          </div>
-          <div className="mt-4">
-            <Progress value={xpProgress} className="tilio-progress h-4 rounded-full bg-emerald-100" />
-            <div className="mt-2 flex justify-between text-xs font-bold text-muted-foreground">
-              <span>{xpProgress}/100 XP</span>
-              <span>{xpToNext} XP to next level</span>
-            </div>
-          </div>
+          <p className="mt-3 text-sm font-semibold text-muted-foreground">{activeCourse.descriptionUz}</p>
         </section>
 
         <section className="mt-4 grid grid-cols-2 gap-3">
-          <button
-            className={cn('tilio-pressed rounded-[1.5rem] border p-4 text-left shadow-lg shadow-emerald-950/5', chestReady ? 'border-accent/50 bg-amber-50' : 'border-border bg-white/75')}
-            onClick={() => {
-              hapticFeedback('medium')
-              setScreen('daily-chest')
-            }}
-          >
-            <div className="flex size-12 items-center justify-center rounded-2xl bg-white text-accent shadow-sm">
-              <Gift className="size-6" />
-            </div>
-            <p className="mt-3 font-black">Daily Chest</p>
-            <p className="text-xs font-semibold text-muted-foreground">{chestReady ? 'Ready to open' : 'Claimed today'}</p>
-          </button>
-          <button
-            className="tilio-pressed rounded-[1.5rem] border border-primary/20 bg-white/75 p-4 text-left shadow-lg shadow-emerald-950/5"
-            onClick={() => {
-              hapticFeedback('light')
-              setScreen('store')
-            }}
-          >
-            <div className="flex size-12 items-center justify-center rounded-2xl bg-primary/10 text-primary shadow-sm">
-              <ShoppingBag className="size-6" />
-            </div>
-            <p className="mt-3 font-black">Cosmetics</p>
-            <p className="text-xs font-semibold text-muted-foreground">Mascot looks and boosts</p>
-          </button>
+          <button onClick={() => setScreen('daily-challenges')} className="tilio-pressed rounded-[1.5rem] border border-primary/15 bg-white/80 p-4 text-left"><Target className="size-6 text-primary" /><p className="mt-3 font-black">Bugungi vazifa</p><p className="text-xs font-semibold text-muted-foreground">{activeChallenge ? `${activeChallenge.current}/${activeChallenge.target} · +${activeChallenge.xpReward} XP` : 'Bugungi vazifalar bajarildi'}</p>{activeChallenge ? <Progress value={(activeChallenge.current / activeChallenge.target) * 100} className="mt-2 h-2" /> : null}</button>
+          <button onClick={() => setScreen('daily-chest')} className="tilio-pressed rounded-[1.5rem] border border-amber-200 bg-amber-50/80 p-4 text-left"><Gift className="size-6 text-amber-600" /><p className="mt-3 font-black">Kunlik sovg‘a</p><p className="text-xs font-semibold text-muted-foreground">{chestReady ? 'Ochishga tayyor' : 'Bugun olindi'}</p></button>
         </section>
 
-        {activeChallenge && (
-          <button
-            className="tilio-pressed mt-4 w-full rounded-[1.75rem] border border-primary/20 bg-white/80 p-4 text-left shadow-xl shadow-emerald-950/5"
-            onClick={() => {
-              hapticFeedback('light')
-              setScreen('daily-challenges')
-            }}
-          >
-            <div className="flex items-center gap-4">
-              <div className="flex size-14 items-center justify-center rounded-2xl bg-primary text-primary-foreground shadow-lg shadow-primary/25">
-                <Target className="size-7" />
-              </div>
-              <div className="min-w-0 flex-1">
-                <div className="flex items-center justify-between gap-2">
-                  <p className="font-black">Daily Challenge</p>
-                  <p className="shrink-0 text-sm font-black text-primary">+{activeChallenge.xpReward} XP</p>
-                </div>
-                <p className="text-sm font-medium text-muted-foreground">
-                  {activeChallenge.type === 'lessons' ? `Complete ${activeChallenge.target} lessons` : `Earn ${activeChallenge.target} XP`}
-                </p>
-                <Progress value={(activeChallenge.current / activeChallenge.target) * 100} className="tilio-progress mt-3 h-3" />
-              </div>
-              <ChevronRight className="size-5 text-muted-foreground" />
-            </div>
-          </button>
-        )}
+        <section className="tilio-card mt-4 rounded-[1.75rem] p-4"><div className="flex items-center justify-between"><div><p className="text-xs font-black uppercase tracking-[0.14em] text-primary">Kursdagi natija</p><h2 className="font-black">{completedLessons.length}/{lessons.length} ta dars</h2></div><span className="text-sm font-black text-primary">{Math.round(progressPercent)}%</span></div><Progress value={progressPercent} className="mt-3 h-3" /></section>
 
-        <section className="mt-4 rounded-[1.75rem] border border-amber-200/70 bg-gradient-to-br from-white/90 to-amber-50/70 p-4 shadow-xl shadow-emerald-950/5">
-          <div className="mb-3 flex items-center justify-between gap-3">
-            <div>
-              <p className="text-xs font-extrabold uppercase tracking-[0.16em] text-amber-700">Tilio Plus</p>
-              <h2 className="text-lg font-black">{plusActive ? 'Premium tools unlocked' : 'Preview premium tools'}</h2>
-            </div>
-            <button
-              type="button"
-              onClick={() => setScreen('plus')}
-              className="tilio-pressed flex size-11 items-center justify-center rounded-2xl bg-amber-100 text-amber-800"
-              aria-label="Open Tilio Plus"
-            >
-              <Crown className="size-5" />
-            </button>
-          </div>
-          <div className="grid grid-cols-2 gap-2">
-            <PlusLockedCard compact title="Practice" description="Weak-word drills." icon={<Brain className="size-5" />} />
-            <PlusLockedCard compact title="Review" description="Advanced smart cards." icon={<RotateCcw className="size-5" />} />
-            <PlusLockedCard compact title="Chat" description="Expanded AI tutor." icon={<MessageCircle className="size-5" />} />
-            <PlusLockedCard compact title="Insights" description="Weekly progress view." icon={<BarChart3 className="size-5" />} />
-          </div>
-        </section>
+        <section className="mt-6"><div className="mb-4"><p className="text-xs font-black uppercase tracking-[0.14em] text-primary">Darslar</p><h2 className="text-xl font-black">O‘rganish yo‘lingiz</h2></div><LessonMap /></section>
 
-        {nextLesson && (
-          <section className="tilio-card mt-4 rounded-[1.75rem] p-4">
-            <div className="flex items-center gap-3">
-              <SparrowMascot size="sm" mood="happy" branded />
-              <div className="min-w-0 flex-1">
-                <p className="text-xs font-extrabold uppercase tracking-[0.16em] text-muted-foreground">Next lesson</p>
-                <h2 className="truncate text-lg font-black">{nextLesson.title}</h2>
-                <p className="text-sm font-medium text-muted-foreground">{nextLesson.description}</p>
-              </div>
-            </div>
-          </section>
-        )}
-
-        <section className="tilio-card mt-4 rounded-[1.75rem] p-4">
-          <div className="mb-3 flex items-center justify-between">
-            <h2 className="text-lg font-black">Course Progress</h2>
-            <span className="rounded-full bg-primary/10 px-3 py-1 text-xs font-black text-primary">{completedCount}/{totalLessons}</span>
-          </div>
-          <Progress value={progressPercent} className="tilio-progress h-4" />
-          <p className="mt-2 text-sm font-semibold text-muted-foreground">{Math.round(progressPercent)}% complete. {totalLessons - completedCount} lessons to go.</p>
-        </section>
-
-        <section className="mt-6">
-          <div className="mb-4 flex items-center justify-between">
-            <div>
-              <p className="text-xs font-extrabold uppercase tracking-[0.16em] text-primary">Path</p>
-              <h2 className="text-xl font-black">Your Learning Journey</h2>
-            </div>
-            <Medal className="size-6 text-accent" />
-          </div>
-          <LessonMap />
-        </section>
+        <button onClick={() => setScreen(plusActive ? 'plus' : 'upgrade')} className="tilio-pressed mt-5 flex w-full items-center gap-4 rounded-[1.75rem] border border-amber-200 bg-gradient-to-br from-white to-amber-50 p-4 text-left"><Crown className="size-8 shrink-0 text-amber-600" /><div className="min-w-0 flex-1"><p className="font-black">Tilio Plus</p><p className="text-sm font-semibold text-muted-foreground">Ko‘proq AI Tutor, ilg‘or mashqlar, kuchli Smart Review va Insights.</p></div><ChevronRight className="size-5" /></button>
       </main>
 
-      <nav className="fixed inset-x-0 bottom-0 z-30 safe-area-bottom">
-        <div className="tilio-container px-4 pb-3">
-          <div className="grid grid-cols-6 gap-1 rounded-[1.7rem] border border-white/70 bg-white/85 p-2 shadow-2xl shadow-emerald-950/12 backdrop-blur-xl">
-            <NavButton icon={<Home className="size-5" />} label="Learn" active onClick={() => hapticFeedback('light')} />
-            <NavButton icon={<Trophy className="size-5" />} label="Badges" onClick={() => setScreen('achievements')} />
-            <NavButton icon={<Crown className="size-5" />} label="Plus" onClick={() => setScreen('plus')} />
-            <NavButton icon={<Users className="size-5" />} label="Invite" onClick={() => setScreen('referral')} />
-            <NavButton icon={<ShoppingBag className="size-5" />} label="Store" onClick={() => setScreen('store')} />
-            <NavButton icon={<UserRound className="size-5" />} label="Profile" onClick={() => setScreen('profile')} />
-          </div>
-        </div>
-      </nav>
+      <nav className="fixed inset-x-0 bottom-0 z-30 safe-area-bottom"><div className="tilio-container px-4 pb-3"><div className="grid grid-cols-4 gap-1 rounded-[1.7rem] border border-white/70 bg-white/90 p-2 shadow-2xl backdrop-blur-xl"><NavButton icon={<Home className="size-5" />} label="O‘rganish" active onClick={() => undefined} /><NavButton icon={<MessageCircle className="size-5" />} label="Tutor" onClick={() => launchTutor()} /><NavButton icon={<Brain className="size-5" />} label="Takrorlash" onClick={reviewSummary.reviewQueue.length ? startReview : () => setScreen('plus')} /><NavButton icon={<UserRound className="size-5" />} label="Profil" onClick={() => setScreen('profile')} /></div></div></nav>
     </div>
   )
 }
 
-function StatPill({ icon, value, onClick }: { icon: React.ReactNode; value: number; onClick?: () => void }) {
-  const content = (
-    <>
-      {icon}
-      <span className="text-sm font-black">{value}</span>
-    </>
-  )
-
-  if (!onClick) return <div className="flex items-center gap-1.5 rounded-full bg-emerald-50 px-3 py-2 text-emerald-950">{content}</div>
-
-  return (
-    <button className="tilio-pressed flex items-center gap-1.5 rounded-full bg-emerald-50 px-3 py-2 text-emerald-950" onClick={onClick}>
-      {content}
-    </button>
-  )
-}
-
-function MetricCard({ label, value, icon, tone = 'green' }: { label: string; value: number; icon: React.ReactNode; tone?: 'green' | 'orange' }) {
-  return (
-    <div className={cn('rounded-[1.35rem] border bg-white/78 p-3 text-center shadow-lg shadow-emerald-950/5', tone === 'orange' ? 'border-orange-200 text-orange-600' : 'border-primary/15 text-primary')}>
-      <div className="mx-auto mb-2 flex size-10 items-center justify-center rounded-2xl bg-current/10">{icon}</div>
-      <p className="text-xl font-black text-foreground">{value}</p>
-      <p className="text-[11px] font-extrabold uppercase tracking-[0.12em] text-muted-foreground">{label}</p>
-    </div>
-  )
+function CompactMetric({ icon, label, value }: { icon: React.ReactNode; label: string; value: React.ReactNode }) {
+  return <div className="rounded-2xl border border-emerald-100 bg-white/80 p-2 text-center shadow-sm"><div className="mx-auto flex size-8 items-center justify-center rounded-xl bg-primary/10 text-primary">{icon}</div><p className="mt-1 text-sm font-black">{value}</p><p className="text-[9px] font-black uppercase tracking-wide text-muted-foreground">{label}</p></div>
 }
 
 function NavButton({ icon, label, active, onClick }: { icon: React.ReactNode; label: string; active?: boolean; onClick: () => void }) {
-  return (
-    <button
-      onClick={onClick}
-      className={cn(
-        'tilio-pressed flex min-w-0 flex-col items-center gap-1 rounded-[1.2rem] px-1.5 py-2 text-[11px] font-black transition-colors',
-        active ? 'bg-primary text-primary-foreground shadow-lg shadow-primary/20' : 'text-muted-foreground hover:bg-primary/5 hover:text-foreground',
-      )}
-    >
-      {icon}
-      <span className="truncate">{label}</span>
-    </button>
-  )
+  return <button onClick={onClick} className={cn('tilio-pressed flex min-h-14 flex-col items-center justify-center gap-1 rounded-[1.2rem] text-[11px] font-black', active ? 'bg-primary text-white shadow-lg shadow-primary/20' : 'text-muted-foreground hover:bg-primary/5')}>{icon}<span>{label}</span></button>
 }

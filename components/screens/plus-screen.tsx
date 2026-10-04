@@ -1,11 +1,11 @@
 'use client'
 
-import { useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { Button } from '@/components/ui/button'
 import { SparrowMascot } from '@/components/sparrow-mascot'
 import { Progress } from '@/components/ui/progress'
 import { useAppStore } from '@/lib/store'
-import { buildSmartReviewSummary, createPlusPracticeLesson, getPlusPracticeReward, getPlusPracticeWordCount, getWeeklyInsightStats, hasTilioPlus, type PlusPracticeMode, type ReviewWordInsight, type SmartReviewSummary, type WeeklyInsightSummary } from '@/lib/plus'
+import { buildSmartReviewSummary, canUsePlusChat, createPlusPracticeLesson, getPlusChatMessagesLeft, getPlusPracticeReward, getPlusPracticeWordCount, getWeeklyInsightStats, hasTilioPlus, type PlusPracticeMode, type ReviewWordInsight, type SmartReviewSummary, type WeeklyInsightSummary } from '@/lib/plus'
 import { cn } from '@/lib/utils'
 import {
   ArrowLeft,
@@ -47,7 +47,8 @@ const tabs: Array<{ id: PlusTab; label: string; icon: React.ReactNode }> = [
 ]
 
 export function PlusScreen() {
-  const [activeTab, setActiveTab] = useState<PlusTab>('practice')
+  const tutorLaunchPrompt = useAppStore((state) => state.tutorLaunchPrompt)
+  const [activeTab, setActiveTab] = useState<PlusTab>(() => tutorLaunchPrompt !== null ? 'chat' : 'practice')
   const user = useAppStore((state) => state.user)
   const setScreen = useAppStore((state) => state.setScreen)
   const startLesson = useAppStore((state) => state.startLesson)
@@ -133,7 +134,7 @@ export function PlusScreen() {
 
         {activeTab === 'practice' && <PracticeTab plusActive={plusActive} summary={summary} onStartPractice={startPractice} />}
         {activeTab === 'review' && <ReviewTab plusActive={plusActive} summary={summary} onStartReview={() => startPractice('smart-review')} />}
-        {activeTab === 'chat' && <ChatTab plusActive={plusActive} />}
+        {activeTab === 'chat' && <ChatTab plusActive={plusActive} initialPrompt={tutorLaunchPrompt} />}
         {activeTab === 'insights' && <InsightsTab plusActive={plusActive} insights={weeklyStats} />}
       </main>
     </div>
@@ -239,13 +240,17 @@ function ReviewTab({ plusActive, summary, onStartReview }: { plusActive: boolean
   )
 }
 
-function ChatTab({ plusActive }: { plusActive: boolean }) {
+function ChatTab({ plusActive, initialPrompt }: { plusActive: boolean; initialPrompt: string | null }) {
   const user = useAppStore((state) => state.user)
+  const incrementPlusChatUsage = useAppStore((state) => state.incrementPlusChatUsage)
+  const clearTutorLaunchPrompt = useAppStore((state) => state.clearTutorLaunchPrompt)
   const [messages, setMessages] = useState<Array<{ id: string; role: 'user' | 'assistant'; text: string }>>([])
   const [input, setInput] = useState('')
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
   const [retryMessage, setRetryMessage] = useState('')
+  const inputRef = useRef<HTMLInputElement>(null)
+  const initialPromptHandled = useRef(false)
 
   const courseId = user?.selectedCourse ?? user?.learningPath ?? 'uz-en'
   const tutorLabel = courseId === 'uz-ko' ? 'Korean tutor' : courseId === 'uz-ru' ? 'Russian tutor' : courseId === 'uz-ar' ? 'Arabic tutor' : courseId === 'uz-de' ? 'German tutor' : 'English tutor'
@@ -261,12 +266,18 @@ function ChatTab({ plusActive }: { plusActive: boolean }) {
 
   const createId = () => String(Date.now()) + '-' + Math.random().toString(36).slice(2)
 
-  const sendMessage = async (message: string) => {
+  const messagesLeft = getPlusChatMessagesLeft(user)
+
+  const sendMessage = useCallback(async (message: string) => {
     const trimmed = message.trim()
     if (!trimmed || loading) return
+    if (!canUsePlusChat(useAppStore.getState().user)) {
+      setError('Bugungi bepul Tutor limitidan foydalandingiz. Ertaga yana 3 ta xabar mavjud bo‘ladi yoki Tilio Plus’ni tanlang.')
+      return
+    }
 
     setError('')
-    setRetryMessage('')
+    setRetryMessage(trimmed)
     setInput('')
     setMessages((prev) => [...prev, { id: createId(), role: 'user', text: trimmed }])
     setLoading(true)
@@ -286,6 +297,8 @@ function ChatTab({ plusActive }: { plusActive: boolean }) {
         throw new Error(data.error || 'AI tutor failed')
       }
 
+      incrementPlusChatUsage()
+
       setMessages((prev) => [
         ...prev,
         {
@@ -300,7 +313,19 @@ function ChatTab({ plusActive }: { plusActive: boolean }) {
     } finally {
       setLoading(false)
     }
-  }
+  }, [courseId, incrementPlusChatUsage, loading])
+
+  useEffect(() => {
+    if (initialPromptHandled.current) return
+    initialPromptHandled.current = true
+    if (initialPrompt !== null) {
+      clearTutorLaunchPrompt()
+      if (initialPrompt) void sendMessage(initialPrompt)
+      else inputRef.current?.focus()
+      return
+    }
+    inputRef.current?.focus()
+  }, [clearTutorLaunchPrompt, initialPrompt, sendMessage])
 
   return (
     <section className="mt-4 space-y-4">
@@ -310,16 +335,15 @@ function ChatTab({ plusActive }: { plusActive: boolean }) {
             <MessageCircle className="size-6" />
           </div>
           <div className="min-w-0 flex-1">
-            <p className="text-xs font-extrabold uppercase tracking-[0.16em] text-primary">AI Conversation</p>
-            <h2 className="text-xl font-black">Guided roleplay tutor</h2>
+            <p className="text-xs font-extrabold uppercase tracking-[0.16em] text-primary">AI suhbat</p>
+            <h2 className="text-xl font-black">Tilio Tutor bilan mashq</h2>
             <p className="mt-0.5 text-[11px] font-black uppercase tracking-[0.14em] text-muted-foreground">{tutorLabel}</p>
           </div>
         </div>
         <p className="mt-3 text-sm font-semibold text-muted-foreground">Tilio Tutor qisqa javob beradi, xatolarni muloyim tuzatadi va tabiiyroq iborani taklif qiladi.</p>
         <div className="mt-4 rounded-2xl border border-lime-200 bg-lime-50 px-4 py-3 text-sm font-semibold text-emerald-950">
-          Free: 3 AI xabar / kun. Plus: ko'proq AI mashqlar.
+          {plusActive ? 'Plus: kengaytirilgan AI Tutor mashqlari.' : `Bepul: bugun ${messagesLeft} ta AI xabar qoldi.`}
         </div>
-        {!plusActive && <LockedHint />}
       </div>
 
       <div className="flex gap-2 overflow-x-auto pb-1">
@@ -378,15 +402,17 @@ function ChatTab({ plusActive }: { plusActive: boolean }) {
         className="flex items-center gap-2 rounded-[1.6rem] border border-white/70 bg-white/80 p-2 shadow-lg shadow-emerald-950/5"
       >
         <input
+          ref={inputRef}
+          aria-label="Tilio Tutor uchun xabar"
           value={input}
           onChange={(e) => setInput(e.target.value)}
           disabled={loading}
           placeholder="Xabar yozing..."
-          className="h-12 min-w-0 flex-1 rounded-2xl bg-emerald-50 px-4 text-sm font-semibold outline-none"
+          className="h-12 min-w-0 flex-1 rounded-2xl bg-emerald-50 px-4 text-sm font-semibold outline-none focus-visible:ring-2 focus-visible:ring-primary"
         />
         <Button type="submit" disabled={!input.trim() || loading} className="h-12 shrink-0 rounded-2xl px-4" aria-label="Send AI message">
           <Send className="size-4" />
-          Send
+          Yuborish
         </Button>
       </form>
     </section>

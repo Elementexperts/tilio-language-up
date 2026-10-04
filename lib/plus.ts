@@ -5,19 +5,19 @@ export const PLUS_CHAT_DAILY_LIMIT = 3
 
 export const plusBenefits = [
   {
-    title: 'Expanded AI Chat',
-    description: 'Ask more questions, get guided examples, and practice real replies.',
+    title: 'More AI Tutor practice',
+    description: 'Ask more questions, get guided examples, and practice more real replies.',
   },
   {
-    title: 'Practice Mode',
+    title: 'Advanced Practice',
     description: 'Train weak words with focused drills after each lesson.',
   },
   {
-    title: 'Smart Review Advanced',
+    title: 'Enhanced Smart Review',
     description: 'See harder review cards, due words, and mistake-based repetition.',
   },
   {
-    title: 'Weekly Insights',
+    title: 'Insights',
     description: 'Track XP, streak health, word growth, and your best learning days.',
   },
   {

@@ -8,7 +8,8 @@ import { useAppStore } from '@/lib/store'
 import { useTelegram } from '@/hooks/use-telegram'
 import { cn } from '@/lib/utils'
 import { ArrowRight, Check, Cloud, ShieldCheck, Target, Zap } from 'lucide-react'
-import { getLevel, type User } from '@/lib/types'
+import { getLevel, type CourseId, type User } from '@/lib/types'
+import { courseOptions } from '@/lib/data/lessons'
 
 type OnboardingStep = 'welcome' | 'account' | 'avatar' | 'path' | 'level' | 'goal'
 
@@ -17,14 +18,6 @@ interface AvatarOption {
   title: string
   description: string
   image: string
-}
-
-interface PathOption {
-  id: 'uz-en' | 'en-uz'
-  title: string
-  description: string
-  flag1: string
-  flag2: string
 }
 
 interface LevelOption {
@@ -55,22 +48,13 @@ const avatarOptions: AvatarOption[] = [
   },
 ]
 
-const pathOptions: PathOption[] = [
-  {
-    id: 'uz-en',
-    title: 'O‘zbekchadan inglizchaga',
-    description: 'Men o‘zbek tilida gaplashaman va ingliz tilini o‘rganmoqchiman',
-    flag1: 'UZ',
-    flag2: 'EN',
-  },
-  {
-    id: 'en-uz',
-    title: 'Inglizchadan o‘zbekchaga',
-    description: 'I speak English and want to learn Uzbek',
-    flag1: 'EN',
-    flag2: 'UZ',
-  },
-]
+const languageNames: Record<CourseId, string> = {
+  'uz-en': 'Ingliz tili',
+  'uz-ko': 'Koreys tili',
+  'uz-ru': 'Rus tili',
+  'uz-ar': 'Arab tili',
+  'uz-de': 'Nemis tili',
+}
 
 const levelOptions: LevelOption[] = [
   {
@@ -95,7 +79,7 @@ const goalOptions: GoalOption[] = [
 export function OnboardingScreen() {
   const [step, setStep] = useState<OnboardingStep>('welcome')
   const [selectedAvatar, setSelectedAvatar] = useState<'boy' | 'girl'>('boy')
-  const [selectedPath, setSelectedPath] = useState<'uz-en' | 'en-uz' | null>(null)
+  const [selectedCourse, setSelectedCourse] = useState<CourseId | null>(null)
   const [selectedLevel, setSelectedLevel] = useState<'beginner' | 'intermediate' | null>(null)
   const [selectedGoal, setSelectedGoal] = useState<5 | 10 | 15 | 20 | null>(null)
 
@@ -111,7 +95,7 @@ export function OnboardingScreen() {
       setStep('avatar')
     } else if (step === 'avatar') {
       setStep('path')
-    } else if (step === 'path' && selectedPath) {
+    } else if (step === 'path' && selectedCourse) {
       setStep('level')
     } else if (step === 'level' && selectedLevel) {
       setStep('goal')
@@ -134,8 +118,8 @@ export function OnboardingScreen() {
       photoUrl: authProfile?.photoUrl || telegramUser?.photo_url,
       telegramId: authProfile?.telegramId || telegramUser?.id?.toString(),
       avatarStyle: selectedAvatar,
-      learningPath: selectedPath!,
-      selectedCourse: 'uz-en',
+      learningPath: 'uz-en',
+      selectedCourse: selectedCourse!,
       level: selectedLevel!,
       dailyGoal: selectedGoal!,
       xp: 0,
@@ -186,7 +170,7 @@ export function OnboardingScreen() {
       case 'account':
         return true
       case 'path':
-        return selectedPath !== null
+        return selectedCourse !== null
       case 'level':
         return selectedLevel !== null
       case 'goal':
@@ -221,11 +205,9 @@ export function OnboardingScreen() {
         {step === 'welcome' && (
           <div className="flex flex-1 flex-col items-center justify-center text-center animate-bounce-in">
             <SparrowMascot size="lg" mood="waving" branded />
-            <h1 className="mt-6 text-3xl font-black text-foreground">
-              {telegramUser ? `Salom, ${telegramUser.first_name}!` : 'Xush kelibsiz!'}
-            </h1>
+            <h1 className="mt-6 text-3xl font-black text-foreground">{telegramUser ? `Salom, ${telegramUser.first_name}!` : 'Tilio bilan til o‘rganish yanada qiziqarli'}</h1>
             <p className="mt-3 max-w-xs text-lg text-muted-foreground">
-              O‘zbekcha va inglizchani o‘yinli darslar orqali o‘rganamiz. Avval profilingizni sozlaymiz.
+              Qisqa darslar, AI Tutor, aqlli takrorlash va mukofotlar bilan har kuni yangi qadam tashlang.
             </p>
             <div className="mt-8 flex items-center gap-4">
               <div className="flex items-center gap-2 text-sm text-muted-foreground">
@@ -325,38 +307,26 @@ export function OnboardingScreen() {
           <div className="flex flex-1 flex-col animate-bounce-in">
             <div className="mb-8 text-center">
               <SparrowMascot size="md" mood="thinking" branded className="mx-auto" />
-              <h2 className="mt-4 text-2xl font-black text-foreground">Yo‘nalishni tanlang</h2>
-              <p className="mt-2 text-muted-foreground">Qaysi tilda mashq qilmoqchisiz?</p>
+              <h2 className="mt-4 text-2xl font-black text-foreground">Qaysi tilni o‘rganmoqchisiz?</h2>
+              <p className="mt-2 text-muted-foreground">Istalgan payt Profil orqali tilni almashtirishingiz mumkin.</p>
             </div>
-            <div className="flex flex-col gap-4">
-              {pathOptions.map((option) => (
+            <div className="grid grid-cols-2 gap-3">
+              {courseOptions.map((option) => (
                 <Card
                   key={option.id}
                   className={cn(
-                    'cursor-pointer rounded-[1.5rem] border-2 p-5 transition-all duration-200',
-                    selectedPath === option.id ? 'border-primary bg-primary/5 shadow-lg' : 'border-border hover:border-primary/50',
+                    'cursor-pointer rounded-[1.5rem] border-2 p-4 text-center transition-all duration-200',
+                    selectedCourse === option.id ? 'border-primary bg-primary/5 shadow-lg' : 'border-border hover:border-primary/50',
                   )}
                   onClick={() => {
-                    setSelectedPath(option.id)
+                    setSelectedCourse(option.id)
                     hapticFeedback('light')
                   }}
                 >
-                  <div className="flex items-center gap-4">
-                    <div className="flex items-center gap-2 text-base font-black text-primary">
-                      <span className="rounded-full bg-primary/10 px-2 py-1">{option.flag1}</span>
-                      <ArrowRight className="h-5 w-5 text-muted-foreground" />
-                      <span className="rounded-full bg-primary/10 px-2 py-1">{option.flag2}</span>
-                    </div>
-                    <div className="flex-1">
-                      <h3 className="font-black text-foreground">{option.title}</h3>
-                      <p className="text-sm text-muted-foreground">{option.description}</p>
-                    </div>
-                    {selectedPath === option.id && (
-                      <div className="flex h-6 w-6 items-center justify-center rounded-full bg-primary">
-                        <Check className="size-4 text-primary-foreground" />
-                      </div>
-                    )}
-                  </div>
+                  <span className="text-3xl" aria-hidden="true">{option.toFlag}</span>
+                  <h3 className="mt-2 font-black text-foreground">{languageNames[option.id]}</h3>
+                  <p className="mt-1 text-xs font-semibold text-muted-foreground">O‘zbek tilida o‘rganing</p>
+                  {selectedCourse === option.id ? <div className="mx-auto mt-3 flex size-7 items-center justify-center rounded-full bg-primary"><Check className="size-4 text-primary-foreground" /></div> : null}
                 </Card>
               ))}
             </div>
@@ -436,7 +406,7 @@ export function OnboardingScreen() {
 
       <div className="tilio-container p-6 safe-area-bottom">
         <Button onClick={handleNext} disabled={!canProceed()} className="tilio-button h-14 w-full rounded-2xl text-lg font-black touch-target" size="lg">
-          {step === 'goal' ? 'Boshlaymiz!' : 'Davom etish'}
+          {step === 'welcome' ? 'Boshlash' : step === 'goal' ? 'Boshlaymiz!' : 'Davom etish'}
           <ArrowRight className="ml-2 h-5 w-5" />
         </Button>
       </div>

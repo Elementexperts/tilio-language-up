@@ -256,6 +256,7 @@ export const useAppStore = create<AppState>()(
       showStreakSavedModal: false,
       showLevelUpModal: false,
       newLevel: 1,
+      tutorLaunchPrompt: null,
 
       setUser: (user) =>
         set({
@@ -359,6 +360,8 @@ export const useAppStore = create<AppState>()(
       setSyncStatus: (status: SyncStatus, error = null) => set({ syncStatus: status, syncError: error }),
 
       setScreen: (screen) => set({ currentScreen: screen }),
+      launchTutor: (prompt = '') => set({ currentScreen: 'plus', tutorLaunchPrompt: prompt.trim() }),
+      clearTutorLaunchPrompt: () => set({ tutorLaunchPrompt: null }),
 
       startLesson: (lesson) => set({
         currentLesson: lesson,

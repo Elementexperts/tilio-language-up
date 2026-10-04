@@ -295,6 +295,7 @@ export interface AppState {
   showStreakSavedModal: boolean
   showLevelUpModal: boolean
   newLevel: number
+  tutorLaunchPrompt: string | null
   
   // Actions
   setUser: (user: User | null) => void
@@ -305,6 +306,8 @@ export interface AppState {
   setCloudSession: (session: CloudAuthSession | null) => void
   setSyncStatus: (status: SyncStatus, error?: string | null) => void
   setScreen: (screen: AppScreen) => void
+  launchTutor: (prompt?: string) => void
+  clearTutorLaunchPrompt: () => void
   startLesson: (lesson: Lesson) => void
   completeExercise: (correct: boolean, wordId?: string, trackMiss?: boolean) => void
   completeLesson: () => void

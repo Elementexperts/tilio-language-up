@@ -10,6 +10,7 @@ import { useAppStore } from '@/lib/store'
 import { consumeOAuthSessionFromUrl, signInWithEmail, signInWithTelegram, signUpWithEmail, startGoogleSignIn, type TelegramAuthResult } from '@/lib/auth'
 import { isSupabaseConfigured } from '@/lib/supabase'
 import { cn } from '@/lib/utils'
+import { isCapacitorAndroid } from '@/lib/platform'
 
 type AuthMode = 'signin' | 'signup'
 type LoadingProvider = 'telegram' | 'google' | 'email' | 'guest' | null
@@ -31,6 +32,7 @@ export function AuthScreen() {
 
   const telegramAvailable = Boolean(initData && isTelegramEnv)
   const isBusy = loadingProvider !== null
+  const androidBuild = isCapacitorAndroid()
 
   const applyAuthResult = useCallback((result: TelegramAuthResult) => {
     setCloudSession(result.session)
@@ -124,6 +126,11 @@ export function AuthScreen() {
   }
 
   const handleGoogle = () => {
+    if (androidBuild) {
+      setMessage('Google orqali kirish Android ilovasida keyingi bosqichda ulanadi. Hozir email yoki mehmon rejimidan foydalaning.')
+      hapticFeedback('warning')
+      return
+    }
     if (!isSupabaseConfigured) {
       setMessage('Supabase is not configured yet.')
       hapticFeedback('warning')
@@ -197,7 +204,7 @@ export function AuthScreen() {
           </div>
 
           <div className="mt-4 grid gap-3">
-            <Button
+            {!androidBuild && <Button
               type="button"
               onClick={handleTelegram}
               disabled={isBusy}
@@ -205,9 +212,9 @@ export function AuthScreen() {
             >
               {loadingProvider === 'telegram' ? <Loader2 className="mr-2 size-5 animate-spin" /> : <MessageCircle className="mr-2 size-5" />}
               Telegram bilan davom etish
-            </Button>
+            </Button>}
 
-            <Button
+            {!androidBuild && <Button
               type="button"
               onClick={handleGoogle}
               disabled={isBusy}
@@ -216,7 +223,7 @@ export function AuthScreen() {
             >
               {loadingProvider === 'google' ? <Loader2 className="mr-2 size-5 animate-spin" /> : <Chrome className="mr-2 size-5 text-primary" />}
               Google bilan davom etish
-            </Button>
+            </Button>}
           </div>
 
           <div className="my-5 flex items-center gap-3">

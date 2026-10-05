@@ -6,6 +6,9 @@
 # next.js
 /.next/
 /out/
+/android-web/.next/
+/android-web/out/
+/android-web/next-env.d.ts
 
 # production
 /build

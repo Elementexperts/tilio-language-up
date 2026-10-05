@@ -6,6 +6,7 @@ import { SparrowMascot } from '@/components/sparrow-mascot'
 import { Progress } from '@/components/ui/progress'
 import { useAppStore } from '@/lib/store'
 import { buildSmartReviewSummary, canUsePlusChat, createPlusPracticeLesson, getPlusChatMessagesLeft, getPlusPracticeReward, getPlusPracticeWordCount, getWeeklyInsightStats, hasTilioPlus, type PlusPracticeMode, type ReviewWordInsight, type SmartReviewSummary, type WeeklyInsightSummary } from '@/lib/plus'
+import { getBackendApiUrl } from '@/lib/backend-api'
 import { cn } from '@/lib/utils'
 import {
   ArrowLeft,
@@ -283,7 +284,7 @@ function ChatTab({ plusActive, initialPrompt }: { plusActive: boolean; initialPr
     setLoading(true)
 
     try {
-      const response = await fetch('/api/ai-tutor', {
+      const response = await fetch(getBackendApiUrl('/api/ai-tutor'), {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({

@@ -1,5 +1,26 @@
 export const runtime = "edge"
 
+const androidOrigin = "https://localhost"
+
+function corsHeaders(req: Request) {
+  const origin = req.headers.get("origin")
+  return origin === androidOrigin
+    ? {
+        "Access-Control-Allow-Origin": androidOrigin,
+        "Access-Control-Allow-Headers": "Content-Type",
+        "Access-Control-Allow-Methods": "POST, OPTIONS",
+        Vary: "Origin",
+      }
+    : undefined
+}
+
+export function OPTIONS(req: Request) {
+  if (req.headers.get("origin") !== androidOrigin) {
+    return new Response(null, { status: 403 })
+  }
+  return new Response(null, { status: 204, headers: corsHeaders(req) })
+}
+
 export async function POST(req: Request) {
   try {
     const { message, courseId } = await req.json()
@@ -9,7 +30,7 @@ export async function POST(req: Request) {
     if (!apiKey) {
       return Response.json(
         { error: "Missing AI_GATEWAY_API_KEY" },
-        { status: 500 }
+        { status: 500, headers: corsHeaders(req) }
       )
     }
 
@@ -39,17 +60,17 @@ export async function POST(req: Request) {
 
     if (!response.ok) {
       const errorText = await response.text()
-      return Response.json({ error: errorText }, { status: response.status })
+      return Response.json({ error: errorText }, { status: response.status, headers: corsHeaders(req) })
     }
 
     const data = await response.json()
     const text = data.choices?.[0]?.message?.content ?? "No response"
 
-    return Response.json({ text })
+    return Response.json({ text }, { headers: corsHeaders(req) })
   } catch (error) {
     return Response.json(
       { error: error instanceof Error ? error.message : "AI tutor failed" },
-      { status: 500 }
+      { status: 500, headers: corsHeaders(req) }
     )
   }
 }

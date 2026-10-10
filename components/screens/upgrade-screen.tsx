@@ -10,6 +10,8 @@ import { useAppStore } from '@/lib/store'
 import { useTelegram } from '@/hooks/use-telegram'
 import { getPlusChatMessagesLeft, getPlusDaysRemaining, isPlusActive, plusBenefits, plusPaymentMethods } from '@/lib/plus'
 import { cn } from '@/lib/utils'
+import { getBackendApiUrl } from '@/lib/backend-api'
+import { isCapacitorAndroid } from '@/lib/platform'
 import { ArrowLeft, BadgeCheck, CalendarClock, Check, ChevronRight, Crown, CreditCard, Lock, MessageCircle, ShieldCheck, Sparkles, Star, Zap } from 'lucide-react'
 
 export function UpgradeScreen() {
@@ -22,6 +24,7 @@ export function UpgradeScreen() {
   const plusActive = isPlusActive(user)
   const daysRemaining = getPlusDaysRemaining(user)
   const freeChatLeft = getPlusChatMessagesLeft(user)
+  const androidBuild = isCapacitorAndroid()
 
   useEffect(() => {
     showBackButton(() => {
@@ -48,7 +51,7 @@ export function UpgradeScreen() {
 
     setCheckoutMessage('Preparing Telegram Stars invoice...')
     try {
-      const response = await fetch('/api/payments/telegram-stars/create', {
+      const response = await fetch(getBackendApiUrl('/api/payments/telegram-stars/create'), {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -180,7 +183,7 @@ export function UpgradeScreen() {
           />
         </section>
 
-        <Card className="tilio-card mb-4 rounded-[1.75rem] p-4">
+        {!androidBuild && <Card className="tilio-card mb-4 rounded-[1.75rem] p-4">
           <h3 className="mb-3 font-black">Free vs Plus</h3>
           <div className="grid grid-cols-2 gap-3">
             <div className="rounded-2xl bg-muted/45 p-3">
@@ -200,7 +203,7 @@ export function UpgradeScreen() {
               </ul>
             </div>
           </div>
-        </Card>
+        </Card>}
 
         <Card className="tilio-card mb-4 rounded-[1.75rem] p-4">
           <div className="mb-3 flex items-center justify-between">
@@ -262,7 +265,7 @@ export function UpgradeScreen() {
           )}
         </Card>
 
-        <Card className="tilio-card rounded-[1.75rem] border-dashed border-sky-200 p-4">
+        {!androidBuild && <Card className="tilio-card rounded-[1.75rem] border-dashed border-sky-200 p-4">
           <div className="mb-3 flex items-start gap-3">
             <div className="flex size-11 shrink-0 items-center justify-center rounded-2xl bg-sky-100 text-sky-700">
               <BadgeCheck className="size-5" />
@@ -288,7 +291,7 @@ export function UpgradeScreen() {
               </Button>
             ))}
           </div>
-        </Card>
+        </Card>}
       </main>
     </div>
   )

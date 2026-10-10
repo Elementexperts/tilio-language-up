@@ -1,0 +1,24 @@
+{
+  "extends": "../tsconfig.json",
+  "compilerOptions": {
+    "baseUrl": "..",
+    "paths": {
+      "@/*": ["./*"]
+    },
+    "incremental": false
+  },
+  "include": [
+    "next-env.d.ts",
+    "app/**/*.ts",
+    "app/**/*.tsx",
+    "../app/**/*.ts",
+    "../app/**/*.tsx",
+    "../components/**/*.ts",
+    "../components/**/*.tsx",
+    "../hooks/**/*.ts",
+    "../hooks/**/*.tsx",
+    "../lib/**/*.ts",
+    "../lib/**/*.tsx"
+  ],
+  "exclude": ["../node_modules", "../app/api"]
+}

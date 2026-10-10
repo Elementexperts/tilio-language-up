@@ -26,6 +26,7 @@ import { playAchievementSound, playRewardSound, playTapSound } from '@/lib/sound
 import { useProgressSync } from '@/hooks/use-progress-sync'
 import { CloudSyncIndicator } from '@/components/cloud-sync-indicator'
 import { isAuthRequired } from '@/lib/auth-mode'
+import { isCapacitorAndroid } from '@/lib/platform'
 
 export default function TilioApp() {
   useProgressSync()
@@ -110,6 +111,39 @@ export default function TilioApp() {
     window.addEventListener('pointerdown', handleTap, { passive: true })
     return () => window.removeEventListener('pointerdown', handleTap)
   }, [isSoundEnabled])
+
+  useEffect(() => {
+    if (!isCapacitorAndroid()) return
+
+    let removeListener: (() => Promise<void>) | undefined
+    void import('@capacitor/app').then(async ({ App }) => {
+      const listener = await App.addListener('backButton', () => {
+        const state = useAppStore.getState()
+        if (state.showLevelUpModal) {
+          state.closeLevelUpModal()
+          return
+        }
+        if (state.showStreakSavedModal) {
+          state.closeStreakSavedModal()
+          return
+        }
+        if (state.achievementPopups.length > 0) {
+          state.removeAchievementPopup(state.achievementPopups[0].id)
+          return
+        }
+        if (!['home', 'splash', 'auth', 'onboarding'].includes(state.currentScreen)) {
+          state.setScreen('home')
+          return
+        }
+        void App.exitApp()
+      })
+      removeListener = () => listener.remove()
+    })
+
+    return () => {
+      void removeListener?.()
+    }
+  }, [])
 
   // Render current screen
   const renderScreen = () => {

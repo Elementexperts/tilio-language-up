@@ -1,5 +1,4 @@
 import type { Metadata, Viewport } from 'next'
-import Script from 'next/script'
 import { SpeedInsights } from '@vercel/speed-insights/next'
 import './globals.css'
 
@@ -42,12 +41,6 @@ export default function RootLayout({
 }) {
   return (
     <html suppressHydrationWarning lang="en">
-      <head>
-        <Script 
-          src="https://telegram.org/js/telegram-web-app.js" 
-          strategy="beforeInteractive"
-        />
-      </head>
       <body className="font-sans antialiased bg-background overflow-x-hidden">
         <div className="min-h-screen max-w-lg mx-auto">
           {children}

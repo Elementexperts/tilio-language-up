@@ -1,6 +1,7 @@
 'use client'
 
 import { useEffect, useState, useCallback } from 'react'
+import { ensureTelegramSdk, isCapacitorAndroid } from '@/lib/platform'
 
 interface TelegramUser {
   id: number
@@ -84,9 +85,14 @@ export function useTelegram() {
   const [isTelegramEnv, setIsTelegramEnv] = useState(false)
 
   useEffect(() => {
-    const tg = window.Telegram?.WebApp
+    let cancelled = false
 
-    if (tg?.initData) {
+    const initialize = async () => {
+      await ensureTelegramSdk()
+      if (cancelled) return
+      const tg = window.Telegram?.WebApp
+
+      if (tg?.initData && !isCapacitorAndroid()) {
       setWebApp(tg)
       setUser(tg.initDataUnsafe?.user || null)
       setIsTelegramEnv(true)
@@ -97,7 +103,7 @@ export function useTelegram() {
         console.warn('Telegram WebApp SDK could not initialize fully.', error)
       }
       setIsReady(true)
-    } else {
+      } else {
       setIsTelegramEnv(false)
       setIsReady(true)
       setUser({
@@ -107,6 +113,12 @@ export function useTelegram() {
         username: 'demo_user',
         language_code: 'en',
       })
+      }
+    }
+
+    void initialize()
+    return () => {
+      cancelled = true
     }
   }, [])
 
